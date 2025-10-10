@@ -123,18 +123,24 @@ const TestimonialsSection = () => {
               
               {/* Testimonial content */}
               <blockquote className="text-2xl md:text-3xl text-slate-200 leading-relaxed italic mb-8 relative">
-                {mockData.testimonials[currentTestimonial].text}
+                {testimonials[currentTestimonial]?.text}
               </blockquote>
 
               {/* Author info */}
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xl font-semibold text-blue-400 mb-1">
-                    {mockData.testimonials[currentTestimonial].author}
+                    {testimonials[currentTestimonial]?.author}
                   </div>
                   <div className="text-slate-400">
-                    {mockData.testimonials[currentTestimonial].role}
+                    {testimonials[currentTestimonial]?.role}
+                    {testimonials[currentTestimonial]?.company && ` - ${testimonials[currentTestimonial].company}`}
                   </div>
+                  {testimonials[currentTestimonial]?.location && (
+                    <div className="text-slate-500 text-sm">
+                      {testimonials[currentTestimonial].location}
+                    </div>
+                  )}
                 </div>
 
                 {/* Star rating */}
