@@ -108,6 +108,66 @@ async def get_status_checks():
     
     return status_checks
 
+# Testimonials Endpoints
+@api_router.get("/testimonials")
+async def get_testimonials(language: str = None, featured: bool = None):
+    """Get all testimonials with optional language and featured filters"""
+    query = {}
+    if language:
+        query['language'] = language
+    if featured is not None:
+        query['featured'] = featured
+    
+    testimonials = await db.testimonials.find(query, {"_id": 0}).to_list(1000)
+    
+    # Convert ISO string timestamps back to datetime objects
+    for testimonial in testimonials:
+        if isinstance(testimonial.get('created_at'), str):
+            testimonial['created_at'] = datetime.fromisoformat(testimonial['created_at'])
+    
+    return {"testimonials": testimonials}
+
+@api_router.post("/testimonials", response_model=Testimonial, status_code=201)
+async def create_testimonial(input: TestimonialCreate):
+    """Create a new testimonial"""
+    testimonial = Testimonial(**input.model_dump())
+    
+    # Convert to dict and serialize datetime to ISO string for MongoDB
+    doc = testimonial.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.testimonials.insert_one(doc)
+    return testimonial
+
+# Clients Endpoints
+@api_router.get("/clients")
+async def get_clients(featured: bool = None):
+    """Get all client companies with optional featured filter"""
+    query = {}
+    if featured is not None:
+        query['featured'] = featured
+    
+    clients = await db.clients.find(query, {"_id": 0}).to_list(1000)
+    
+    # Convert ISO string timestamps back to datetime objects
+    for client in clients:
+        if isinstance(client.get('created_at'), str):
+            client['created_at'] = datetime.fromisoformat(client['created_at'])
+    
+    return {"clients": clients}
+
+@api_router.post("/clients", response_model=Client, status_code=201)
+async def create_client(input: ClientCreate):
+    """Create a new client company"""
+    client = Client(**input.model_dump())
+    
+    # Convert to dict and serialize datetime to ISO string for MongoDB
+    doc = client.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.clients.insert_one(doc)
+    return client
+
 # Include the router in the main app
 app.include_router(api_router)
 
