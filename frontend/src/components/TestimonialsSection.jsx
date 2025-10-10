@@ -49,7 +49,7 @@ const TestimonialsSection = () => {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.01 }
     );
 
     if (sectionRef.current) {
@@ -58,6 +58,13 @@ const TestimonialsSection = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  // Set visible after data loads as fallback
+  useEffect(() => {
+    if (!loading && testimonials.length > 0) {
+      setIsVisible(true);
+    }
+  }, [loading, testimonials]);
 
   const nextTestimonial = () => {
     setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
