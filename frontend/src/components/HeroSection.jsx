@@ -55,7 +55,9 @@ const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-2 mb-8 group hover:border-blue-500/50 transition-all duration-300">
             <Sparkles size={16} className="text-blue-400 group-hover:animate-pulse" />
-            <span className="text-sm text-slate-300 font-medium">Metodo Proprietario Brevettato</span>
+            <span className="text-sm text-slate-300 font-medium">
+              {isItalian ? 'Metodo Proprietario Brevettato' : 'Proprietary Patented Method'}
+            </span>
           </div>
 
           {/* Main heading */}
@@ -65,17 +67,17 @@ const HeroSection = () => {
             </span>
             <br />
             <span className="text-slate-300 text-2xl md:text-4xl lg:text-5xl font-normal">
-              L'Eccellenza nella
+              {isItalian ? "L'Eccellenza nella" : "Excellence in"}
             </span>
             <br />
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-              Fonologia Articolatoria
+              {isItalian ? "Fonetica Articolatoria" : "Articulatory Phonetics"}
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-4xl mx-auto leading-relaxed">
-            {mockData.hero.subtitle}
+            {content.subtitle}
           </p>
 
           {/* CTA Buttons */}
