@@ -232,14 +232,22 @@ const TestimonialsSection = () => {
           
           <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-2xl p-8 max-w-4xl mx-auto">
             
-            <h3 className="text-2xl font-bold text-white mb-6">Riconoscimento Globale</h3>
+            <h3 className="text-2xl font-bold text-white mb-6">Riconoscimenti Globali</h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-center">
               {[
-                { label: "EF Education", desc: "Metodo Approvato" },
+                { label: "Diesse", desc: "Associazione Docenti" },
+                { label: "MUR & MIUR", desc: "Ministeri Istruzione" },
+                { label: "Università Torino", desc: "LFAG Fonetica" },
+                { label: "E-Campus", desc: "Università Online" },
+                { label: "Oxford Alumni", desc: "Business Courses" },
+                { label: "EF Education First", desc: "Metodo Approvato" },
                 { label: "Cambridge", desc: "Assessment Partner" },
-                { label: "MIUR", desc: "Riconoscimento Ufficiale" },
-                { label: "App Globali", desc: "Milioni di Utenti" }
+                { label: "H-Farm & Link", desc: "University Partners" },
+                { label: "Senato Repubblica", desc: "Commissione Antimafia" },
+                { label: "Harvard BS Roma", desc: "Business Chapter" },
+                { label: "BCG & Accenture", desc: "Fortune 500" },
+                { label: "Dell & Hitachi", desc: "Tech Leaders" }
               ].map((item, index) => (
                 <div key={index} className="group">
                   <div className="w-16 h-16 mx-auto mb-3 bg-slate-700/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600/20 transition-all duration-300">
