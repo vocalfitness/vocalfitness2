@@ -1,13 +1,75 @@
 export const mockData = {
-  hero: {
-    title: "VocalFitness: L'Eccellenza nella Fonologia Articolatoria",
-    subtitle: "Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza della fonologia articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.",
-    ctaButtons: [
-      { text: "Prenota una Consulenza", type: "primary" },
-      { text: "Scopri il Metodo", type: "secondary" }
-    ]
+  // Language content
+  languages: {
+    it: {
+      hero: {
+        title: "VocalFitness: L'Eccellenza nella Fonetica Articolatoria",
+        subtitle: "Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza della fonetica articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.",
+        ctaButtons: [
+          { text: "Prenota una Consulenza", type: "primary" },
+          { text: "Scopri il Metodo", type: "secondary" }
+        ]
+      },
+      professor: {
+        name: "Professor Steve Dapper",
+        title: "Ponte tra Business Internazionale, Educazione e Leadership",
+        titleRoles: "INTERNATIONAL BUSINESS DEVELOPER | ENGLISH PROFESSOR OF PHONETICS | FORTUNE 500 EXECUTIVE | PUBLISHED AUTHOR",
+        experience: "oltre tre decenni",
+        image: "https://images.unsplash.com/photo-1543132220-7bc04a0e790a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjAwODg2NzV8MA&ixlib=rb-4.1.0&q=85",
+        bio: "Con oltre tre decenni di esperienza globale, unisco i mondi del business internazionale, dell'educazione, dei media e della leadership esecutiva.",
+        description: "Come executive Fortune 500 e sviluppatore di business globale, ho guidato iniziative transatlantiche, consigliato governi statunitensi ed europei, e aiutato aziende a espandersi in nuovi mercati attraverso le Americhe, l'Europa e l'Asia. Ho servito con orgoglio istituzioni come il Dipartimento del Commercio degli Stati Uniti, AMCHAM e Select USA, collegando governi, Fortune 500 e startup visionarie. Parallelamente, sono Fondatore e Presidente di VocalFitness, un metodo scientifico e orientato ai risultati per padroneggiare la pronuncia inglese attraverso la fonetica articolatoria. Ho formato migliaia di studenti, da influencer a CEO, e attualmente tengo lezioni come Professore di Fonetica Inglese in alcune delle principali istituzioni educative europee. Il mio metodo è approvato da EF, Cambridge Assessment, MIUR e integrato in app linguistiche leader come EWA, Elsa Speak e ABA English. Come Autore Pubblicato, voice artist e produttore esecutivo, il mio lavoro ha spaziato dai film di Hollywood alle major discografiche e ai contenuti educativi OTT trasmessi in tutto il mondo. Sono anche creatore e host di 'Dappersclass', una serie edutainment popolare che unisce musica, fonetica e padronanza linguistica, raggiungendo milioni di persone attraverso piattaforme social e servizi di streaming. Soprattutto, sono appassionato di costruire ponti significativi: tra culture, tra industrie e tra le persone e il loro pieno potenziale.",
+        roles: [
+          "Fortune 500 Executive",
+          "Global Business Developer", 
+          "Professore di Fonetica Inglese",
+          "Autore Pubblicato",
+          "Voice Artist & Produttore"
+        ],
+        achievements: [
+          "Consulenza a governi USA ed europei",
+          "U.S. Department of Commerce, AMCHAM, Select USA",
+          "Metodo approvato da EF, Cambridge Assessment, MIUR",
+          "Integrato in EWA, Elsa Speak, ABA English",
+          "Creatore di Dappersclass (milioni di visualizzazioni)"
+        ]
+      }
+    },
+    en: {
+      hero: {
+        title: "VocalFitness: Excellence in Articulatory Phonetics",
+        subtitle: "The proprietary patented method that transforms global communication through the science of ESOL articulatory phonetics, prosody, and vocal muscle conditioning.",
+        ctaButtons: [
+          { text: "Book a Consultation", type: "primary" },
+          { text: "Discover the Method", type: "secondary" }
+        ]
+      },
+      professor: {
+        name: "Professor Steve Dapper",
+        title: "Bridging International Business, Education & Leadership",
+        titleRoles: "INTERNATIONAL BUSINESS DEVELOPER | ENGLISH PROFESSOR OF PHONETICS | FORTUNE 500 EXECUTIVE | PUBLISHED AUTHOR",
+        experience: "over three decades",
+        image: "https://images.unsplash.com/photo-1543132220-7bc04a0e790a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjAwODg2NzV8MA&ixlib=rb-4.1.0&q=85",
+        bio: "With over three decades of global experience, I bridge the worlds of international business, education, media, and executive leadership.",
+        description: "As a Fortune 500 executive and global business developer, I've led transatlantic initiatives, advised U.S. and European governments, and helped scale corporations into new markets across the Americas, Europe, and Asia. I've proudly served institutions such as the U.S. Department of Commerce, AMCHAM, and Select USA, connecting governments, Fortune 500s, and visionary startups alike. In parallel, I am the Founder and President of Vocal Fitness, a scientific and results-driven method for mastering English pronunciation through articulatory phonetics. I've trained thousands of learners, from influencers to CEOs, and currently lecture as an English Professor of Phonetics in some of Europe's top educational institutions. My method is endorsed by EF, Cambridge Assessment, MIUR, and integrated into leading language apps like EWA, Elsa Speak, and ABA English. As a Published Author, voice artist, and executive producer, my work has spanned Hollywood films, major record labels, and educational OTT content broadcast worldwide. I'm also the creator and host of 'Dappersclass,' a popular edutainment series that merges music, phonetics, and language mastery—reaching millions across social platforms and streaming services. Above all, I'm passionate about building meaningful bridges: between cultures, between industries, and between people and their fullest potential.",
+        roles: [
+          "Fortune 500 Executive",
+          "Global Business Developer", 
+          "English Professor of Phonetics",
+          "Published Author",
+          "Voice Artist & Producer"
+        ],
+        achievements: [
+          "Advised U.S. and European governments",
+          "U.S. Department of Commerce, AMCHAM, Select USA",
+          "Method endorsed by EF, Cambridge Assessment, MIUR",
+          "Integrated in EWA, Elsa Speak, ABA English",
+          "Creator of Dappersclass (millions of views)"
+        ]
+      }
+    }
   },
 
+  // Shared data that doesn't need translation
   professor: {
     name: "Professor Steve Dapper",
     title: "L'Architetto della Comunicazione Globale",
