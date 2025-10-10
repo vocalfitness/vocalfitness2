@@ -46,127 +46,114 @@ const ProfessorSection = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        {/* Magazine-Style Layout - Full Width */}
+        <div className="space-y-12">
           
-          {/* Left: Professor Image & Stats */}
-          <div className={`transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
+          {/* Hero Section - Full Width Impact */}
+          <div className={`transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             
-            {/* Premium Executive Layout */}
-            <div className="relative">
+            <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/60 backdrop-blur-xl rounded-3xl border border-slate-700/50 overflow-hidden">
               
-              {/* Dynamic glowing background that responds to mouse */}
-              <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-3xl blur-3xl opacity-80"></div>
-              
-              {/* Main executive card */}
-              <div className="relative bg-slate-800/60 backdrop-blur-xl border border-slate-700/60 rounded-3xl overflow-hidden hover:border-blue-500/60 transition-all duration-700 transform hover:scale-[1.02]">
-                
-                {/* Elite header with power statement */}
-                <div className="bg-gradient-to-r from-slate-900/90 to-slate-800/90 p-6 border-b border-slate-700/50">
-                  <div className="text-center">
-                    <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-1 mb-3">
-                      <Award size={14} className="text-blue-400" />
-                      <span className="text-xs text-blue-300 font-medium tracking-wider">ELITE AUTHORITY</span>
+              {/* Power Header */}
+              <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/20 px-8 py-6 border-b border-slate-700/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center">
+                      <Award size={24} className="text-white" />
                     </div>
-                    <p className="text-sm text-slate-300 leading-relaxed italic">
-                      {content.powerStatement}
-                    </p>
+                    <div>
+                      <div className="text-blue-400 font-bold text-sm tracking-wider">ELITE AUTHORITY</div>
+                      <div className="text-slate-300 text-xs">{content.titleRoles}</div>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex items-center gap-2">
+                    <div className="bg-emerald-600/20 border border-emerald-500/30 rounded-full px-3 py-1">
+                      <span className="text-xs text-emerald-300 font-bold">30+ YEARS</span>
+                    </div>
+                    <div className="bg-blue-600/20 border border-blue-500/30 rounded-full px-3 py-1">
+                      <span className="text-xs text-blue-300 font-bold">PROFESSOR</span>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Professional portrait section - enhanced */}
-                <div className="p-8">
+              <div className="grid lg:grid-cols-5 gap-0">
+                
+                {/* Left: Enhanced Portrait Section */}
+                <div className="lg:col-span-2 p-8 bg-gradient-to-br from-slate-900/50 to-slate-800/30">
                   
-                  {/* Main portrait with sophisticated frame */}
-                  <div className="relative w-56 h-56 mx-auto mb-6 group">
-                    {/* Animated border effects */}
-                    <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 rounded-2xl blur-md group-hover:blur-lg transition-all duration-500"></div>
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/50 to-cyan-600/50 rounded-2xl animate-pulse"></div>
-                    
-                    {/* Portrait container */}
-                    <div className="relative w-full h-full rounded-2xl overflow-hidden border-2 border-slate-600/50 group-hover:border-blue-500/70 transition-all duration-500">
+                  {/* Main Portrait - Larger & More Impactful */}
+                  <div className="relative group mb-6">
+                    <div className="absolute -inset-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden border-3 border-slate-600/50 group-hover:border-blue-500/70 transition-all duration-500">
                       <img 
                         src={content.image}
-                        alt="Professor Steve Dapper - Fortune 500 Executive & University Professor"
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 filter group-hover:brightness-110"
-                        style={{
-                          filter: 'contrast(1.1) saturate(1.1)',
-                        }}
+                        alt="Professor Steve Dapper"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                        style={{ filter: 'contrast(1.15) saturate(1.1) brightness(0.95)' }}
                       />
-                      {/* Sophisticated overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    </div>
-                    
-                    {/* Floating credential badges */}
-                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl px-3 py-1.5 shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-300">
-                      <span className="text-xs text-white font-bold">30+ YEARS</span>
-                    </div>
-                    <div className="absolute -bottom-3 -left-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl px-3 py-1.5 shadow-lg transform -rotate-12 group-hover:rotate-0 transition-transform duration-300">
-                      <span className="text-xs text-white font-bold">PROFESSOR</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     </div>
                   </div>
 
-                  {/* Executive identity section */}
-                  <div className="text-center mb-8">
-                    <h3 className="text-3xl font-bold text-white mb-2">{content.name}</h3>
-                    <p className="text-lg text-blue-400 font-semibold mb-2">{content.title}</p>
-                    <p className="text-sm text-slate-400 mb-4">{content.subtitle}</p>
-                    
-                    {/* Credentials bar */}
-                    <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/30">
-                      <p className="text-xs text-slate-300 font-medium tracking-wider leading-relaxed">
-                        {content.titleRoles}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Elite achievement grid - redesigned */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Quick Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
                     {[
-                      { icon: Award, label: "Fortune 500", desc: "Executive Leader", color: "from-yellow-500 to-orange-500" },
-                      { icon: Globe, label: "Global", desc: "Business Dev", color: "from-blue-500 to-cyan-500" },
-                      { icon: BookOpen, label: isItalian ? "Professore" : "Professor", desc: isItalian ? "Fonetica" : "Phonetics", color: "from-emerald-500 to-teal-500" },
-                      { icon: Mic, label: "Voice Artist", desc: "& Producer", color: "from-purple-500 to-pink-500" }
-                    ].map((item, index) => (
-                      <div key={index} className="relative group/card">
-                        {/* Card glow */}
-                        <div className={`absolute -inset-0.5 bg-gradient-to-r ${item.color} rounded-xl blur-sm opacity-0 group-hover/card:opacity-30 transition-opacity duration-300`}></div>
-                        
-                        <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-xl p-4 text-center hover:bg-slate-800/60 transition-all duration-300 transform hover:scale-105 border border-slate-700/30 group-hover/card:border-slate-600/50">
-                          
-                          {/* Icon with gradient background */}
-                          <div className={`w-10 h-10 mx-auto mb-3 rounded-lg bg-gradient-to-r ${item.color} p-0.5`}>
-                            <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center">
-                              <item.icon size={20} className="text-white" />
-                            </div>
-                          </div>
-                          
-                          <div className="text-sm font-semibold text-white mb-1">{item.label}</div>
-                          <div className="text-xs text-slate-400">{item.desc}</div>
-                          
-                          {/* Progress indicator */}
-                          <div className="mt-2 w-full h-0.5 bg-slate-700 rounded-full overflow-hidden">
-                            <div className={`h-full bg-gradient-to-r ${item.color} rounded-full transition-all duration-1000 delay-${(index + 1) * 200} ${isVisible ? 'w-full' : 'w-0'}`}></div>
+                      { icon: Award, value: "Fortune 500", label: "Executive", color: "from-yellow-500 to-orange-500" },
+                      { icon: BookOpen, value: "Professor", label: "University", color: "from-blue-500 to-cyan-500" },
+                      { icon: Globe, value: "Global", label: "Advisor", color: "from-emerald-500 to-teal-500" },
+                      { icon: Mic, value: "Voice Artist", label: "Producer", color: "from-purple-500 to-pink-500" }
+                    ].map((stat, index) => (
+                      <div key={index} className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300 group/stat">
+                        <div className={`w-8 h-8 mx-auto mb-2 rounded-lg bg-gradient-to-r ${stat.color} p-0.5`}>
+                          <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center">
+                            <stat.icon size={16} className="text-white" />
                           </div>
                         </div>
+                        <div className="text-xs font-semibold text-white text-center">{stat.value}</div>
+                        <div className="text-xs text-slate-400 text-center">{stat.label}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Exclusive credibility statement */}
-                  <div className="bg-gradient-to-r from-slate-900/70 to-slate-800/70 rounded-2xl p-4 border border-slate-700/40">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                        <Sparkles size={16} className="text-white" />
-                      </div>
-                      <h4 className="text-sm font-semibold text-blue-400">
-                        {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
-                      </h4>
+                </div>
+
+                {/* Right: Dense Content Layout */}
+                <div className="lg:col-span-3 p-8 space-y-6">
+                  
+                  {/* Main Identity */}
+                  <div>
+                    <h3 className="text-4xl font-bold text-white mb-2">{content.name}</h3>
+                    <h4 className="text-xl text-blue-400 font-semibold mb-2">{content.title}</h4>
+                    <p className="text-slate-400 text-sm">{content.subtitle}</p>
+                  </div>
+
+                  {/* Power Statement */}
+                  <div className="bg-slate-800/30 rounded-2xl p-5 border border-slate-700/40">
+                    <div className="text-blue-400 font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Sparkles size={16} />
+                      {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      {isItalian 
-                        ? 'L\'unico professionista che combina leadership Fortune 500 con cattedra universitaria di Fonetica Inglese—creando l\'esperienza definitiva per executive elite.'
-                        : 'The only professional combining Fortune 500 leadership with University Professor of English Phonetics—creating the definitive experience for elite executives.'
-                      }
+                    <p className="text-slate-300 text-sm leading-relaxed italic">
+                      {content.powerStatement}
+                    </p>
+                  </div>
+
+                  {/* Bio Summary */}
+                  <div className="bg-gradient-to-r from-slate-800/40 to-slate-700/20 rounded-2xl p-5 border border-slate-700/40">
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      {content.bio}
+                    </p>
+                  </div>
+
+                  {/* Corporate Value - Compact */}
+                  <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/10 rounded-2xl p-5 border border-emerald-700/30">
+                    <div className="text-emerald-400 font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Globe size={16} />
+                      {isItalian ? 'Valore per Executive C-Suite' : 'C-Suite Executive Value'}
+                    </div>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      {content.corporateValue}
                     </p>
                   </div>
 
