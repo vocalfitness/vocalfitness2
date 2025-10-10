@@ -196,28 +196,33 @@ const ProfessorSection = () => {
                       </div>
                     </div>
 
-                    {/* Power Statement - Premium card */}
-                    <div className="relative group">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                      <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/60 backdrop-blur-2xl rounded-3xl border border-slate-600/50 p-8 shadow-2xl">
+                    {/* Power Statement - Apple-inspired premium card */}
+                    <div className="relative group premium-card-hover transition-all duration-700">
+                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/25 to-cyan-500/25 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-700"></div>
+                      <div className="relative apple-glass bg-gradient-to-br from-slate-800/90 to-slate-900/70 rounded-[2rem] border border-white/10 p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]">
                         
-                        {/* Premium header */}
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Sparkles size={24} className="text-white" />
+                        {/* Premium header with enhanced styling */}
+                        <div className="flex items-center gap-6 mb-8">
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-[0_8px_32px_rgba(59,130,246,0.4)] transform group-hover:scale-110 transition-transform duration-300">
+                            <Sparkles size={28} className="text-white" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-blue-400 tracking-wide">
+                            <h3 className="text-2xl font-bold text-blue-400 tracking-wide apple-text-shadow">
                               {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
                             </h3>
-                            <div className="text-sm text-slate-500 font-light">Unprecedented Combination</div>
+                            <div className="text-base text-slate-400 font-light tracking-wider mt-1">Unprecedented Combination</div>
                           </div>
                         </div>
 
-                        {/* Statement with premium typography */}
-                        <blockquote className="text-lg text-slate-200 leading-relaxed font-light italic border-l-4 border-blue-500/50 pl-6">
-                          {content.powerStatement}
+                        {/* Statement with Apple-level typography */}
+                        <blockquote className="text-xl text-slate-100 leading-loose font-light italic border-l-4 border-gradient-to-b border-blue-400 pl-8 tracking-wide">
+                          "{content.powerStatement}"
                         </blockquote>
+                        
+                        {/* Subtle decorative element */}
+                        <div className="mt-6 flex justify-end">
+                          <div className="w-12 h-0.5 bg-gradient-to-r from-transparent to-blue-400/50"></div>
+                        </div>
                       </div>
                     </div>
 
