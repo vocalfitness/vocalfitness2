@@ -24,15 +24,15 @@ const CorporateClientsSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Loghi processati uniformemente (stile come su vocalfitness.org)
+  // Loghi processati uniformemente dal sito vocalfitness.org
   const clients = [
-    {
-      name: "Accenture",
-      logo: "https://cloud-1de12d.becdn.net/media/iW=186&iH=67&oX=0&oY=0&cW=186&cH=67/ad63d8b5dd6f42c132feb7830ee8635d.png"
-    },
     {
       name: "BASF",
       logo: "https://cloud-1de12d.becdn.net/media/iW=258&iH=129&oX=0&oY=0&cW=258&cH=129/fde7d7897bc94923b604e7bbdbdb4ebf.png"
+    },
+    {
+      name: "Accenture",
+      logo: "https://cloud-1de12d.becdn.net/media/iW=186&iH=67&oX=0&oY=0&cW=186&cH=67/ad63d8b5dd6f42c132feb7830ee8635d.png"
     },
     {
       name: "Electrolux",
