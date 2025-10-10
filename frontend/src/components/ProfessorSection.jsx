@@ -268,14 +268,15 @@ const ProfessorSection = () => {
 
           </div>
 
-          {/* Professional Gallery Section */}
-          <div className={`mt-20 transition-all duration-1000 delay-800 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          {/* Compact Professional Contexts */}
+          <div className={`mt-12 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             
-            <div className="text-center mb-12">
-              <h3 className="text-2xl font-bold text-white mb-4">
+            {/* Compact Header */}
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold text-white mb-2 text-center">
                 {isItalian ? 'Professor Dapper in Azione' : 'Professor Dapper in Action'}
               </h3>
-              <p className="text-slate-400 max-w-2xl mx-auto">
+              <p className="text-slate-400 text-center text-sm max-w-3xl mx-auto">
                 {isItalian 
                   ? 'Dall\'aula universitaria alle sale riunioni Fortune 500, dalla consulenza governativa alle presentazioni internazionali.'
                   : 'From university classrooms to Fortune 500 boardrooms, from government consulting to international presentations.'
@@ -283,140 +284,131 @@ const ProfessorSection = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            {/* Horizontal Layout - Space Efficient */}
+            <div className="bg-slate-800/40 backdrop-blur-md rounded-3xl border border-slate-700/50 overflow-hidden">
               
-              {/* Academic Excellence */}
-              <div className="group relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 group-hover:border-blue-500/50 transition-all duration-500 transform hover:scale-105">
-                  
-                  <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-blue-900/20 to-cyan-900/20">
-                    <img 
-                      src="https://images.unsplash.com/photo-1758518730083-4c12527b6742?crop=entropy&cs=srgb&fm=jpg&q=85"
-                      alt="Professor Dapper - Academic Teaching"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
-                    />
-                    <div className="absolute inset-0 bg-slate-900/20"></div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
+              <div className="grid lg:grid-cols-3 gap-0">
+                
+                {/* Academic Excellence */}
+                <div className="group p-6 border-b lg:border-b-0 lg:border-r border-slate-700/30 hover:bg-slate-700/20 transition-all duration-300">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0">
                       <BookOpen size={20} className="text-white" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-white">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-white mb-1">
                         {isItalian ? 'Eccellenza Accademica' : 'Academic Excellence'}
                       </h4>
-                      <p className="text-sm text-blue-400">
+                      <p className="text-sm text-blue-400 font-medium">
                         {isItalian ? 'Professore Universitario' : 'University Professor'}
                       </p>
                     </div>
                   </div>
                   
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  {/* Compact image */}
+                  <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-blue-900/20 to-cyan-900/20">
+                    <img 
+                      src="https://images.unsplash.com/photo-1758518730083-4c12527b6742?crop=entropy&cs=srgb&fm=jpg&q=85"
+                      alt="Academic Excellence"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {isItalian 
-                      ? 'Cattedra di Fonetica Inglese nelle più prestigiose istituzioni educative europee, formando la prossima generazione di leader comunicativi.'
-                      : 'Chair of English Phonetics at Europe\'s most prestigious educational institutions, training the next generation of communicative leaders.'
+                      ? 'Cattedra di Fonetica Inglese nelle più prestigiose istituzioni educative europee.'
+                      : 'Chair of English Phonetics at Europe\'s most prestigious educational institutions.'
                     }
                   </p>
                 </div>
-              </div>
 
-              {/* Corporate Consulting */}
-              <div className="group relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 group-hover:border-emerald-500/50 transition-all duration-500 transform hover:scale-105">
-                  
-                  <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-emerald-900/20 to-teal-900/20">
-                    <img 
-                      src="https://images.unsplash.com/photo-1758691736407-02406d18df6c?crop=entropy&cs=srgb&fm=jpg&q=85"
-                      alt="Professor Dapper - Corporate Consulting"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
-                    />
-                    <div className="absolute inset-0 bg-slate-900/20"></div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
+                {/* Corporate Consulting */}
+                <div className="group p-6 border-b lg:border-b-0 lg:border-r border-slate-700/30 hover:bg-slate-700/20 transition-all duration-300">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Globe size={20} className="text-white" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-white">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-white mb-1">
                         {isItalian ? 'Consulenza Fortune 500' : 'Fortune 500 Consulting'}
                       </h4>
-                      <p className="text-sm text-emerald-400">
+                      <p className="text-sm text-emerald-400 font-medium">
                         {isItalian ? 'Business Developer' : 'Business Developer'}
                       </p>
                     </div>
                   </div>
                   
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-emerald-900/20 to-teal-900/20">
+                    <img 
+                      src="https://images.unsplash.com/photo-1758691736407-02406d18df6c?crop=entropy&cs=srgb&fm=jpg&q=85"
+                      alt="Corporate Consulting"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {isItalian 
-                      ? 'Tre decenni di leadership aziendale e sviluppo internazionale, guidando iniziative transatlantiche per multinazionali.'
-                      : 'Three decades of corporate leadership and international development, leading transatlantic initiatives for multinationals.'
+                      ? 'Tre decenni di leadership aziendale e sviluppo internazionale per multinazionali.'
+                      : 'Three decades of corporate leadership and international development for multinationals.'
                     }
                   </p>
                 </div>
-              </div>
 
-              {/* Government Advisory */}
-              <div className="group relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 group-hover:border-purple-500/50 transition-all duration-500 transform hover:scale-105">
-                  
-                  <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
-                    <img 
-                      src="https://images.unsplash.com/photo-1758691736821-f1a600c0c3f1?crop=entropy&cs=srgb&fm=jpg&q=85"
-                      alt="Professor Dapper - Government Advisory"
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
-                    />
-                    <div className="absolute inset-0 bg-slate-900/20"></div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                {/* Government Advisory */}
+                <div className="group p-6 hover:bg-slate-700/20 transition-all duration-300">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Award size={20} className="text-white" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-white">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-white mb-1">
                         {isItalian ? 'Consulenza Governativa' : 'Government Advisory'}
                       </h4>
-                      <p className="text-sm text-purple-400">
+                      <p className="text-sm text-purple-400 font-medium">
                         {isItalian ? 'Consigliere Ufficiale' : 'Official Advisor'}
                       </p>
                     </div>
                   </div>
                   
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+                    <img 
+                      src="https://images.unsplash.com/photo-1758691736821-f1a600c0c3f1?crop=entropy&cs=srgb&fm=jpg&q=85"
+                      alt="Government Advisory"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                      style={{ filter: 'contrast(1.1) saturate(0.9) brightness(0.95)' }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {isItalian 
-                      ? 'Consulente per U.S. Department of Commerce, AMCHAM e Select USA, collegando governi e multinazionali.'
-                      : 'Advisor to U.S. Department of Commerce, AMCHAM, and Select USA, connecting governments and multinationals.'
+                      ? 'Consulente per U.S. Department of Commerce, AMCHAM e Select USA.'
+                      : 'Advisor to U.S. Department of Commerce, AMCHAM, and Select USA.'
                     }
                   </p>
                 </div>
+
               </div>
 
-            </div>
-
-            {/* Call to Action */}
-            <div className="mt-12 text-center">
-              <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl p-8 max-w-4xl mx-auto border border-slate-600/50">
-                <h4 className="text-2xl font-bold text-white mb-4">
-                  {isItalian ? 'Esperienza Unita alla Scienza' : 'Experience Meets Science'}
-                </h4>
-                <p className="text-slate-300 mb-6 leading-relaxed">
-                  {isItalian 
-                    ? 'Quando leadership corporate e autorità accademica si combinano, nasce un\'esperienza di trasformazione vocale senza precedenti. Professor Dapper non offre solo training—offre evoluzione comunicativa per leader d\'élite.'
-                    : 'When corporate leadership and academic authority combine, an unprecedented vocal transformation experience is born. Professor Dapper doesn\'t offer just training—he offers communicative evolution for elite leaders.'
-                  }
-                </p>
-                <button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25">
-                  {isItalian ? 'Scopri l\'Esperienza VocalFitness' : 'Discover the VocalFitness Experience'}
-                </button>
+              {/* Integrated CTA at bottom */}
+              <div className="bg-gradient-to-r from-slate-900/60 to-slate-800/40 p-8 border-t border-slate-700/30">
+                <div className="text-center">
+                  <h4 className="text-xl font-bold text-white mb-3">
+                    {isItalian ? 'Esperienza Unita alla Scienza' : 'Experience Meets Science'}
+                  </h4>
+                  <p className="text-slate-300 text-sm mb-6 max-w-3xl mx-auto leading-relaxed">
+                    {isItalian 
+                      ? 'Quando leadership corporate e autorità accademica si combinano, nasce un\'esperienza di trasformazione vocale senza precedenti.'
+                      : 'When corporate leadership and academic authority combine, an unprecedented vocal transformation experience is born.'
+                    }
+                  </p>
+                  <button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-sm">
+                    {isItalian ? 'Scopri l\'Esperienza VocalFitness' : 'Discover the VocalFitness Experience'}
+                  </button>
+                </div>
               </div>
+
             </div>
 
           </div>
