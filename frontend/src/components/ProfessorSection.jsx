@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 const ProfessorSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
+  const { language, isItalian } = useLanguage();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -23,6 +24,8 @@ const ProfessorSection = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  const content = mockData.languages[language].professor;
 
   return (
     <section id="professor" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-950 to-slate-900">
