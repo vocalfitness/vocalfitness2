@@ -56,12 +56,34 @@ const TestimonialsSection = () => {
   }, []);
 
   const nextTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev + 1) % mockData.testimonials.length);
+    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
   };
 
   const prevTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev - 1 + mockData.testimonials.length) % mockData.testimonials.length);
+    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <section id="testimonials" className="py-24 bg-slate-950 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="text-slate-400 text-xl">Loading testimonials...</div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show error state with fallback
+  if (error && testimonials.length === 0) {
+    return (
+      <section id="testimonials" className="py-24 bg-slate-950 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="text-red-400 text-xl">Error loading testimonials: {error}</div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="testimonials" ref={sectionRef} className="py-24 bg-slate-950 relative overflow-hidden">
