@@ -34,6 +34,48 @@ class StatusCheck(BaseModel):
     client_name: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Testimonials Models
+class TestimonialCreate(BaseModel):
+    text: str
+    author: str
+    role: str
+    company: str = ""
+    location: str = ""
+    language: str = "en"
+    featured: bool = False
+
+class Testimonial(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    text: str
+    author: str
+    role: str
+    company: str = ""
+    location: str = ""
+    language: str = "en"
+    featured: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Clients Models
+class ClientCreate(BaseModel):
+    name: str
+    logo_url: str
+    website: str = ""
+    sector: str = ""
+    featured: bool = False
+
+class Client(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    logo_url: str
+    website: str = ""
+    sector: str = ""
+    featured: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class StatusCheckCreate(BaseModel):
     client_name: str
 
