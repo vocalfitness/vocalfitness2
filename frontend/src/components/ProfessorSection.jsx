@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Award, Users, Globe, BookOpen, Mic } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const ProfessorSection = () => {
   const [isVisible, setIsVisible] = useState(false);
