@@ -145,56 +145,27 @@ const ProfessorSection = () => {
                     </p>
                   </div>
 
-                    {/* Bio & Value Proposition - Advanced animated twin cards */}
-                    <div className="grid md:grid-cols-2 gap-8">
-                      
-                      {/* Bio card - Advanced Apple animations */}
-                      <div className="apple-scroll-fade apple-parallax relative group premium-card-hover transition-all duration-500" data-scroll-speed="0.1" style={{ animationDelay: '1.4s' }}>
-                        <div className="absolute -inset-1 bg-gradient-to-r from-slate-500/30 to-slate-400/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 apple-glow-pulse"></div>
-                        <div className="relative apple-glass bg-gradient-to-br from-slate-800/70 to-slate-900/50 rounded-3xl apple-border-glow p-8 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]">
-                          
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-14 h-14 bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
-                              <Award size={20} className="text-white" />
-                            </div>
-                            <h4 className="text-xl font-bold text-white apple-text-shadow tracking-wide">
-                              {isItalian ? 'Rarità Globale' : 'Global Rarity'}
-                            </h4>
-                          </div>
-                          
-                          <p className="text-base text-slate-200 leading-loose font-light tracking-wide">
-                            {content.bio}
-                          </p>
-                          
-                          {/* Subtle accent */}
-                          <div className="mt-6 w-16 h-0.5 bg-gradient-to-r from-slate-400 to-transparent"></div>
-                        </div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 premium-card">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Award size={20} className="text-blue-400" />
+                        <h4 className="text-lg font-bold text-white">
+                          {isItalian ? 'Rarità Globale' : 'Global Rarity'}
+                        </h4>
                       </div>
-
-                      {/* Corporate value card - Advanced Apple animations */}
-                      <div className="apple-scroll-fade apple-parallax relative group premium-card-hover transition-all duration-500" data-scroll-speed="0.15" style={{ animationDelay: '1.6s' }}>
-                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 apple-glow-pulse"></div>
-                        <div className="relative apple-glass bg-gradient-to-br from-emerald-900/40 to-teal-900/30 rounded-3xl apple-border-glow p-8 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.2)]">
-                          
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-[0_8px_32px_rgba(16,185,129,0.4)] transform group-hover:scale-110 transition-transform duration-300">
-                              <Globe size={20} className="text-white" />
-                            </div>
-                            <h4 className="text-xl font-bold text-emerald-400 apple-text-shadow tracking-wide">
-                              {isItalian ? 'Valore C-Suite' : 'C-Suite Value'}
-                            </h4>
-                          </div>
-                          
-                          <p className="text-base text-slate-200 leading-loose font-light tracking-wide">
-                            {content.corporateValue}
-                          </p>
-                          
-                          {/* Subtle accent */}
-                          <div className="mt-6 w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-transparent"></div>
-                        </div>
-                      </div>
-
+                      <p className="text-slate-300 leading-relaxed">{content.bio}</p>
                     </div>
+
+                    <div className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 backdrop-blur-md rounded-2xl p-6 border border-emerald-700/30 premium-card">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Globe size={20} className="text-emerald-400" />
+                        <h4 className="text-lg font-bold text-emerald-400">
+                          {isItalian ? 'Valore C-Suite' : 'C-Suite Value'}
+                        </h4>
+                      </div>
+                      <p className="text-slate-300 leading-relaxed">{content.corporateValue}</p>
+                    </div>
+                  </div>
 
                   </div>
 
