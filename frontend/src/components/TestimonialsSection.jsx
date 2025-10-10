@@ -20,12 +20,9 @@ const TestimonialsSection = () => {
       try {
         setLoading(true);
         const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
-        console.log('Fetching testimonials from:', `${backendUrl}/api/testimonials?language=${language}`);
         const response = await axios.get(`${backendUrl}/api/testimonials?language=${language}`);
         
-        console.log('Testimonials response:', response.data);
         if (response.data && response.data.testimonials) {
-          console.log('Setting testimonials:', response.data.testimonials.length, 'items');
           setTestimonials(response.data.testimonials);
         }
         setLoading(false);
@@ -33,7 +30,6 @@ const TestimonialsSection = () => {
         console.error('Error fetching testimonials:', err);
         setError(err.message);
         // Fallback to mock data on error
-        console.log('Using fallback mock data');
         setTestimonials(mockData.testimonials);
         setLoading(false);
       }
