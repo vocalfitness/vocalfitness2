@@ -12,25 +12,35 @@ export const mockData = {
       },
       professor: {
         name: "Professor Steve Dapper",
-        title: "Ponte tra Business Internazionale, Educazione e Leadership",
+        title: "L'Autorità Globale che Trasforma Executive Fortune 500",
+        subtitle: "Quando Leadership Aziendale e Maestria Linguistica si Incontrano",
         titleRoles: "INTERNATIONAL BUSINESS DEVELOPER | ENGLISH PROFESSOR OF PHONETICS | FORTUNE 500 EXECUTIVE | PUBLISHED AUTHOR",
         experience: "oltre tre decenni",
-        image: "https://images.unsplash.com/photo-1543132220-7bc04a0e790a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjAwODg2NzV8MA&ixlib=rb-4.1.0&q=85",
-        bio: "Con oltre tre decenni di esperienza globale, unisco i mondi del business internazionale, dell'educazione, dei media e della leadership esecutiva.",
-        description: "Come executive Fortune 500 e sviluppatore di business globale, ho guidato iniziative transatlantiche, consigliato governi statunitensi ed europei, e aiutato aziende a espandersi in nuovi mercati attraverso le Americhe, l'Europa e l'Asia. Ho servito con orgoglio istituzioni come il Dipartimento del Commercio degli Stati Uniti, AMCHAM e Select USA, collegando governi, Fortune 500 e startup visionarie. Parallelamente, sono Fondatore e Presidente di VocalFitness, un metodo scientifico e orientato ai risultati per padroneggiare la pronuncia inglese attraverso la fonetica articolatoria. Ho formato migliaia di studenti, da influencer a CEO, e attualmente tengo lezioni come Professore di Fonetica Inglese in alcune delle principali istituzioni educative europee. Il mio metodo è approvato da EF, Cambridge Assessment, MIUR e integrato in app linguistiche leader come EWA, Elsa Speak e ABA English. Come Autore Pubblicato, voice artist e produttore esecutivo, il mio lavoro ha spaziato dai film di Hollywood alle major discografiche e ai contenuti educativi OTT trasmessi in tutto il mondo. Sono anche creatore e host di 'Dappersclass', una serie edutainment popolare che unisce musica, fonetica e padronanza linguistica, raggiungendo milioni di persone attraverso piattaforme social e servizi di streaming. Soprattutto, sono appassionato di costruire ponti significativi: tra culture, tra industrie e tra le persone e il loro pieno potenziale.",
+        image: "https://customer-assets.emergentagent.com/job_modern-voice-1/artifacts/70px3i54__MG_2481.jpg",
+        powerStatement: "L'unico professionista al mondo che combina 30+ anni di leadership Fortune 500 con autorità accademica in fonetica articolatoria—creando l'esperienza definitiva per executive che rifiutano compromessi nella comunicazione globale.",
+        bio: "Professor Steve Dapper rappresenta una rarità assoluta nel panorama professionale globale: un executive Fortune 500 che è simultaneamente Professore Universitario di Fonetica Inglese. Questa combinazione unica di credenziali aziendali d'élite e autorità accademica scientifica lo posiziona come l'unico professionista qualificato a guidare leader corporate verso l'eccellenza comunicativa che definisce i veri protagonisti dei mercati internazionali.",
+        corporateValue: "Per CEO, CFO e C-suite executives che operano in contesti multinazionali, Professor Dapper elimina il divario tra competenza linguistica e credibilità executive. Non è solo padronanza della pronuncia inglese—è acquisizione dell'autorevolezza vocale che distingue i leader globali da semplici manager. Quando dirigenti Fortune 500 devono negoziare acquisizioni multimilionarie, presentare a board internazionali o guidare call strategiche con stakeholder globali, la precisione articolatoria diventa un asset strategico non negoziabile.",
+        description: "La carriera di Professor Steve Dapper attraversa tre decenni di risultati eccezionali in due domini apparentemente distinti ma strategicamente complementari. Nel mondo corporate, ha operato come International Business Developer e Fortune 500 Executive, guidando iniziative transatlantiche che hanno ridefinito mercati e creato valore per miliardi di dollari. Ha consigliato direttamente governi statunitensi ed europei attraverso il U.S. Department of Commerce, AMCHAM e Select USA, posizionandosi come ponte strategico tra superpotenze economiche e mercati emergenti. Nel panorama accademico, Professor Dapper detiene la cattedra di Professore di Fonetica Inglese nelle più prestigiose istituzioni educative europee, dove la sua ricerca pionieristica in fonetica articolatoria ESOL ha rivoluzionato l'approccio scientifico all'acquisizione linguistica per adulti. Il suo metodo VocalFitness—brevettato e validato da enti di calibro mondiale come EF Education First, Cambridge Assessment e MIUR—è integrato nelle app linguistiche leader globali (EWA, Elsa Speak, ABA English) che servono milioni di professionisti internazionali. Come Published Author e Executive Producer, ha collaborato con studi Hollywood e major discografiche, mentre la sua serie 'Dappersclass' raggiunge audience globali attraverso piattaforme streaming, consolidando la sua influenza come comunicatore di livello mondiale. Questa convergenza di eccellenza corporate e autorità accademica crea un'esperienza di trasformazione vocale senza precedenti per leader che esigono risultati misurabili e duraturi.",
         roles: [
-          "Fortune 500 Executive",
-          "Global Business Developer", 
-          "Professore di Fonetica Inglese",
-          "Autore Pubblicato",
-          "Voice Artist & Produttore"
+          "Fortune 500 Executive & International Business Developer",
+          "Professore Universitario di Fonetica Inglese", 
+          "Consulente Governativo USA/Europa",
+          "Published Author & Executive Producer",
+          "Creatore del Metodo VocalFitness Brevettato"
         ],
         achievements: [
-          "Consulenza a governi USA ed europei",
-          "U.S. Department of Commerce, AMCHAM, Select USA",
-          "Metodo approvato da EF, Cambridge Assessment, MIUR",
-          "Integrato in EWA, Elsa Speak, ABA English",
-          "Creatore di Dappersclass (milioni di visualizzazioni)"
+          "30+ anni di leadership Fortune 500 in mercati USA/Europa",
+          "Cattedra di Professore di Fonetica nelle top istituzioni europee",
+          "Consulente ufficiale: U.S. Department of Commerce, AMCHAM, Select USA",
+          "Metodo validato da EF, Cambridge Assessment, MIUR",
+          "Integrazione in app globali: EWA, Elsa Speak, ABA English (milioni di utenti)",
+          "Dappersclass: serie edutainment con reach globale multimilionario"
+        ],
+        credibilityMarkers: [
+          "Unico professionista con doppia autorità: Corporate Fortune 500 + Accademica Universitaria",
+          "Metodo proprietario brevettato riconosciuto da enti internazionali",
+          "Track record documentato di trasformazione vocale per C-suite executives",
+          "Consulenza diretta a governi e multinazionali per oltre tre decenni"
         ]
       }
     },
