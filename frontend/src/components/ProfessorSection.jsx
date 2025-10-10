@@ -347,10 +347,10 @@ const ProfessorSection = () => {
                       </div>
                     </div>
 
-                    {/* Power Statement - Apple-inspired premium card */}
-                    <div className="relative group premium-card-hover transition-all duration-700">
-                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/25 to-cyan-500/25 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-700"></div>
-                      <div className="relative apple-glass bg-gradient-to-br from-slate-800/90 to-slate-900/70 rounded-[2rem] border border-white/10 p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]">
+                    {/* Power Statement - Advanced Apple card with animations */}
+                    <div className="apple-scroll-fade apple-parallax relative group premium-card-hover transition-all duration-700" data-scroll-speed="0.2" style={{ animationDelay: '1.2s' }}>
+                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/25 to-cyan-500/25 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-700 apple-glow-pulse"></div>
+                      <div className="relative apple-glass bg-gradient-to-br from-slate-800/90 to-slate-900/70 rounded-[2rem] apple-border-glow p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]">
                         
                         {/* Premium header with enhanced styling */}
                         <div className="flex items-center gap-6 mb-8">
