@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const { language, isItalian } = useLanguage();
 
   useEffect(() => {
     setIsVisible(true);
@@ -21,6 +22,8 @@ const HeroSection = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  const content = mockData.languages[language].hero;
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
