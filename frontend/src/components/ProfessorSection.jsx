@@ -35,12 +35,15 @@ const ProfessorSection = () => {
         <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Professor Steve Dapper
+              {content.name}
             </span>
           </h2>
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-            {mockData.professor.title}
+          <p className="text-xl text-slate-400 max-w-4xl mx-auto mb-4">
+            {content.title}
           </p>
+          <div className="text-sm text-blue-400 font-medium tracking-wider">
+            {content.titleRoles}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-center">
