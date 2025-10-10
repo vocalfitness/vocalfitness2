@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { ArrowRight, Play, Sparkles } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
