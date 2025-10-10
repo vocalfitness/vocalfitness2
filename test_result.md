@@ -119,15 +119,18 @@ backend:
 
   - task: "Testimonials API Endpoints"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented GET /api/testimonials with language and featured filters, and POST /api/testimonials for creating new testimonials. Added Pydantic models TestimonialCreate and Testimonial."
+      - working: true
+        agent: "testing"
+        comment: "✅ All testimonials API endpoints tested successfully: GET /api/testimonials returns 6 testimonials with proper structure, language filter (en/it) returns 3 testimonials each, featured filter returns all 6 testimonials, POST /api/testimonials creates new testimonial with auto-generated UUID and timestamp. All responses have correct status codes (200/201) and proper JSON structure."
 
   - task: "Clients API Endpoints"
     implemented: true
