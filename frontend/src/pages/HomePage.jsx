@@ -7,6 +7,7 @@ import StatsSection from '../components/StatsSection';
 import AudienceSection from '../components/AudienceSection';
 import ProcessSection from '../components/ProcessSection';
 import TestimonialsSection from '../components/TestimonialsSection';
+import DappersClassSection from '../components/DappersClassSection';
 import CorporateClientsSection from '../components/CorporateClientsSection';
 import SuccessStoriesSection from '../components/SuccessStoriesSection';
 import CTASection from '../components/CTASection';
