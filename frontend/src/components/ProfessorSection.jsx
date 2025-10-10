@@ -131,35 +131,19 @@ const ProfessorSection = () => {
                   </div>
                     </div>
 
-                    {/* Power Statement - Advanced Apple card with animations */}
-                    <div className="apple-scroll-fade apple-parallax relative group premium-card-hover transition-all duration-700" data-scroll-speed="0.2" style={{ animationDelay: '1.2s' }}>
-                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/25 to-cyan-500/25 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-700 apple-glow-pulse"></div>
-                      <div className="relative apple-glass bg-gradient-to-br from-slate-800/90 to-slate-900/70 rounded-[2rem] apple-border-glow p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]">
-                        
-                        {/* Premium header with enhanced styling */}
-                        <div className="flex items-center gap-6 mb-8">
-                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-[0_8px_32px_rgba(59,130,246,0.4)] transform group-hover:scale-110 transition-transform duration-300">
-                            <Sparkles size={28} className="text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-2xl font-bold text-blue-400 tracking-wide apple-text-shadow">
-                              {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
-                            </h3>
-                            <div className="text-base text-slate-400 font-light tracking-wider mt-1">Unprecedented Combination</div>
-                          </div>
-                        </div>
-
-                        {/* Statement with Apple-level typography */}
-                        <blockquote className="text-xl text-slate-100 leading-loose font-light italic border-l-4 border-gradient-to-b border-blue-400 pl-8 tracking-wide">
-                          "{content.powerStatement}"
-                        </blockquote>
-                        
-                        {/* Subtle decorative element */}
-                        <div className="mt-6 flex justify-end">
-                          <div className="w-12 h-0.5 bg-gradient-to-r from-transparent to-blue-400/50"></div>
-                        </div>
+                  <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 premium-card">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
+                        <Sparkles size={20} className="text-white" />
                       </div>
+                      <h3 className="text-xl font-bold text-blue-400">
+                        {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
+                      </h3>
                     </div>
+                    <p className="text-slate-300 leading-relaxed italic">
+                      "{content.powerStatement}"
+                    </p>
+                  </div>
 
                     {/* Bio & Value Proposition - Advanced animated twin cards */}
                     <div className="grid md:grid-cols-2 gap-8">
