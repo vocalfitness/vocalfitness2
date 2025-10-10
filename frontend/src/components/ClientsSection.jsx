@@ -1,34 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Building2, Award } from 'lucide-react';
+import { Building2, Award, GraduationCap } from 'lucide-react';
 import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
 
 const ClientsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [recognitions, setRecognitions] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const sectionRef = useRef(null);
+  const { language } = useLanguage();
 
-  // Fetch clients from API
+  // Fetch clients and recognitions from API
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
         const response = await axios.get(`${backendUrl}/api/clients?featured=true`);
         
         if (response.data && response.data.clients) {
-          setClients(response.data.clients);
+          // Separate recognitions and clients
+          const recognitionsList = response.data.clients.filter(item => item.category === 'recognition');
+          const clientsList = response.data.clients.filter(item => item.category === 'client');
+          
+          setRecognitions(recognitionsList);
+          setClients(clientsList);
         }
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching clients:', err);
+        console.error('Error fetching data:', err);
         setError(err.message);
         setLoading(false);
       }
     };
 
-    fetchClients();
+    fetchData();
   }, []);
 
   useEffect(() => {
