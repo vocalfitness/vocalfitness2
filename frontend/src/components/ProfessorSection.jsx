@@ -403,10 +403,10 @@ const ProfessorSection = () => {
                         </div>
                       </div>
 
-                      {/* Corporate value card - Enhanced Apple style */}
-                      <div className="relative group premium-card-hover transition-all duration-500">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                        <div className="relative apple-glass bg-gradient-to-br from-emerald-900/40 to-teal-900/30 rounded-3xl border border-emerald-400/20 p-8 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.2)]">
+                      {/* Corporate value card - Advanced Apple animations */}
+                      <div className="apple-scroll-fade apple-parallax relative group premium-card-hover transition-all duration-500" data-scroll-speed="0.15" style={{ animationDelay: '1.6s' }}>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 apple-glow-pulse"></div>
+                        <div className="relative apple-glass bg-gradient-to-br from-emerald-900/40 to-teal-900/30 rounded-3xl apple-border-glow p-8 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.2)]">
                           
                           <div className="flex items-center gap-4 mb-6">
                             <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-[0_8px_32px_rgba(16,185,129,0.4)] transform group-hover:scale-110 transition-transform duration-300">
