@@ -102,11 +102,15 @@ const HeroSection = () => {
 
           {/* Floating cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
+            {(isItalian ? [
               { title: "Risultati in 8-12 Settimane", desc: "Trasformazione rapida e permanente" },
               { title: "Metodo Brevettato", desc: "Approccio scientifico validato" },
               { title: "Leader Globali", desc: "Migliaia di professionisti formati" }
-            ].map((item, index) => (
+            ] : [
+              { title: "Results in 8-12 Weeks", desc: "Rapid and permanent transformation" },
+              { title: "Patented Method", desc: "Scientifically validated approach" },
+              { title: "Global Leaders", desc: "Thousands of professionals trained" }
+            ]).map((item, index) => (
               <div 
                 key={index}
                 className={`bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 hover:bg-slate-800/50 transition-all duration-500 transform hover:-translate-y-2 ${
