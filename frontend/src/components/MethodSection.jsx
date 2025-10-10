@@ -44,18 +44,18 @@ const MethodSection = () => {
         <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              {mockData.method.title}
+              {content.title}
             </span>
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8">
-            {mockData.method.subtitle}
+            {content.subtitle}
           </p>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 mx-auto rounded-full"></div>
         </div>
 
         {/* Three Pillars */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {mockData.method.pillars.map((pillar, index) => {
+          {content.pillars.map((pillar, index) => {
             const IconComponent = icons[index];
             const isActive = activePillar === index;
             
