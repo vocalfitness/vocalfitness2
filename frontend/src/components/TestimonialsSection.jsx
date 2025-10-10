@@ -14,6 +14,30 @@ const TestimonialsSection = () => {
   const sectionRef = useRef(null);
   const { language } = useLanguage();
 
+  // Fetch testimonials from API
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        setLoading(true);
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+        const response = await axios.get(`${backendUrl}/api/testimonials?language=${language}`);
+        
+        if (response.data && response.data.testimonials) {
+          setTestimonials(response.data.testimonials);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching testimonials:', err);
+        setError(err.message);
+        // Fallback to mock data on error
+        setTestimonials(mockData.testimonials);
+        setLoading(false);
+      }
+    };
+
+    fetchTestimonials();
+  }, [language]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
