@@ -245,9 +245,7 @@ const TestimonialsSection = () => {
                 { label: "Cambridge", desc: "Assessment Partner" },
                 { label: "H-Farm & Link", desc: "University Partners" },
                 { label: "Senato Repubblica", desc: "Commissione Antimafia" },
-                { label: "Harvard BS Roma", desc: "Business Chapter" },
-                { label: "BCG & Accenture", desc: "Fortune 500" },
-                { label: "Dell & Hitachi", desc: "Tech Leaders" }
+                { label: "Harvard BS Roma", desc: "Business Chapter" }
               ].map((item, index) => (
                 <div key={index} className="group">
                   <div className="w-16 h-16 mx-auto mb-3 bg-slate-700/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600/20 transition-all duration-300">
