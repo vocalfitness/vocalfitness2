@@ -56,6 +56,9 @@ const ProfessorSection = () => {
 
   return (
     <section id="professor" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-950 to-slate-900">
+      {/* Inject custom Apple-style CSS */}
+      <style dangerouslySetInnerHTML={{ __html: appleStyles }} />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
