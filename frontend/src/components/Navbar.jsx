@@ -106,9 +106,19 @@ const Navbar = () => {
                   {item.label}
                 </a>
               ))}
-              <div className="pt-4">
+              <div className="pt-4 space-y-3">
+                {/* Mobile Language Toggle */}
+                <Button
+                  variant="ghost"
+                  onClick={toggleLanguage}
+                  className="w-full text-slate-300 hover:text-white flex items-center justify-center gap-2 border border-slate-600 hover:border-blue-500/50"
+                >
+                  <Globe size={16} />
+                  <span>{language.toUpperCase()}</span>
+                </Button>
+                
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium">
-                  Prenota Consulenza
+                  {isItalian ? 'Prenota Consulenza' : 'Book Consultation'}
                 </Button>
               </div>
             </div>
