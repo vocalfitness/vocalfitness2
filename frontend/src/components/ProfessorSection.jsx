@@ -3,6 +3,33 @@ import { Award, Users, Globe, BookOpen, Mic, Sparkles } from 'lucide-react';
 import { mockData } from '../data/mock';
 import { useLanguage } from '../context/LanguageContext';
 
+// Custom CSS for Apple-style effects
+const appleStyles = `
+  .apple-text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  
+  .apple-glass {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .apple-glow:hover {
+    filter: drop-shadow(0 0 2rem rgba(59, 130, 246, 0.3));
+  }
+  
+  .apple-typography {
+    font-variation-settings: 'wght' 900;
+    letter-spacing: -0.05em;
+    line-height: 0.85;
+  }
+  
+  .premium-card-hover:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+`;
+
 const ProfessorSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
