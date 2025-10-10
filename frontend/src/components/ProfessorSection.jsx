@@ -75,16 +75,22 @@ const ProfessorSection = () => {
           <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
             <div className="space-y-8">
               
-              {/* Main Identity */}
+              {/* Main Identity - RESTORED PERFECT TYPOGRAPHY */}
               <div>
-                <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 leading-tight">
-                  Professor Steve Dapper
+                <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none mb-6">
+                  <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent drop-shadow-2xl">
+                    Professor
+                  </span>
+                  <br />
+                  <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                    Steve Dapper
+                  </span>
                 </h1>
-                <h2 className="text-2xl text-blue-400 font-semibold mb-3">{content.title}</h2>
-                <p className="text-lg text-slate-400 mb-6">{content.subtitle}</p>
+                <h2 className="text-2xl md:text-3xl font-light text-slate-200 leading-relaxed tracking-wide mb-3">{content.title}</h2>
+                <p className="text-lg text-slate-400 font-light italic tracking-wide mb-6">{content.subtitle}</p>
                 
-                <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50">
-                  <p className="text-sm text-slate-300 font-medium">{content.titleRoles}</p>
+                <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl border border-slate-600/50 p-6 shadow-2xl">
+                  <p className="text-sm text-slate-300 font-medium tracking-wider uppercase">{content.titleRoles}</p>
                 </div>
               </div>
 
