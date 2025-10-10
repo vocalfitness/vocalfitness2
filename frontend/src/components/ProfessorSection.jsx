@@ -77,84 +77,165 @@ const ProfessorSection = () => {
                 </div>
               </div>
 
-              <div className="grid lg:grid-cols-5 gap-0">
+              {/* Apple-Style Premium Layout */}
+              <div className="relative overflow-hidden">
                 
-                {/* Left: Enhanced Portrait Section */}
-                <div className="lg:col-span-2 p-8 bg-gradient-to-br from-slate-900/50 to-slate-800/30">
-                  
-                  {/* Main Portrait - Larger & More Impactful */}
-                  <div className="relative group mb-6">
-                    <div className="absolute -inset-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden border-3 border-slate-600/50 group-hover:border-blue-500/70 transition-all duration-500">
-                      <img 
-                        src={content.image}
-                        alt="Professor Steve Dapper"
-                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                        style={{ filter: 'contrast(1.15) saturate(1.1) brightness(0.95)' }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    </div>
-                  </div>
-
-                  {/* Quick Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: Award, value: "Fortune 500", label: "Executive", color: "from-yellow-500 to-orange-500" },
-                      { icon: BookOpen, value: "Professor", label: "University", color: "from-blue-500 to-cyan-500" },
-                      { icon: Globe, value: "Global", label: "Advisor", color: "from-emerald-500 to-teal-500" },
-                      { icon: Mic, value: "Voice Artist", label: "Producer", color: "from-purple-500 to-pink-500" }
-                    ].map((stat, index) => (
-                      <div key={index} className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300 group/stat">
-                        <div className={`w-8 h-8 mx-auto mb-2 rounded-lg bg-gradient-to-r ${stat.color} p-0.5`}>
-                          <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center">
-                            <stat.icon size={16} className="text-white" />
-                          </div>
-                        </div>
-                        <div className="text-xs font-semibold text-white text-center">{stat.value}</div>
-                        <div className="text-xs text-slate-400 text-center">{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
+                {/* Cinematic Background Effects */}
+                <div className="absolute inset-0">
+                  <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-500/8 to-cyan-500/8 rounded-full blur-3xl animate-pulse"></div>
+                  <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-emerald-500/6 to-teal-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                 </div>
 
-                {/* Right: Dense Content Layout */}
-                <div className="lg:col-span-3 p-8 space-y-6">
+                <div className="relative grid lg:grid-cols-12 gap-12 p-12">
                   
-                  {/* Main Identity */}
-                  <div>
-                    <h3 className="text-4xl font-bold text-white mb-2">{content.name}</h3>
-                    <h4 className="text-xl text-blue-400 font-semibold mb-2">{content.title}</h4>
-                    <p className="text-slate-400 text-sm">{content.subtitle}</p>
-                  </div>
+                  {/* Left: Cinematic Portrait */}
+                  <div className="lg:col-span-5 flex flex-col items-center justify-center">
+                    
+                    {/* Hero Portrait - Apple Style */}
+                    <div className="relative group">
+                      
+                      {/* Multiple layered glow effects */}
+                      <div className="absolute -inset-8 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-full blur-3xl group-hover:blur-[60px] transition-all duration-1000"></div>
+                      <div className="absolute -inset-6 bg-gradient-to-r from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl group-hover:blur-[40px] transition-all duration-1000"></div>
+                      <div className="absolute -inset-4 bg-gradient-to-r from-blue-300/8 to-cyan-300/8 rounded-full blur-xl group-hover:blur-[30px] transition-all duration-1000"></div>
+                      
+                      {/* Main portrait container with glass effect */}
+                      <div className="relative w-80 h-80 rounded-3xl overflow-hidden group-hover:scale-105 transition-all duration-700">
+                        
+                        {/* Glass morphism border */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-3xl border border-white/20 backdrop-blur-sm"></div>
+                        
+                        <img 
+                          src={content.image}
+                          alt="Professor Steve Dapper"
+                          className="w-full h-full object-cover"
+                          style={{ 
+                            filter: 'contrast(1.2) saturate(1.15) brightness(1.05)',
+                            clipPath: 'inset(0 round 24px)'
+                          }}
+                        />
+                        
+                        {/* Premium overlay gradients */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5"></div>
+                      </div>
 
-                  {/* Power Statement */}
-                  <div className="bg-slate-800/30 rounded-2xl p-5 border border-slate-700/40">
-                    <div className="text-blue-400 font-semibold text-sm mb-2 flex items-center gap-2">
-                      <Sparkles size={16} />
-                      {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
+                      {/* Floating credentials - Premium positioning */}
+                      <div className="absolute -top-6 -right-6 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl px-6 py-3 shadow-2xl transform rotate-6 group-hover:rotate-3 transition-transform duration-500 border border-white/20">
+                        <span className="text-white font-bold text-sm tracking-wider">30+ YEARS</span>
+                      </div>
+                      <div className="absolute -bottom-6 -left-6 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl px-6 py-3 shadow-2xl transform -rotate-6 group-hover:-rotate-3 transition-transform duration-500 border border-white/20">
+                        <span className="text-white font-bold text-sm tracking-wider">PROFESSOR</span>
+                      </div>
                     </div>
-                    <p className="text-slate-300 text-sm leading-relaxed italic">
-                      {content.powerStatement}
-                    </p>
+
                   </div>
 
-                  {/* Bio Summary */}
-                  <div className="bg-gradient-to-r from-slate-800/40 to-slate-700/20 rounded-2xl p-5 border border-slate-700/40">
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      {content.bio}
-                    </p>
-                  </div>
+                  {/* Right: Apple-Style Typography & Content */}
+                  <div className="lg:col-span-7 flex flex-col justify-center space-y-8">
+                    
+                    {/* Main Identity - Apple Typography */}
+                    <div className="space-y-4">
+                      
+                      {/* Name with cinematic typography */}
+                      <h1 className="text-6xl md:text-7xl font-black tracking-tight leading-none">
+                        <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent drop-shadow-2xl">
+                          Professor
+                        </span>
+                        <br />
+                        <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent">
+                          Steve Dapper
+                        </span>
+                      </h1>
 
-                  {/* Corporate Value - Compact */}
-                  <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/10 rounded-2xl p-5 border border-emerald-700/30">
-                    <div className="text-emerald-400 font-semibold text-sm mb-2 flex items-center gap-2">
-                      <Globe size={16} />
-                      {isItalian ? 'Valore per Executive C-Suite' : 'C-Suite Executive Value'}
+                      {/* Subtitle with sophisticated styling */}
+                      <div className="space-y-2">
+                        <h2 className="text-2xl md:text-3xl font-light text-slate-200 leading-relaxed tracking-wide">
+                          {content.title}
+                        </h2>
+                        <div className="text-lg text-slate-400 font-light italic tracking-wide">
+                          {content.subtitle}
+                        </div>
+                      </div>
+
+                      {/* Credentials ribbon - Apple style */}
+                      <div className="inline-flex items-center bg-gradient-to-r from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-2xl border border-slate-600/50 p-4 shadow-2xl">
+                        <div className="text-xs text-slate-300 font-medium tracking-[0.2em] uppercase leading-relaxed">
+                          {content.titleRoles}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      {content.corporateValue}
-                    </p>
+
+                    {/* Power Statement - Premium card */}
+                    <div className="relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                      <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/60 backdrop-blur-2xl rounded-3xl border border-slate-600/50 p-8 shadow-2xl">
+                        
+                        {/* Premium header */}
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <Sparkles size={24} className="text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-blue-400 tracking-wide">
+                              {isItalian ? 'Autorità Unica Mondiale' : 'Unique Global Authority'}
+                            </h3>
+                            <div className="text-sm text-slate-500 font-light">Unprecedented Combination</div>
+                          </div>
+                        </div>
+
+                        {/* Statement with premium typography */}
+                        <blockquote className="text-lg text-slate-200 leading-relaxed font-light italic border-l-4 border-blue-500/50 pl-6">
+                          {content.powerStatement}
+                        </blockquote>
+                      </div>
+                    </div>
+
+                    {/* Bio & Value Proposition - Side by side premium cards */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      
+                      {/* Bio card */}
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-slate-600/20 to-slate-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
+                        <div className="relative bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-xl">
+                          
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-gradient-to-r from-slate-600 to-slate-500 rounded-xl flex items-center justify-center">
+                              <Award size={18} className="text-white" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-white">
+                              {isItalian ? 'Rarità Globale' : 'Global Rarity'}
+                            </h4>
+                          </div>
+                          
+                          <p className="text-sm text-slate-300 leading-relaxed font-light">
+                            {content.bio}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Corporate value card */}
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
+                        <div className="relative bg-gradient-to-br from-emerald-900/30 to-teal-900/20 backdrop-blur-xl rounded-2xl border border-emerald-700/40 p-6 shadow-xl">
+                          
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center">
+                              <Globe size={18} className="text-white" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-emerald-400">
+                              {isItalian ? 'Valore C-Suite' : 'C-Suite Value'}
+                            </h4>
+                          </div>
+                          
+                          <p className="text-sm text-slate-300 leading-relaxed font-light">
+                            {content.corporateValue}
+                          </p>
+                        </div>
+                      </div>
+
+                    </div>
+
                   </div>
 
                 </div>
