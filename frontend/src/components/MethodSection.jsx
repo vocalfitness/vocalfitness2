@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Brain, Waves, Zap } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const MethodSection = () => {
   const [isVisible, setIsVisible] = useState(false);
