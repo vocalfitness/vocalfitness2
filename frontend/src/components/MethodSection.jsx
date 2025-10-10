@@ -119,11 +119,14 @@ const MethodSection = () => {
         {/* Bottom section */}
         <div className={`mt-16 text-center transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-white mb-4">Approccio Scientifico Integrato</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">
+              {isItalian ? 'Approccio Scientifico Integrato' : 'Integrated Scientific Approach'}
+            </h3>
             <p className="text-slate-300 leading-relaxed">
-              Questi tre pilastri lavorano sinergicamente per produrre trasformazioni vocali permanenti e misurabili. 
-              VocalFitness non isola componenti comunicativi, ma integra fonologia, prosodia e condizionamento fisico 
-              in un sistema coerente che produce fluidità autentica piuttosto che correzioni frammentate.
+              {isItalian 
+                ? 'Questi tre pilastri lavorano sinergicamente per produrre trasformazioni vocali permanenti e misurabili. VocalFitness non isola componenti comunicativi, ma integra fonetica, prosodia e condizionamento fisico in un sistema coerente che produce fluidità autentica piuttosto che correzioni frammentate.'
+                : 'These three pillars work synergistically to produce permanent and measurable vocal transformations. VocalFitness does not isolate communicative components, but integrates phonetics, prosody, and physical conditioning into a coherent system that produces authentic fluency rather than fragmented corrections.'
+              }
             </p>
           </div>
         </div>
