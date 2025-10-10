@@ -256,15 +256,17 @@ const ClientsSection = () => {
 
         </div>
 
-        {/* Additional info */}
-        <div className={`mt-12 text-center transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-full">
-            <Building2 size={20} className="text-blue-400" />
-            <span className="text-slate-300">
-              Serving <span className="font-bold text-blue-400">{clients.length}+</span> prestigious organizations worldwide
-            </span>
+            {/* Client count */}
+            <div className={`mt-8 text-center transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <div className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800/30 backdrop-blur-sm border border-emerald-700/50 rounded-full">
+                <Building2 size={20} className="text-emerald-400" />
+                <span className="text-slate-300">
+                  <span className="font-bold text-emerald-400">{clients.length}+</span> {text.clientsCount}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </section>
