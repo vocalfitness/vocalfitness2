@@ -93,11 +93,20 @@ const ProfessorSection = () => {
           {/* Right: Content */}
           <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
             
+            {/* Bio Summary */}
+            <div className="mb-8 bg-slate-800/20 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/30">
+              <p className="text-lg text-slate-300 leading-relaxed italic">
+                {content.bio}
+              </p>
+            </div>
+
             {/* Roles */}
             <div className="mb-8">
-              <h4 className="text-xl font-semibold mb-4 text-blue-400">Ruoli Professionali</h4>
+              <h4 className="text-xl font-semibold mb-4 text-blue-400">
+                {isItalian ? 'Ruoli Professionali' : 'Professional Roles'}
+              </h4>
               <div className="space-y-3">
-                {mockData.professor.roles.map((role, index) => (
+                {content.roles.map((role, index) => (
                   <div key={index} className="flex items-center gap-3 group">
                     <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full group-hover:scale-150 transition-transform duration-300"></div>
                     <span className="text-slate-300 group-hover:text-white transition-colors duration-300">{role}</span>
@@ -107,10 +116,12 @@ const ProfessorSection = () => {
             </div>
 
             {/* Achievements */}
-            <div>
-              <h4 className="text-xl font-semibold mb-4 text-cyan-400">Principali Achievement</h4>
+            <div className="mb-8">
+              <h4 className="text-xl font-semibold mb-4 text-cyan-400">
+                {isItalian ? 'Principali Achievement' : 'Key Achievements'}
+              </h4>
               <div className="space-y-4">
-                {mockData.professor.achievements.map((achievement, index) => (
+                {content.achievements.map((achievement, index) => (
                   <div key={index} className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 hover:border-blue-500/50 hover:bg-slate-800/50 transition-all duration-300 group">
                     <div className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full mt-2 group-hover:scale-150 transition-transform duration-300"></div>
@@ -121,11 +132,11 @@ const ProfessorSection = () => {
               </div>
             </div>
 
-            {/* Quote */}
-            <div className="mt-8 bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl p-6 border border-slate-600/50">
-              <div className="text-4xl text-blue-400 mb-2">"</div>
-              <p className="text-slate-300 italic leading-relaxed">
-                La mia profonda passione risiede nel costruire ponti tra culture, industrie e il potenziale umano, permettendo a professionisti d'élite di eccellere nella comunicazione internazionale.
+            {/* Full Description - Expandable */}
+            <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl p-6 border border-slate-600/50">
+              <div className="text-4xl text-blue-400 mb-4">"</div>
+              <p className="text-slate-300 leading-relaxed text-sm">
+                {content.description}
               </p>
               <div className="text-right mt-4">
                 <div className="text-blue-400 font-medium">— Professor Steve Dapper</div>
