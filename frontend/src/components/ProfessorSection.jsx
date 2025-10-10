@@ -168,29 +168,29 @@ const ProfessorSection = () => {
                     <div className="space-y-4">
                       
                       {/* Name with cinematic typography */}
-                      <h1 className="text-6xl md:text-7xl font-black tracking-tight leading-none">
-                        <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent drop-shadow-2xl">
+                      <h1 className="apple-typography text-6xl md:text-8xl font-black tracking-tight leading-none apple-text-shadow">
+                        <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent">
                           Professor
                         </span>
                         <br />
-                        <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-400 bg-clip-text text-transparent apple-glow">
                           Steve Dapper
                         </span>
                       </h1>
 
                       {/* Subtitle with sophisticated styling */}
-                      <div className="space-y-2">
-                        <h2 className="text-2xl md:text-3xl font-light text-slate-200 leading-relaxed tracking-wide">
+                      <div className="space-y-3">
+                        <h2 className="text-3xl md:text-4xl font-thin text-slate-100 leading-tight tracking-wide apple-text-shadow">
                           {content.title}
                         </h2>
-                        <div className="text-lg text-slate-400 font-light italic tracking-wide">
+                        <div className="text-xl text-slate-300 font-extralight italic tracking-wider leading-relaxed">
                           {content.subtitle}
                         </div>
                       </div>
 
-                      {/* Credentials ribbon - Apple style */}
-                      <div className="inline-flex items-center bg-gradient-to-r from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-2xl border border-slate-600/50 p-4 shadow-2xl">
-                        <div className="text-xs text-slate-300 font-medium tracking-[0.2em] uppercase leading-relaxed">
+                      {/* Credentials ribbon - Premium Apple style */}
+                      <div className="inline-flex items-center apple-glass bg-gradient-to-r from-slate-800/70 to-slate-700/50 rounded-3xl border border-white/10 p-6 shadow-2xl premium-card-hover transition-all duration-500">
+                        <div className="text-sm text-slate-200 font-medium tracking-[0.15em] uppercase leading-loose">
                           {content.titleRoles}
                         </div>
                       </div>
