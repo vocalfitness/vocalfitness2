@@ -61,10 +61,21 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden md:block">
+          {/* Language Toggle & CTA Button */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* Language Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="text-slate-300 hover:text-white flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-600 hover:border-blue-500/50 transition-all duration-300"
+            >
+              <Globe size={16} />
+              <span className="text-sm font-medium">{language.toUpperCase()}</span>
+            </Button>
+            
             <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-              Prenota Consulenza
+              {isItalian ? 'Prenota Consulenza' : 'Book Consultation'}
             </Button>
           </div>
 
