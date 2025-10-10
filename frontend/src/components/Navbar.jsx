@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { language, toggleLanguage, isItalian } = useLanguage();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,12 +16,18 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
+  const navItems = isItalian ? [
     { label: 'Metodo', href: '#method' },
     { label: 'Professor Dapper', href: '#professor' },
     { label: 'Risultati', href: '#results' },
     { label: 'Processo', href: '#process' },
     { label: 'Testimonial', href: '#testimonials' }
+  ] : [
+    { label: 'Method', href: '#method' },
+    { label: 'Professor Dapper', href: '#professor' },
+    { label: 'Results', href: '#results' },
+    { label: 'Process', href: '#process' },
+    { label: 'Testimonials', href: '#testimonials' }
   ];
 
   return (
