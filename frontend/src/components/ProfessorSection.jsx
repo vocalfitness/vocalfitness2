@@ -46,34 +46,35 @@ const ProfessorSection = () => {
           </div>
         </div>
 
-        {/* Main Layout */}
-        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+        {/* Hero Layout - Fixed Pagination */}
+        <div className={`bg-slate-800/40 backdrop-blur-md rounded-3xl border border-slate-700/50 p-12 mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
-          {/* Left: Portrait */}
-          <div className={`transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <div className="flex justify-center">
+          <div className="grid lg:grid-cols-12 gap-12 items-start">
+            
+            {/* Left: Portrait - Proper Alignment */}
+            <div className="lg:col-span-4">
               <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-2xl"></div>
-                <div className="relative w-80 h-80 rounded-3xl overflow-hidden border-2 border-slate-600/50 group-hover:border-blue-500/70 transition-all duration-500">
+                <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-3xl blur-3xl group-hover:blur-[60px] transition-all duration-1000"></div>
+                <div className="relative w-full aspect-square max-w-sm mx-auto rounded-3xl overflow-hidden border-2 border-slate-600/50 group-hover:border-blue-500/70 transition-all duration-500">
                   <img 
                     src={content.image}
                     alt="Professor Steve Dapper"
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    style={{ filter: 'contrast(1.2) saturate(1.15) brightness(1.05)' }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent"></div>
                 </div>
-                <div className="absolute -top-3 -right-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl px-4 py-2 shadow-lg">
-                  <span className="text-white font-bold text-sm">30+ YEARS</span>
+                <div className="absolute -top-4 -right-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl px-4 py-2 shadow-2xl border border-white/20">
+                  <span className="text-white font-bold text-sm tracking-wider">30+ YEARS</span>
                 </div>
-                <div className="absolute -bottom-3 -left-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl px-4 py-2 shadow-lg">
-                  <span className="text-white font-bold text-sm">PROFESSOR</span>
+                <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl px-4 py-2 shadow-2xl border border-white/20">
+                  <span className="text-white font-bold text-sm tracking-wider">PROFESSOR</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right: Content */}
-          <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
-            <div className="space-y-8">
+            {/* Right: Content - Perfectly Aligned */}
+            <div className="lg:col-span-8 space-y-8">
               
               {/* Main Identity - RESTORED PERFECT TYPOGRAPHY */}
               <div>
