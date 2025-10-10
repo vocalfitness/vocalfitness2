@@ -226,46 +226,52 @@ const ProfessorSection = () => {
                       </div>
                     </div>
 
-                    {/* Bio & Value Proposition - Side by side premium cards */}
-                    <div className="grid md:grid-cols-2 gap-6">
+                    {/* Bio & Value Proposition - Apple-inspired twin cards */}
+                    <div className="grid md:grid-cols-2 gap-8">
                       
-                      {/* Bio card */}
-                      <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-slate-600/20 to-slate-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
-                        <div className="relative bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-xl">
+                      {/* Bio card - Enhanced Apple style */}
+                      <div className="relative group premium-card-hover transition-all duration-500">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-slate-500/30 to-slate-400/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                        <div className="relative apple-glass bg-gradient-to-br from-slate-800/70 to-slate-900/50 rounded-3xl border border-white/10 p-8 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]">
                           
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-gradient-to-r from-slate-600 to-slate-500 rounded-xl flex items-center justify-center">
-                              <Award size={18} className="text-white" />
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="w-14 h-14 bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                              <Award size={20} className="text-white" />
                             </div>
-                            <h4 className="text-lg font-semibold text-white">
+                            <h4 className="text-xl font-bold text-white apple-text-shadow tracking-wide">
                               {isItalian ? 'Rarità Globale' : 'Global Rarity'}
                             </h4>
                           </div>
                           
-                          <p className="text-sm text-slate-300 leading-relaxed font-light">
+                          <p className="text-base text-slate-200 leading-loose font-light tracking-wide">
                             {content.bio}
                           </p>
+                          
+                          {/* Subtle accent */}
+                          <div className="mt-6 w-16 h-0.5 bg-gradient-to-r from-slate-400 to-transparent"></div>
                         </div>
                       </div>
 
-                      {/* Corporate value card */}
-                      <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
-                        <div className="relative bg-gradient-to-br from-emerald-900/30 to-teal-900/20 backdrop-blur-xl rounded-2xl border border-emerald-700/40 p-6 shadow-xl">
+                      {/* Corporate value card - Enhanced Apple style */}
+                      <div className="relative group premium-card-hover transition-all duration-500">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                        <div className="relative apple-glass bg-gradient-to-br from-emerald-900/40 to-teal-900/30 rounded-3xl border border-emerald-400/20 p-8 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.2)]">
                           
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center">
-                              <Globe size={18} className="text-white" />
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-[0_8px_32px_rgba(16,185,129,0.4)] transform group-hover:scale-110 transition-transform duration-300">
+                              <Globe size={20} className="text-white" />
                             </div>
-                            <h4 className="text-lg font-semibold text-emerald-400">
+                            <h4 className="text-xl font-bold text-emerald-400 apple-text-shadow tracking-wide">
                               {isItalian ? 'Valore C-Suite' : 'C-Suite Value'}
                             </h4>
                           </div>
                           
-                          <p className="text-sm text-slate-300 leading-relaxed font-light">
+                          <p className="text-base text-slate-200 leading-loose font-light tracking-wide">
                             {content.corporateValue}
                           </p>
+                          
+                          {/* Subtle accent */}
+                          <div className="mt-6 w-16 h-0.5 bg-gradient-to-r from-emerald-400 to-transparent"></div>
                         </div>
                       </div>
 
