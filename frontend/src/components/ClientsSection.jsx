@@ -59,8 +59,8 @@ const ClientsSection = () => {
     );
   }
 
-  // Don't show section if no clients
-  if (error || clients.length === 0) {
+  // Don't show section if error or no clients after loading
+  if (!loading && clients.length === 0) {
     return null;
   }
 
