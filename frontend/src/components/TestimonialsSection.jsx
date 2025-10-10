@@ -169,7 +169,7 @@ const TestimonialsSection = () => {
 
           {/* Dots indicator */}
           <div className="flex justify-center mt-8 gap-2">
-            {testimonials.map((_, index) => (
+            {testimonials?.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentTestimonial(index)}
