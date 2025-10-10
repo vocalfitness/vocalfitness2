@@ -15,9 +15,12 @@ const ClientsSection = () => {
       try {
         setLoading(true);
         const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+        console.log('Fetching clients from:', `${backendUrl}/api/clients?featured=true`);
         const response = await axios.get(`${backendUrl}/api/clients?featured=true`);
         
+        console.log('Clients response:', response.data);
         if (response.data && response.data.clients) {
+          console.log('Setting clients:', response.data.clients.length, 'items');
           setClients(response.data.clients);
         }
         setLoading(false);
