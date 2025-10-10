@@ -48,12 +48,10 @@ const CorporateClientsSection = () => {
     }
   ];
 
-  // Aggiungiamo i clienti aggiuntivi dalla lista dell'utente
-  // Per questi useremo loghi placeholder uniformi dato che non erano su vocalfitness.org
+  // Clienti aggiuntivi dalla lista (senza loghi uniformi disponibili)
   const additionalClients = [
     "The Boston Consulting Group",
     "Hitachi",
-    "Dell Technologies",
     "The Alfio Bardolla Group",
     "TEVA Pharmaceuticals",
     "DIPHARMA"
