@@ -118,34 +118,17 @@ const ProfessorSection = () => {
                     {/* Main Identity - Apple Typography */}
                     <div className="space-y-4">
                       
-                      {/* Name with advanced Apple typography */}
-                      <h1 className="apple-typography apple-type-scale text-6xl md:text-8xl font-black tracking-tight leading-none apple-text-shadow mb-4">
-                        <span className="block apple-scroll-fade" style={{ animationDelay: '0.2s' }}>
-                          Professor
-                        </span>
-                        <span className="block apple-scroll-fade apple-glow" style={{ animationDelay: '0.4s' }}>
-                          Steve Dapper
-                        </span>
-                      </h1>
-
-                      {/* Subtitle with staggered animations */}
-                      <div className="space-y-4">
-                        <h2 className="apple-scroll-fade text-3xl md:text-4xl font-thin text-slate-100 leading-tight tracking-wide apple-text-shadow" style={{ animationDelay: '0.6s' }}>
-                          {content.title}
-                        </h2>
-                        <div className="apple-scroll-fade text-xl text-slate-300 font-extralight italic tracking-wider leading-relaxed" style={{ animationDelay: '0.8s' }}>
-                          {content.subtitle}
-                        </div>
-                      </div>
-
-                      {/* Credentials ribbon with advanced effects */}
-                      <div className="apple-scroll-fade premium-card-hover" style={{ animationDelay: '1s' }}>
-                        <div className="inline-flex items-center apple-glass bg-gradient-to-r from-slate-800/70 to-slate-700/50 rounded-3xl apple-border-glow p-6 shadow-2xl transition-all duration-500">
-                          <div className="text-sm text-slate-200 font-medium tracking-[0.15em] uppercase leading-loose">
-                            {content.titleRoles}
-                          </div>
-                        </div>
-                      </div>
+                  <div>
+                    <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 leading-tight">
+                      Professor Steve Dapper
+                    </h1>
+                    <h2 className="text-2xl text-blue-400 font-semibold mb-3">{content.title}</h2>
+                    <p className="text-lg text-slate-400 mb-6">{content.subtitle}</p>
+                    
+                    <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50">
+                      <p className="text-sm text-slate-300 font-medium">{content.titleRoles}</p>
+                    </div>
+                  </div>
                     </div>
 
                     {/* Power Statement - Advanced Apple card with animations */}
