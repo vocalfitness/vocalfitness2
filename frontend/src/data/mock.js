@@ -91,25 +91,48 @@ export const mockData = {
   },
 
   method: {
-    title: "La Scienza Dietro VocalFitness",
-    subtitle: "Tre Pilastri Fondamentali",
-    pillars: [
-      {
-        number: "01",
-        title: "Fonologia Articolatoria ESOL",
-        description: "Analisi dettagliata del posizionamento linguale, configurazione labiale, movimento mandibolare e controllo del flusso d'aria per padronanza precisa dei fonemi."
-      },
-      {
-        number: "02", 
-        title: "Prosodia Avanzata",
-        description: "Pattern soprasegmentali: intonazione, ritmo, accentuazione sillabica e timing che comunicano significato, emozione e intenzione."
-      },
-      {
-        number: "03",
-        title: "Condizionamento Muscolare",
-        description: "Coordinazione neuromuscolare sofisticata attraverso esercizi progressivi che sviluppano memoria muscolare articolatoria."
-      }
-    ]
+    it: {
+      title: "La Scienza Dietro VocalFitness",
+      subtitle: "Tre Pilastri Fondamentali",
+      pillars: [
+        {
+          number: "01",
+          title: "Fonetica Articolatoria ESOL",
+          description: "Analisi dettagliata del posizionamento linguale, configurazione labiale, movimento mandibolare e controllo del flusso d'aria per padronanza precisa dei fonemi."
+        },
+        {
+          number: "02", 
+          title: "Prosodia Avanzata",
+          description: "Pattern soprasegmentali: intonazione, ritmo, accentuazione sillabica e timing che comunicano significato, emozione e intenzione."
+        },
+        {
+          number: "03",
+          title: "Condizionamento Muscolare",
+          description: "Coordinazione neuromuscolare sofisticata attraverso esercizi progressivi che sviluppano memoria muscolare articolatoria."
+        }
+      ]
+    },
+    en: {
+      title: "The Science Behind VocalFitness",
+      subtitle: "Three Fundamental Pillars",
+      pillars: [
+        {
+          number: "01",
+          title: "ESOL Articulatory Phonetics",
+          description: "Detailed analysis of tongue positioning, lip configuration, jaw movement, and airflow control for precise phoneme mastery."
+        },
+        {
+          number: "02", 
+          title: "Advanced Prosody",
+          description: "Suprasegmental patterns: intonation, rhythm, syllabic stress, and timing that communicate meaning, emotion, and intention."
+        },
+        {
+          number: "03",
+          title: "Muscle Conditioning",
+          description: "Sophisticated neuromuscular coordination through progressive exercises that develop articulatory muscle memory."
+        }
+      ]
+    }
   },
 
   stats: [
