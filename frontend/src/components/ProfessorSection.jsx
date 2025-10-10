@@ -162,137 +162,107 @@ const ProfessorSection = () => {
             </div>
           </div>
 
-          {/* Right: Premium Content */}
-          <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
+          {/* Compact Professional Details Grid */}
+          <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             
-            {/* Executive Bio - Premium Design */}
-            <div className="mb-8 relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 group-hover:border-blue-500/50 transition-all duration-500">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Award size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-1">
-                      {isItalian ? 'Rarità Assoluta nel Panorama Globale' : 'Absolute Rarity in Global Landscape'}
-                    </h4>
-                    <p className="text-sm text-blue-400 font-medium">
-                      {isItalian ? 'Fortune 500 Executive + Professore Universitario' : 'Fortune 500 Executive + University Professor'}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-slate-300 leading-relaxed">
-                  {content.bio}
-                </p>
-              </div>
-            </div>
-
-            {/* Corporate Value Proposition */}
-            <div className="mb-8 bg-gradient-to-br from-emerald-900/20 to-teal-900/20 backdrop-blur-sm rounded-2xl p-6 border border-emerald-700/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
-                  <Globe size={20} className="text-white" />
-                </div>
-                <h4 className="text-lg font-bold text-emerald-400">
-                  {isItalian ? 'Valore per Executive C-Suite' : 'C-Suite Executive Value'}
-                </h4>
-              </div>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                {content.corporateValue}
-              </p>
-            </div>
-
-            {/* Professional Roles - Enhanced Grid */}
-            <div className="mb-8">
-              <h4 className="text-xl font-semibold mb-4 text-blue-400 flex items-center gap-3">
-                <div className="w-6 h-6 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                  <BookOpen size={14} className="text-blue-400" />
-                </div>
-                {isItalian ? 'Domini di Eccellenza' : 'Domains of Excellence'}
-              </h4>
-              <div className="grid gap-3">
-                {content.roles.map((role, index) => (
-                  <div key={index} className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 hover:border-blue-500/50 hover:bg-slate-800/50 transition-all duration-300 group transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-white font-bold text-sm">{index + 1}</span>
+            <div className="grid lg:grid-cols-2 gap-8">
+              
+              {/* Left Column: Roles & Achievements */}
+              <div className="space-y-6">
+                
+                {/* Professional Domains - Compact */}
+                <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
+                  <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                    <BookOpen size={18} className="text-blue-400" />
+                    {isItalian ? 'Domini di Eccellenza' : 'Domains of Excellence'}
+                  </h4>
+                  <div className="space-y-3">
+                    {content.roles.map((role, index) => (
+                      <div key={index} className="flex items-center gap-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-all duration-200">
+                        <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-xs">{index + 1}</span>
+                        </div>
+                        <span className="text-slate-300 group-hover:text-white text-sm font-medium">{role}</span>
                       </div>
-                      <span className="text-slate-300 group-hover:text-white transition-colors duration-300 font-medium">{role}</span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Elite Achievements */}
-            <div className="mb-8">
-              <h4 className="text-xl font-semibold mb-4 text-cyan-400 flex items-center gap-3">
-                <div className="w-6 h-6 bg-cyan-600/20 rounded-lg flex items-center justify-center">
-                  <Sparkles size={14} className="text-cyan-400" />
                 </div>
-                {isItalian ? 'Achievement Elite' : 'Elite Achievements'}
-              </h4>
-              <div className="space-y-3">
-                {content.achievements.map((achievement, index) => (
-                  <div key={index} className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative bg-slate-800/40 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300">
-                      <div className="flex items-start gap-4">
-                        <div className="w-6 h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+
+                {/* Credibility Markers - Condensed */}
+                <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/10 backdrop-blur-md rounded-2xl p-6 border border-purple-700/30">
+                  <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                    <Award size={18} className="text-purple-400" />
+                    {isItalian ? 'Marker di Credibilità' : 'Credibility Markers'}
+                  </h4>
+                  <div className="space-y-3">
+                    {content.credibilityMarkers.map((marker, index) => (
+                      <div key={index} className="flex items-start gap-3 group">
+                        <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        </div>
+                        <p className="text-slate-300 group-hover:text-white text-xs leading-relaxed">{marker}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: Achievements & Description */}
+              <div className="space-y-6">
+                
+                {/* Elite Achievements - Streamlined */}
+                <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
+                  <h4 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                    <Sparkles size={18} className="text-cyan-400" />
+                    {isItalian ? 'Achievement Elite' : 'Elite Achievements'}
+                  </h4>
+                  <div className="space-y-3">
+                    {content.achievements.map((achievement, index) => (
+                      <div key={index} className="flex items-start gap-3 group hover:bg-slate-700/20 p-3 rounded-xl transition-all duration-200">
+                        <div className="w-5 h-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                           <div className="w-2 h-2 bg-white rounded-full"></div>
                         </div>
-                        <p className="text-slate-300 group-hover:text-white transition-colors duration-300 leading-relaxed text-sm">{achievement}</p>
+                        <p className="text-slate-300 group-hover:text-white text-sm leading-relaxed">{achievement}</p>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
               </div>
+
             </div>
 
-            {/* Credibility Markers */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-purple-400">
-                {isItalian ? 'Marker di Credibilità' : 'Credibility Markers'}
-              </h4>
-              <div className="grid gap-3">
-                {content.credibilityMarkers.map((marker, index) => (
-                  <div key={index} className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-sm rounded-xl p-3 border border-purple-700/30 hover:border-purple-500/50 transition-all duration-300 group">
-                    <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Award size={12} className="text-white" />
-                      </div>
-                      <p className="text-slate-300 group-hover:text-white transition-colors duration-300 text-xs leading-relaxed">{marker}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Executive Description - Quote Style */}
-            <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50 relative overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 rounded-full blur-2xl"></div>
+            {/* Full-Width Executive Description */}
+            <div className="mt-8 bg-gradient-to-br from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50 relative overflow-hidden">
               
-              <div className="relative">
-                <div className="text-6xl text-blue-400/30 mb-4 font-serif">"</div>
-                <p className="text-slate-300 leading-relaxed text-sm mb-6">
-                  {content.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="text-right">
-                    <div className="text-blue-400 font-semibold">— Professor Steve Dapper</div>
-                    <div className="text-xs text-slate-500 mt-1">Fortune 500 Executive & University Professor</div>
-                  </div>
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-600/20 to-cyan-600/20 flex items-center justify-center border-2 border-blue-500/30">
+              {/* Subtle decorative elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-500/5 to-teal-500/5 rounded-full blur-2xl"></div>
+              
+              <div className="relative grid lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Quote mark and description */}
+                <div className="lg:col-span-10">
+                  <div className="text-5xl text-blue-400/30 mb-4 font-serif leading-none">"</div>
+                  <p className="text-slate-300 leading-relaxed text-sm mb-4">
+                    {content.description}
+                  </p>
+                  <div className="text-blue-400 font-semibold text-sm">— Professor Steve Dapper</div>
+                  <div className="text-xs text-slate-500">Fortune 500 Executive & University Professor</div>
+                </div>
+
+                {/* Compact profile image */}
+                <div className="lg:col-span-2 flex justify-center lg:justify-end">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-600/20 to-cyan-600/20 flex items-center justify-center border-2 border-blue-500/30 overflow-hidden">
                     <img 
                       src={content.image}
-                      alt="Professor Steve Dapper signature"
-                      className="w-12 h-12 rounded-full object-cover"
+                      alt="Professor Steve Dapper"
+                      className="w-16 h-16 rounded-xl object-cover"
                     />
                   </div>
                 </div>
+
               </div>
             </div>
 
