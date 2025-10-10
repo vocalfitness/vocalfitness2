@@ -116,53 +116,53 @@ const ProfessorSection = () => {
                   <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-emerald-500/6 to-teal-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                 </div>
 
-                <div className="relative grid lg:grid-cols-12 gap-12 p-12">
+                <div className="relative grid lg:grid-cols-12 gap-8 p-12 items-center">
                   
-                  {/* Left: Cinematic Portrait */}
-                  <div className="lg:col-span-5 flex flex-col items-center justify-center">
+                  {/* Left: Perfectly Aligned Portrait */}
+                  <div className="lg:col-span-4 flex flex-col justify-start">
                     
-                    {/* Hero Portrait - Apple Style */}
-                    <div className="relative group">
+                    {/* Hero Portrait - Apple Style with Perfect Alignment */}
+                    <div className="relative group apple-scroll-fade" data-scroll-speed="0.5">
                       
-                      {/* Multiple layered glow effects */}
-                      <div className="absolute -inset-8 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-full blur-3xl group-hover:blur-[60px] transition-all duration-1000"></div>
-                      <div className="absolute -inset-6 bg-gradient-to-r from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl group-hover:blur-[40px] transition-all duration-1000"></div>
-                      <div className="absolute -inset-4 bg-gradient-to-r from-blue-300/8 to-cyan-300/8 rounded-full blur-xl group-hover:blur-[30px] transition-all duration-1000"></div>
+                      {/* Advanced layered glow effects with scroll animations */}
+                      <div className="absolute -inset-8 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-full blur-3xl group-hover:blur-[60px] transition-all duration-1000 apple-glow-pulse"></div>
+                      <div className="absolute -inset-6 bg-gradient-to-r from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl group-hover:blur-[40px] transition-all duration-1000" style={{ animationDelay: '0.5s' }}></div>
+                      <div className="absolute -inset-4 bg-gradient-to-r from-blue-300/8 to-cyan-300/8 rounded-full blur-xl group-hover:blur-[30px] transition-all duration-1000" style={{ animationDelay: '1s' }}></div>
                       
-                      {/* Main portrait container with glass effect */}
-                      <div className="relative w-80 h-80 rounded-3xl overflow-hidden group-hover:scale-105 transition-all duration-700">
+                      {/* Main portrait container with advanced effects */}
+                      <div className="relative w-72 h-72 rounded-3xl overflow-hidden group-hover:scale-110 transition-all duration-700 apple-hover-lift">
                         
-                        {/* Glass morphism border */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-3xl border border-white/20 backdrop-blur-sm"></div>
+                        {/* Glass morphism border with gradient animation */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-3xl border border-white/20 backdrop-blur-sm apple-border-glow"></div>
                         
                         <img 
                           src={content.image}
                           alt="Professor Steve Dapper"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover apple-image-enhance"
                           style={{ 
                             filter: 'contrast(1.2) saturate(1.15) brightness(1.05)',
                             clipPath: 'inset(0 round 24px)'
                           }}
                         />
                         
-                        {/* Premium overlay gradients */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent"></div>
+                        {/* Premium overlay gradients with animation */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent apple-overlay-fade"></div>
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5"></div>
                       </div>
 
-                      {/* Floating credentials - Premium positioning */}
-                      <div className="absolute -top-6 -right-6 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl px-6 py-3 shadow-2xl transform rotate-6 group-hover:rotate-3 transition-transform duration-500 border border-white/20">
-                        <span className="text-white font-bold text-sm tracking-wider">30+ YEARS</span>
+                      {/* Floating credentials with advanced animations */}
+                      <div className="absolute -top-4 -right-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl px-4 py-2 shadow-2xl transform rotate-6 group-hover:rotate-0 transition-all duration-700 border border-white/20 apple-float-badge" style={{ animationDelay: '0.2s' }}>
+                        <span className="text-white font-bold text-xs tracking-wider">30+ YEARS</span>
                       </div>
-                      <div className="absolute -bottom-6 -left-6 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl px-6 py-3 shadow-2xl transform -rotate-6 group-hover:-rotate-3 transition-transform duration-500 border border-white/20">
-                        <span className="text-white font-bold text-sm tracking-wider">PROFESSOR</span>
+                      <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl px-4 py-2 shadow-2xl transform -rotate-6 group-hover:rotate-0 transition-all duration-700 border border-white/20 apple-float-badge" style={{ animationDelay: '0.4s' }}>
+                        <span className="text-white font-bold text-xs tracking-wider">PROFESSOR</span>
                       </div>
                     </div>
 
                   </div>
 
-                  {/* Right: Apple-Style Typography & Content */}
-                  <div className="lg:col-span-7 flex flex-col justify-center space-y-8">
+                  {/* Right: Apple-Style Typography & Content - Better Aligned */}
+                  <div className="lg:col-span-8 flex flex-col justify-start space-y-6">
                     
                     {/* Main Identity - Apple Typography */}
                     <div className="space-y-4">
