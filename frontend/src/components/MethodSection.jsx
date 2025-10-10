@@ -7,6 +7,7 @@ const MethodSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [activePillar, setActivePillar] = useState(0);
   const sectionRef = useRef(null);
+  const { language, isItalian } = useLanguage();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -26,6 +27,7 @@ const MethodSection = () => {
   }, []);
 
   const icons = [Brain, Waves, Zap];
+  const content = mockData.method[language];
 
   return (
     <section id="method" ref={sectionRef} className="py-24 bg-slate-950 relative overflow-hidden">
