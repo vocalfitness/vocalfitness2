@@ -86,7 +86,7 @@ const HeroSection = () => {
               size="lg"
               className="group bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25"
             >
-              Prenota una Consulenza
+              {content.ctaButtons[0].text}
               <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
             </Button>
             
@@ -96,7 +96,7 @@ const HeroSection = () => {
               className="group border-2 border-slate-600 bg-slate-900/50 backdrop-blur-sm hover:border-blue-500 hover:bg-slate-800/80 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300"
             >
               <Play size={20} className="mr-2 group-hover:scale-110 transition-transform duration-200" />
-              Scopri il Metodo
+              {content.ctaButtons[1].text}
             </Button>
           </div>
 
