@@ -46,12 +46,12 @@ const ProfessorSection = () => {
           </div>
         </div>
 
-        {/* Hero Layout - Fixed Pagination */}
+        {/* Hero Layout - Fixed Structure */}
         <div className={`bg-slate-800/40 backdrop-blur-md rounded-3xl border border-slate-700/50 p-12 mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           <div className="grid lg:grid-cols-12 gap-12 items-start">
             
-            {/* Left: Portrait - Proper Alignment */}
+            {/* Left: Portrait */}
             <div className="lg:col-span-4">
               <div className="relative group">
                 <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/15 to-cyan-500/15 rounded-3xl blur-3xl group-hover:blur-[60px] transition-all duration-1000"></div>
@@ -73,10 +73,10 @@ const ProfessorSection = () => {
               </div>
             </div>
 
-            {/* Right: Content - Perfectly Aligned */}
+            {/* Right: Content */}
             <div className="lg:col-span-8 space-y-8">
               
-              {/* Main Identity - RESTORED PERFECT TYPOGRAPHY */}
+              {/* Main Identity - PERFECT TYPOGRAPHY RESTORED */}
               <div>
                 <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none mb-6">
                   <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent drop-shadow-2xl">
@@ -136,87 +136,55 @@ const ProfessorSection = () => {
             </div>
           </div>
 
-          </div>
         </div>
 
-        {/* Rest of sections remain the same */}
         {/* Compact Professional Details Grid */}
         <div className={`transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           <div className="grid lg:grid-cols-2 gap-8 mb-12">
             
-            {/* Left Column: Roles & Achievements */}
-            <div className="space-y-6">
-              
-              {/* Professional Domains - Compact */}
-              <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
-                <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
-                  <BookOpen size={18} className="text-blue-400" />
-                  {isItalian ? 'Domini di Eccellenza' : 'Domains of Excellence'}
-                </h4>
-                <div className="space-y-3">
-                  {content.roles.map((role, index) => (
-                    <div key={index} className="flex items-center gap-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-all duration-200">
-                      <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-xs">{index + 1}</span>
-                      </div>
-                      <span className="text-slate-300 group-hover:text-white text-sm font-medium">{role}</span>
+            {/* Left Column: Roles */}
+            <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
+              <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                <BookOpen size={18} className="text-blue-400" />
+                {isItalian ? 'Domini di Eccellenza' : 'Domains of Excellence'}
+              </h4>
+              <div className="space-y-3">
+                {content.roles.map((role, index) => (
+                  <div key={index} className="flex items-center gap-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-all duration-200">
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-xs">{index + 1}</span>
                     </div>
-                  ))}
-                </div>
+                    <span className="text-slate-300 group-hover:text-white text-sm font-medium">{role}</span>
+                  </div>
+                ))}
               </div>
-
-              {/* Credibility Markers - Condensed */}
-              <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/10 backdrop-blur-md rounded-2xl p-6 border border-purple-700/30">
-                <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
-                  <Award size={18} className="text-purple-400" />
-                  {isItalian ? 'Marker di Credibilità' : 'Credibility Markers'}
-                </h4>
-                <div className="space-y-3">
-                  {content.credibilityMarkers.map((marker, index) => (
-                    <div key={index} className="flex items-start gap-3 group">
-                      <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                      </div>
-                      <p className="text-slate-300 group-hover:text-white text-xs leading-relaxed">{marker}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
             </div>
 
             {/* Right Column: Achievements */}
-            <div className="space-y-6">
-              
-              {/* Elite Achievements - Streamlined */}
-              <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
-                <h4 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
-                  <Sparkles size={18} className="text-cyan-400" />
-                  {isItalian ? 'Achievement Elite' : 'Elite Achievements'}
-                </h4>
-                <div className="space-y-3">
-                  {content.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-start gap-3 group hover:bg-slate-700/20 p-3 rounded-xl transition-all duration-200">
-                      <div className="w-5 h-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <p className="text-slate-300 group-hover:text-white text-sm leading-relaxed">{achievement}</p>
+            <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
+              <h4 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                <Sparkles size={18} className="text-cyan-400" />
+                {isItalian ? 'Achievement Elite' : 'Elite Achievements'}
+              </h4>
+              <div className="space-y-3">
+                {content.achievements.map((achievement, index) => (
+                  <div key={index} className="flex items-start gap-3 group hover:bg-slate-700/20 p-3 rounded-xl transition-all duration-200">
+                    <div className="w-5 h-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-slate-300 group-hover:text-white text-sm leading-relaxed">{achievement}</p>
+                  </div>
+                ))}
               </div>
-
             </div>
 
           </div>
 
-          {/* Full-Width Executive Description */}
-          <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50 relative overflow-hidden">
-            
-            <div className="relative grid lg:grid-cols-12 gap-6 items-start">
+          {/* Executive Description */}
+          <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50">
+            <div className="grid lg:grid-cols-12 gap-6 items-start">
               
-              {/* Quote mark and description */}
               <div className="lg:col-span-10">
                 <div className="text-5xl text-blue-400/30 mb-4 font-serif leading-none">"</div>
                 <p className="text-slate-300 leading-relaxed text-sm mb-4">
@@ -226,7 +194,6 @@ const ProfessorSection = () => {
                 <div className="text-xs text-slate-500">Fortune 500 Executive & University Professor</div>
               </div>
 
-              {/* Compact profile image */}
               <div className="lg:col-span-2 flex justify-center lg:justify-end">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-600/20 to-cyan-600/20 flex items-center justify-center border-2 border-blue-500/30 overflow-hidden">
                   <img 
