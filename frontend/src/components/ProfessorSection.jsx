@@ -57,13 +57,19 @@ const ProfessorSection = () => {
               {/* Main card */}
               <div className="relative bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-3xl p-8 hover:border-blue-500/50 transition-all duration-500">
                 
-                {/* Profile placeholder - in real implementation this would be an actual image */}
-                <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center border border-slate-600/50">
-                  <Users size={48} className="text-blue-400" />
+                {/* Professional headshot */}
+                <div className="w-48 h-48 mx-auto mb-6 rounded-2xl overflow-hidden border-4 border-slate-600/50 hover:border-blue-500/50 transition-all duration-500">
+                  <img 
+                    src={content.image}
+                    alt="Professor Steve Dapper"
+                    className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
+                  />
                 </div>
 
-                <h3 className="text-2xl font-bold text-center mb-2">{mockData.professor.name}</h3>
-                <p className="text-blue-400 text-center mb-6 font-medium">Con {mockData.professor.experience} di esperienza</p>
+                <h3 className="text-2xl font-bold text-center mb-2">{content.name}</h3>
+                <p className="text-blue-400 text-center mb-6 font-medium">
+                  {isItalian ? `Con ${content.experience} di esperienza` : `With ${content.experience} of experience`}
+                </p>
 
                 {/* Achievement badges */}
                 <div className="grid grid-cols-2 gap-4">
