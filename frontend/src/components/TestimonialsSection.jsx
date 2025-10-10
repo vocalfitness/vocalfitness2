@@ -20,7 +20,8 @@ const TestimonialsSection = () => {
       try {
         setLoading(true);
         const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
-        const response = await axios.get(`${backendUrl}/api/testimonials?language=${language}`);
+        // Fetch ALL testimonials without language filter to show all important testimonials
+        const response = await axios.get(`${backendUrl}/api/testimonials`);
         
         if (response.data && response.data.testimonials) {
           setTestimonials(response.data.testimonials);
@@ -36,7 +37,7 @@ const TestimonialsSection = () => {
     };
 
     fetchTestimonials();
-  }, [language]);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
