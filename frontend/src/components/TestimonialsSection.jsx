@@ -2,11 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Quote, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { mockData } from '../data/mock';
+import axios from 'axios';
+import { useLanguage } from '../context/LanguageContext';
 
 const TestimonialsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const sectionRef = useRef(null);
+  const { language } = useLanguage();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
