@@ -317,31 +317,32 @@ const ProfessorSection = () => {
                     {/* Main Identity - Apple Typography */}
                     <div className="space-y-4">
                       
-                      {/* Name with cinematic typography */}
-                      <h1 className="apple-typography text-6xl md:text-8xl font-black tracking-tight leading-none apple-text-shadow">
-                        <span className="bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent">
+                      {/* Name with advanced Apple typography */}
+                      <h1 className="apple-typography apple-type-scale text-6xl md:text-8xl font-black tracking-tight leading-none apple-text-shadow mb-4">
+                        <span className="block apple-scroll-fade" style={{ animationDelay: '0.2s' }}>
                           Professor
                         </span>
-                        <br />
-                        <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-400 bg-clip-text text-transparent apple-glow">
+                        <span className="block apple-scroll-fade apple-glow" style={{ animationDelay: '0.4s' }}>
                           Steve Dapper
                         </span>
                       </h1>
 
-                      {/* Subtitle with sophisticated styling */}
-                      <div className="space-y-3">
-                        <h2 className="text-3xl md:text-4xl font-thin text-slate-100 leading-tight tracking-wide apple-text-shadow">
+                      {/* Subtitle with staggered animations */}
+                      <div className="space-y-4">
+                        <h2 className="apple-scroll-fade text-3xl md:text-4xl font-thin text-slate-100 leading-tight tracking-wide apple-text-shadow" style={{ animationDelay: '0.6s' }}>
                           {content.title}
                         </h2>
-                        <div className="text-xl text-slate-300 font-extralight italic tracking-wider leading-relaxed">
+                        <div className="apple-scroll-fade text-xl text-slate-300 font-extralight italic tracking-wider leading-relaxed" style={{ animationDelay: '0.8s' }}>
                           {content.subtitle}
                         </div>
                       </div>
 
-                      {/* Credentials ribbon - Premium Apple style */}
-                      <div className="inline-flex items-center apple-glass bg-gradient-to-r from-slate-800/70 to-slate-700/50 rounded-3xl border border-white/10 p-6 shadow-2xl premium-card-hover transition-all duration-500">
-                        <div className="text-sm text-slate-200 font-medium tracking-[0.15em] uppercase leading-loose">
-                          {content.titleRoles}
+                      {/* Credentials ribbon with advanced effects */}
+                      <div className="apple-scroll-fade premium-card-hover" style={{ animationDelay: '1s' }}>
+                        <div className="inline-flex items-center apple-glass bg-gradient-to-r from-slate-800/70 to-slate-700/50 rounded-3xl apple-border-glow p-6 shadow-2xl transition-all duration-500">
+                          <div className="text-sm text-slate-200 font-medium tracking-[0.15em] uppercase leading-loose">
+                            {content.titleRoles}
+                          </div>
                         </div>
                       </div>
                     </div>
