@@ -163,6 +163,47 @@ const ProfessorSection = () => {
 
   const content = mockData.languages[language].professor;
 
+  // Apple-style scroll animations
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollElements = document.querySelectorAll('.apple-scroll-fade');
+      const parallaxElements = document.querySelectorAll('.apple-parallax');
+      
+      scrollElements.forEach(element => {
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+        
+        if (elementTop < window.innerHeight - elementVisible) {
+          element.classList.add('in-view');
+        }
+      });
+
+      // Parallax effect
+      parallaxElements.forEach(element => {
+        const scrolled = window.pageYOffset;
+        const speed = element.dataset.scrollSpeed || 0.5;
+        element.style.transform = `translateY(${scrolled * speed}px)`;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Apple-style staggered animations
+  useEffect(() => {
+    if (isVisible) {
+      const elements = document.querySelectorAll('.apple-type-scale');
+      elements.forEach((element, index) => {
+        setTimeout(() => {
+          element.style.animationDelay = `${index * 0.1}s`;
+        }, index * 100);
+      });
+    }
+  }, [isVisible]);
+
   return (
     <section id="professor" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-950 to-slate-900">
       {/* Inject custom Apple-style CSS */}
