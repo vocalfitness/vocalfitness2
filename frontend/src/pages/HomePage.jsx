@@ -49,6 +49,7 @@ const HomePage = () => {
         <AudienceSection />
         <ProcessSection />
         <TestimonialsSection />
+        <CorporateClientsSection />
         <SuccessStoriesSection />
         <CTASection />
         <Footer />
