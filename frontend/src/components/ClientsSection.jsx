@@ -41,7 +41,7 @@ const ClientsSection = () => {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.01 }
     );
 
     if (sectionRef.current) {
@@ -50,6 +50,13 @@ const ClientsSection = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  // Set visible after data loads as fallback
+  useEffect(() => {
+    if (!loading && clients.length > 0) {
+      setIsVisible(true);
+    }
+  }, [loading, clients]);
 
   // Show loading state
   if (loading) {
