@@ -135,6 +135,8 @@ const ProfessorSection = () => {
 
             </div>
           </div>
+
+          </div>
         </div>
 
         {/* Rest of sections remain the same */}
