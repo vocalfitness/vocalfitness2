@@ -137,10 +137,7 @@ const StatsSection = () => {
 
                   {/* Additional description based on index */}
                   <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors duration-300">
-                    {index === 0 && "Gli studenti riportano incrementi drammatici nella comprensibilità"}
-                    {index === 1 && "Timeframe tipico per trasformazioni vocali significative"}
-                    {index === 2 && "Dirigenti clienti che riportano accelerazione in promozioni"}
-                    {index === 3 && "Tasso di soddisfazione tra professionisti che completano il programma"}
+                    {text.descriptions[index]}
                   </p>
 
                   {/* Progress bar */}
