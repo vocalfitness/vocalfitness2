@@ -176,13 +176,15 @@ const CTASection = () => {
                 Accedi a materiali introduttivi sui principi di fonologia articolatoria e condizionamento neuromuscolare.
               </p>
 
-              <Button 
-                variant="outline" 
-                className="w-full border-2 border-purple-600 bg-purple-600/10 hover:bg-purple-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
-              >
-                Scarica Gratis
-                <Download size={18} className="ml-2 group-hover:translate-y-1 transition-transform duration-200" />
-              </Button>
+              <a href="#method">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-2 border-purple-600 bg-purple-600/10 hover:bg-purple-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
+                >
+                  Scopri il Metodo
+                  <Download size={18} className="ml-2 group-hover:translate-y-1 transition-transform duration-200" />
+                </Button>
+              </a>
 
               <div className="text-xs text-slate-400 mt-3">PDF completo • Accesso immediato</div>
             </div>
