@@ -49,6 +49,31 @@ const StatsSection = () => {
 
   const icons = [TrendingUp, Clock, Users, Award];
 
+  const content = {
+    it: {
+      title: "Risultati Trasformativi",
+      subtitle: "VocalFitness produce risultati misurabili che trascendono miglioramenti marginali",
+      descriptions: [
+        "Gli studenti riportano incrementi drammatici nella comprensibilità",
+        "Timeframe tipico per trasformazioni vocali significative",
+        "Dirigenti clienti che riportano accelerazione in promozioni",
+        "Tasso di soddisfazione tra professionisti che completano il programma"
+      ]
+    },
+    en: {
+      title: "Transformative Results",
+      subtitle: "VocalFitness produces measurable results that transcend marginal improvements",
+      descriptions: [
+        "Students report dramatic increases in comprehensibility",
+        "Typical timeframe for significant vocal transformations",
+        "Executive clients reporting career promotion acceleration",
+        "Satisfaction rate among professionals completing the program"
+      ]
+    }
+  };
+
+  const text = content[language] || content.en;
+
   return (
     <section id="results" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-900 to-slate-950 relative overflow-hidden">
       
@@ -69,11 +94,11 @@ const StatsSection = () => {
         <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Risultati Trasformativi
+              {text.title}
             </span>
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-            VocalFitness produce risultati misurabili che trascendono miglioramenti marginali
+            {text.subtitle}
           </p>
         </div>
 
