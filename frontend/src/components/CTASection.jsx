@@ -148,13 +148,15 @@ const CTASection = () => {
                 Comunica direttamente con il creatore del metodo per discutere esigenze uniche e aspettative risultati.
               </p>
 
-              <Button 
-                variant="outline" 
-                className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
-              >
-                Contatto Diretto
-                <MessageCircle size={18} className="ml-2 group-hover:scale-110 transition-transform duration-200" />
-              </Button>
+              <a href="mailto:info@vocalfitness.com">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
+                >
+                  Contatto Diretto
+                  <MessageCircle size={18} className="ml-2 group-hover:scale-110 transition-transform duration-200" />
+                </Button>
+              </a>
 
               <div className="text-xs text-slate-400 mt-3">Conversazione confidenziale • Senza pressione</div>
             </div>
