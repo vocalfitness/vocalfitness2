@@ -108,12 +108,12 @@ const Footer = () => {
 
             {/* App integrations */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Integrato in App Globali</h4>
+              <h4 className="text-white font-semibold mb-4">Featured in App Globali</h4>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   'EWA',
                   'Elsa Speak', 
-                  'ABA English'
+                  'LingoPanda'
                 ].map((app) => (
                   <div key={app} className="bg-slate-800/30 rounded-lg p-3 text-center hover:bg-slate-800/50 transition-all duration-300 group">
                     <div className="text-xs text-slate-400 group-hover:text-slate-300 flex items-center justify-center gap-1">
