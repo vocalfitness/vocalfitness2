@@ -4,6 +4,7 @@ import HeroSection from '../components/HeroSection';
 import ProfessorSection from '../components/ProfessorSection'; 
 import MethodSection from '../components/MethodSection';
 import StatsSection from '../components/StatsSection';
+import SocialProofBanner from '../components/SocialProofBanner';
 import AudienceSection from '../components/AudienceSection';
 import ProcessSection from '../components/ProcessSection';
 import TestimonialsSection from '../components/TestimonialsSection';
@@ -12,6 +13,8 @@ import CorporateClientsSection from '../components/CorporateClientsSection';
 import SuccessStoriesSection from '../components/SuccessStoriesSection';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
+import StickyCTA from '../components/StickyCTA';
+import ExitIntentPopup from '../components/ExitIntentPopup';
 
 const HomePage = () => {
   const [scrollY, setScrollY] = useState(0);
