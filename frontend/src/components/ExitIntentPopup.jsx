@@ -164,6 +164,13 @@ const ExitIntentPopup = () => {
 
       </div>
 
+      {/* Contact Form Modal */}
+      <ContactFormModal 
+        isOpen={showContactForm} 
+        onClose={() => setShowContactForm(false)}
+        discount="20%"
+      />
+
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }
