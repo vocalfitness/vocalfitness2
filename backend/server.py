@@ -207,14 +207,14 @@ async def submit_contact_form(input: ContactFormSubmission):
         # Email configuration
         smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
         smtp_port = int(os.environ.get('SMTP_PORT', '587'))
-        smtp_user = os.environ.get('SMTP_USER', 'info@vocalfitness.org')
+        smtp_user = os.environ.get('SMTP_USER', 'admissions@vocalfitness.org')
         smtp_password = os.environ.get('SMTP_PASSWORD', '')
         
         # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = f"Nuova Richiesta Contatto - {input.name}" if input.language == 'it' else f"New Contact Request - {input.name}"
         msg['From'] = smtp_user
-        msg['To'] = 'info@vocalfitness.org'
+        msg['To'] = 'admissions@vocalfitness.org'
         
         # Email body
         html_body = f"""
