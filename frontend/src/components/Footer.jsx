@@ -13,9 +13,9 @@ const Footer = () => {
           
           {/* Brand section */}
           <div className="lg:col-span-2">
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-4">
+            <a href="#" className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-4 inline-block hover:scale-105 transition-transform duration-300 cursor-pointer">
               VocalFitness
-            </div>
+            </a>
             <p className="text-slate-400 leading-relaxed mb-6 max-w-md">
               Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza 
               della fonologia articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.
