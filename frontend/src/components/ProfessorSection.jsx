@@ -181,30 +181,98 @@ const ProfessorSection = () => {
 
           </div>
 
-          {/* Executive Description */}
-          <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50">
-            <div className="grid lg:grid-cols-12 gap-6 items-start">
+          {/* Career Journey Timeline - Interactive & Engaging */}
+          <div className="relative">
+            
+            {/* Section Title */}
+            <div className="text-center mb-12">
+              <h3 className="text-3xl md:text-4xl font-bold mb-3">
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  {isItalian ? 'Il Percorso' : 'The Journey'}
+                </span>
+              </h3>
+              <p className="text-slate-400 text-lg">
+                {isItalian ? 'Tre decenni di eccellenza in due mondi' : 'Three decades of excellence across two worlds'}
+              </p>
+            </div>
+
+            {/* Timeline Cards */}
+            <div className="space-y-6">
               
-              <div className="lg:col-span-10">
-                <div className="text-5xl text-blue-400/30 mb-4 font-serif leading-none">"</div>
-                <p className="text-slate-300 leading-relaxed text-sm mb-4">
-                  {content.description}
-                </p>
-                <div className="text-blue-400 font-semibold text-sm">— Professor Steve Dapper</div>
-                <div className="text-xs text-slate-500">Fortune 500 Executive & University Professor</div>
+              {/* Corporate World Card */}
+              <div className="group relative bg-gradient-to-br from-blue-900/20 to-slate-800/40 backdrop-blur-xl rounded-3xl p-8 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute -left-4 top-8 w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Globe size={24} className="text-white" />
+                </div>
+                <div className="ml-12">
+                  <h4 className="text-2xl font-bold text-blue-400 mb-4">
+                    {isItalian ? '🌍 Eccellenza Corporate' : '🌍 Corporate Excellence'}
+                  </h4>
+                  <div className="space-y-3 text-slate-300 leading-relaxed">
+                    <p className="text-base">
+                      <span className="font-semibold text-blue-300">International Business Developer & Fortune 500 Executive</span> — {isItalian ? 'Ha guidato iniziative transatlantiche che hanno ridefinito mercati e creato valore per miliardi di dollari.' : 'Led transatlantic initiatives that redefined markets and created billions in value.'}
+                    </p>
+                    <p className="text-base">
+                      <span className="font-semibold text-cyan-300">Strategic Government Advisor</span> — {isItalian ? 'Ha consigliato direttamente governi USA ed europei attraverso U.S. Department of Commerce, AMCHAM e Select USA, posizionandosi come ponte strategico tra superpotenze economiche.' : 'Directly advised U.S. and European governments through U.S. Department of Commerce, AMCHAM, and Select USA, positioning as strategic bridge between economic superpowers.'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="lg:col-span-2 flex justify-center lg:justify-end">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-600/20 to-cyan-600/20 flex items-center justify-center border-2 border-blue-500/30 overflow-hidden">
-                  <img 
-                    src={content.image}
-                    alt="Professor Steve Dapper"
-                    className="w-16 h-16 rounded-xl object-cover"
-                  />
+              {/* Academic Authority Card */}
+              <div className="group relative bg-gradient-to-br from-emerald-900/20 to-slate-800/40 backdrop-blur-xl rounded-3xl p-8 border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute -left-4 top-8 w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <BookOpen size={24} className="text-white" />
+                </div>
+                <div className="ml-12">
+                  <h4 className="text-2xl font-bold text-emerald-400 mb-4">
+                    {isItalian ? '🎓 Autorità Accademica' : '🎓 Academic Authority'}
+                  </h4>
+                  <div className="space-y-3 text-slate-300 leading-relaxed">
+                    <p className="text-base">
+                      <span className="font-semibold text-emerald-300">Professor of English Phonetics</span> — {isItalian ? 'Cattedra nelle più prestigiose istituzioni educative europee. Ricerca pionieristica in fonetica articolatoria ESOL che ha rivoluzionato l\'approccio scientifico all\'acquisizione linguistica per adulti.' : 'Chair at Europe\'s most prestigious educational institutions. Pioneering research in ESOL articulatory phonetics that revolutionized scientific approach to adult language acquisition.'}
+                    </p>
+                    <p className="text-base">
+                      <span className="font-semibold text-teal-300">VocalFitness Method</span> — {isItalian ? 'Brevettato e validato da EF Education First, Cambridge Assessment e MIUR. Integrato in app leader globali (EWA, Elsa Speak, ABA English) che servono milioni di professionisti.' : 'Patented and validated by EF Education First, Cambridge Assessment, and MIUR. Integrated into leading global apps (EWA, Elsa Speak, ABA English) serving millions of professionals.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Media & Influence Card */}
+              <div className="group relative bg-gradient-to-br from-purple-900/20 to-slate-800/40 backdrop-blur-xl rounded-3xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute -left-4 top-8 w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Sparkles size={24} className="text-white" />
+                </div>
+                <div className="ml-12">
+                  <h4 className="text-2xl font-bold text-purple-400 mb-4">
+                    {isItalian ? '🎬 Media & Influenza Globale' : '🎬 Media & Global Influence'}
+                  </h4>
+                  <div className="space-y-3 text-slate-300 leading-relaxed">
+                    <p className="text-base">
+                      <span className="font-semibold text-purple-300">Published Author & Executive Producer</span> — {isItalian ? 'Collaborazioni con studi Hollywood e major discografiche.' : 'Collaborations with Hollywood studios and major record labels.'}
+                    </p>
+                    <p className="text-base">
+                      <span className="font-semibold text-pink-300">DappersClass Series</span> — {isItalian ? 'Raggiunge audience globali attraverso piattaforme streaming, consolidando l\'influenza come comunicatore di livello mondiale.' : 'Reaches global audiences through streaming platforms, consolidating influence as world-class communicator.'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
             </div>
+
+            {/* Bottom Statement */}
+            <div className="mt-12 bg-gradient-to-r from-slate-800/60 to-slate-700/40 backdrop-blur-xl rounded-3xl p-8 border border-slate-600/50 text-center">
+              <div className="text-3xl text-blue-400/50 mb-3 font-serif">"</div>
+              <p className="text-lg text-slate-300 leading-relaxed italic max-w-4xl mx-auto mb-4">
+                {isItalian 
+                  ? 'Questa convergenza di eccellenza corporate e autorità accademica crea un\'esperienza di trasformazione vocale senza precedenti per leader che esigono risultati misurabili e duraturi.'
+                  : 'This convergence of corporate excellence and academic authority creates an unprecedented vocal transformation experience for leaders who demand measurable and lasting results.'}
+              </p>
+              <div className="text-blue-400 font-bold text-sm tracking-wider">— PROFESSOR STEVE DAPPER</div>
+              <div className="text-xs text-slate-500 mt-1">Fortune 500 Executive & University Professor</div>
+            </div>
+
           </div>
 
         </div>
