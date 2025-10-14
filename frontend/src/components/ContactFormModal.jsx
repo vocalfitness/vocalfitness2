@@ -31,7 +31,7 @@ const ContactFormModal = ({ isOpen, onClose, discount = null }) => {
       
       const payload = {
         ...formData,
-        discount: discount,
+        discount: discount || "",
         language: language
       };
 
