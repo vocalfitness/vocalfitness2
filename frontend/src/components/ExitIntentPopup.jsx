@@ -66,12 +66,12 @@ const ExitIntentPopup = () => {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 animate-fadeIn"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9998] animate-fadeIn"
         onClick={handleClose}
       ></div>
 
       {/* Popup */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl mx-4 animate-slideIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-full max-w-2xl mx-4 animate-slideIn">
         
         <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl border-2 border-blue-500/30 shadow-2xl overflow-hidden">
           
