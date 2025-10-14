@@ -148,7 +148,7 @@ const CTASection = () => {
                 Comunica direttamente con il creatore del metodo per discutere esigenze uniche e aspettative risultati.
               </p>
 
-              <a href="mailto:info@vocalfitness.com">
+              <a href="mailto:info@vocalfitness.org">
                 <Button 
                   variant="outline" 
                   className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
