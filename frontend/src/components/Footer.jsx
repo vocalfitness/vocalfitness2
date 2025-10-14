@@ -23,9 +23,9 @@ const Footer = () => {
             
             {/* Contact info */}
             <div className="space-y-3">
-              <a href="mailto:info@vocalfitness.com" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
+              <a href="mailto:info@vocalfitness.org" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <Mail size={16} className="text-blue-400 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">info@vocalfitness.com</span>
+                <span className="text-sm">info@vocalfitness.org</span>
               </a>
               <a href="https://wa.me/393515765749" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <Phone size={16} className="text-cyan-400 group-hover:scale-110 transition-transform duration-200" />
