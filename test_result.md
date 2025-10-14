@@ -231,8 +231,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Testimonials API Endpoints"
-    - "Clients API Endpoints"
+    - "Contact Form API Endpoint"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
