@@ -95,9 +95,9 @@ const Footer = () => {
               <div className="grid grid-cols-2 gap-4">
                 {[
                   'EF Education First',
-                  'Cambridge Assessment',
-                  'MIUR Italia',
-                  'U.S. Department of Commerce'
+                  'E-Campus University',
+                  'MIUR, MUR, DIESSE',
+                  'Università di Torino LSFAG'
                 ].map((cert) => (
                   <div key={cert} className="bg-slate-800/30 rounded-lg p-3 text-center hover:bg-slate-800/50 transition-all duration-300 group">
                     <div className="text-xs text-slate-400 group-hover:text-slate-300">{cert}</div>
