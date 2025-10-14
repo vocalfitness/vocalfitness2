@@ -191,6 +191,84 @@ async def create_client(input: ClientCreate):
     await db.clients.insert_one(doc)
     return client
 
+# Contact Form Endpoint
+@api_router.post("/contact", response_model=ContactFormResponse, status_code=201)
+async def submit_contact_form(input: ContactFormSubmission):
+    """Submit contact form and send email notification"""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    contact = ContactFormResponse(**input.model_dump())
+    
+    # Send email notification
+    email_sent = False
+    try:
+        # Email configuration
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER', 'info@vocalfitness.org')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"Nuova Richiesta Contatto - {input.name}" if input.language == 'it' else f"New Contact Request - {input.name}"
+        msg['From'] = smtp_user
+        msg['To'] = 'info@vocalfitness.org'
+        
+        # Email body
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
+                    {"Nuova Richiesta di Contatto" if input.language == 'it' else "New Contact Request"}
+                </h2>
+                
+                <div style="margin: 20px 0;">
+                    <p><strong>Nome:</strong> {input.name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:{input.email}">{input.email}</a></p>
+                    <p><strong>Telefono:</strong> <a href="tel:{input.phone}">{input.phone}</a></p>
+                    {f'<p><strong>Sconto Richiesto:</strong> <span style="color: #059669; font-weight: bold;">{input.discount}</span></p>' if input.discount else ''}
+                    {f'<p><strong>Messaggio:</strong><br/>{input.message}</p>' if input.message else ''}
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                    <p>Ricevuto il: {datetime.now(timezone.utc).strftime('%d/%m/%Y alle %H:%M')} UTC</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        part = MIMEText(html_body, 'html')
+        msg.attach(part)
+        
+        # Send email if SMTP is configured
+        if smtp_password:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+            email_sent = True
+        else:
+            print("SMTP not configured - Email would be sent in production")
+            email_sent = False  # Set to False in development
+            
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        email_sent = False
+    
+    contact.email_sent = email_sent
+    
+    # Save to database
+    doc = contact.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.contacts.insert_one(doc)
+    
+    return contact
+
 # Include the router in the main app
 app.include_router(api_router)
 
