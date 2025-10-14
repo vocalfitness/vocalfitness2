@@ -1,8 +1,87 @@
 import React from 'react';
 import { Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { language } = useLanguage();
+
+  const content = {
+    it: {
+      description: "Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza della fonologia articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.",
+      whatsappSupport: "(solo WhatsApp support)",
+      location: "Chur, Svizzera",
+      quickLinks: {
+        title: "Link Rapidi",
+        links: [
+          { label: 'Home', href: '#' },
+          { label: 'Il Metodo', href: '#metodo' },
+          { label: 'Professor Dapper', href: '#professor' },
+          { label: 'Risultati', href: '#risultati' },
+          { label: 'DappersClass', href: '#dappersclass' },
+          { label: 'Testimonial', href: '#testimonial' }
+        ]
+      },
+      services: {
+        title: "Servizi",
+        list: [
+          'Valutazione Diagnostica',
+          'Training Personalizzato',
+          'Sessioni Virtuali',
+          'Programmi Aziendali',
+          'Coaching Individuale'
+        ]
+      },
+      recognitions: "Riconoscimenti Ufficiali",
+      featuredIn: "Featured in App Globali",
+      reach: "Raggiunge milioni di studenti in tutto il mondo",
+      copyright: "VocalFitness™ - Metodo proprietario brevettato. Tutti i diritti riservati. Prof. Steve Dapper.",
+      legal: {
+        privacy: 'Privacy Policy',
+        terms: 'Termini di Servizio',
+        cookies: 'Cookie Policy'
+      },
+      disclaimer: "Il successo individuale può variare in base a impegno, pratica e fattori linguistici baseline. Le testimonianze riflettono esperienze autentiche di clienti reali. VocalFitness è un marchio registrato."
+    },
+    en: {
+      description: "The proprietary patented method that transforms global communication through the science of ESOL articulatory phonetics, prosody, and vocal muscle conditioning.",
+      whatsappSupport: "(WhatsApp support only)",
+      location: "Chur, Switzerland",
+      quickLinks: {
+        title: "Quick Links",
+        links: [
+          { label: 'Home', href: '#' },
+          { label: 'Method', href: '#metodo' },
+          { label: 'Professor Dapper', href: '#professor' },
+          { label: 'Results', href: '#risultati' },
+          { label: 'DappersClass', href: '#dappersclass' },
+          { label: 'Testimonials', href: '#testimonial' }
+        ]
+      },
+      services: {
+        title: "Services",
+        list: [
+          'Diagnostic Assessment',
+          'Personalized Training',
+          'Virtual Sessions',
+          'Corporate Programs',
+          'Individual Coaching'
+        ]
+      },
+      recognitions: "Official Recognitions",
+      featuredIn: "Featured in Global Apps",
+      reach: "Reaches millions of students worldwide",
+      copyright: "VocalFitness™ - Proprietary patented method. All rights reserved. Prof. Steve Dapper.",
+      legal: {
+        privacy: 'Privacy Policy',
+        terms: 'Terms of Service',
+        cookies: 'Cookie Policy'
+      },
+      disclaimer: "Individual success may vary based on commitment, practice, and baseline linguistic factors. Testimonials reflect authentic experiences of real clients. VocalFitness is a registered trademark."
+    }
+  };
+
+  const text = content[language] || content.en;
 
   return (
     <footer className="bg-slate-950 border-t border-slate-800/50 pt-16 pb-8">
@@ -17,8 +96,7 @@ const Footer = () => {
               VocalFitness
             </a>
             <p className="text-slate-400 leading-relaxed mb-6 max-w-md">
-              Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza 
-              della fonologia articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.
+              {text.description}
             </p>
             
             {/* Contact info */}
@@ -29,27 +107,20 @@ const Footer = () => {
               </a>
               <a href="https://wa.me/393515765749" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <Phone size={16} className="text-cyan-400 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">+39 351 576 5749 <span className="text-xs text-slate-500">(solo WhatsApp support)</span></span>
+                <span className="text-sm">+39 351 576 5749 <span className="text-xs text-slate-500">{text.whatsappSupport}</span></span>
               </a>
               <div className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <MapPin size={16} className="text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">Chur, Svizzera</span>
+                <span className="text-sm">{text.location}</span>
               </div>
             </div>
           </div>
 
           {/* Quick links */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Link Rapidi</h4>
+            <h4 className="text-white font-semibold mb-4">{text.quickLinks.title}</h4>
             <ul className="space-y-3">
-              {[
-                { label: 'Home', href: '#' },
-                { label: 'Il Metodo', href: '#method' },
-                { label: 'Professor Dapper', href: '#professor' },
-                { label: 'Risultati', href: '#results' },
-                { label: 'DappersClass', href: '#dappersclass' },
-                { label: 'Testimonial', href: '#testimonials' }
-              ].map((link) => (
+              {text.quickLinks.links.map((link) => (
                 <li key={link.label}>
                   <a 
                     href={link.href}
@@ -65,15 +136,9 @@ const Footer = () => {
 
           {/* Services */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Servizi</h4>
+            <h4 className="text-white font-semibold mb-4">{text.services.title}</h4>
             <ul className="space-y-3">
-              {[
-                'Valutazione Diagnostica',
-                'Training Personalizzato',
-                'Sessioni Virtuali',
-                'Programmi Aziendali',
-                'Coaching Individuale'
-              ].map((service) => (
+              {text.services.list.map((service) => (
                 <li key={service}>
                   <div className="text-slate-400 hover:text-white transition-colors duration-300 text-sm flex items-center gap-2 group cursor-pointer">
                     <div className="w-1 h-1 bg-slate-600 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div>
@@ -92,7 +157,7 @@ const Footer = () => {
             
             {/* Certifications */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Riconoscimenti Ufficiali</h4>
+              <h4 className="text-white font-semibold mb-4">{text.recognitions}</h4>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   'EF Education First',
@@ -109,7 +174,7 @@ const Footer = () => {
 
             {/* App integrations */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Featured in App Globali</h4>
+              <h4 className="text-white font-semibold mb-4">{text.featuredIn}</h4>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   'EWA',
@@ -125,7 +190,7 @@ const Footer = () => {
                 ))}
               </div>
               <div className="text-xs text-slate-500 mt-2">
-                Raggiunge milioni di studenti in tutto il mondo
+                {text.reach}
               </div>
             </div>
 
@@ -137,24 +202,20 @@ const Footer = () => {
           
           {/* Copyright */}
           <div className="text-slate-500 text-sm">
-            © {currentYear} VocalFitness™ - Metodo proprietario brevettato. Tutti i diritti riservati. Prof. Steve Dapper.
+            © {currentYear} {text.copyright}
           </div>
 
           {/* Legal links */}
           <div className="flex items-center gap-6">
-            {[
-              'Privacy Policy',
-              'Termini di Servizio', 
-              'Cookie Policy'
-            ].map((link) => (
-              <a 
-                key={link}
-                href="#"
-                className="text-slate-500 hover:text-slate-300 text-sm transition-colors duration-300"
-              >
-                {link}
-              </a>
-            ))}
+            <a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors duration-300">
+              {text.legal.privacy}
+            </a>
+            <a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors duration-300">
+              {text.legal.terms}
+            </a>
+            <a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors duration-300">
+              {text.legal.cookies}
+            </a>
           </div>
 
         </div>
@@ -162,8 +223,7 @@ const Footer = () => {
         {/* Disclaimer */}
         <div className="mt-6 bg-slate-900/30 rounded-lg p-4">
           <p className="text-xs text-slate-500 leading-relaxed text-center">
-            Il successo individuale può variare in base a impegno, pratica e fattori linguistici baseline. 
-            Le testimonianze riflettono esperienze autentiche di clienti reali. VocalFitness è un marchio registrato.
+            {text.disclaimer}
           </p>
         </div>
 
