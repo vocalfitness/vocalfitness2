@@ -136,12 +136,13 @@ const ExitIntentPopup = () => {
             </div>
 
             {/* CTA Button */}
-            <a href="mailto:info@vocalfitness.org?subject=Richiesta%20Offerta%2020%25%20Sconto">
-              <button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-lg px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl group flex items-center justify-center gap-2">
-                {text.cta}
-                <ArrowRight className="group-hover:translate-x-1 transition-transform duration-200" size={20} />
-              </button>
-            </a>
+            <button 
+              onClick={handleOpenForm}
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-lg px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl group flex items-center justify-center gap-2"
+            >
+              {text.cta}
+              <ArrowRight className="group-hover:translate-x-1 transition-transform duration-200" size={20} />
+            </button>
 
             {/* Disclaimer */}
             <p className="text-center text-yellow-400 text-sm mt-4 flex items-center justify-center gap-2">
