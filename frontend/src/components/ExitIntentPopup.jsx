@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, Gift, ArrowRight, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import ContactFormModal from './ContactFormModal';
 
 const ExitIntentPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [hasShown, setHasShown] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
   const { language } = useLanguage();
 
   useEffect(() => {
