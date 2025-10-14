@@ -18,15 +18,15 @@ const Navbar = () => {
 
   const navItems = isItalian ? [
     { label: 'Metodo', href: '#method' },
-    { label: 'Professor Dapper', href: '#professor' },
+    { label: 'Professor', href: '#professor' },
     { label: 'Risultati', href: '#results' },
-    { label: 'Processo', href: '#process' },
+    { label: 'DappersClass', href: '#dappersclass' },
     { label: 'Testimonial', href: '#testimonials' }
   ] : [
     { label: 'Method', href: '#method' },
-    { label: 'Professor Dapper', href: '#professor' },
+    { label: 'Professor', href: '#professor' },
     { label: 'Results', href: '#results' },
-    { label: 'Process', href: '#process' },
+    { label: 'DappersClass', href: '#dappersclass' },
     { label: 'Testimonials', href: '#testimonials' }
   ];
 
