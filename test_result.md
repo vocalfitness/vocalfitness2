@@ -159,6 +159,18 @@ backend:
         agent: "main"
         comment: "Created seed_data.py script and successfully seeded database with 6 real testimonials and 9 client companies from www.vocalfitness.org. Database populated successfully."
 
+  - task: "Contact Form API Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/contact endpoint with SMTP email sending functionality. Accepts name, email, phone, message, discount, and language. Sends HTML formatted emails to info@vocalfitness.org and stores submissions in MongoDB. Added Pydantic models ContactFormSubmission and ContactFormResponse."
+
 frontend:
   - task: "Frontend MVP with Mock Data"
     implemented: true
