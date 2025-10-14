@@ -23,17 +23,17 @@ const Footer = () => {
             
             {/* Contact info */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
+              <a href="mailto:info@vocalfitness.com" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <Mail size={16} className="text-blue-400 group-hover:scale-110 transition-transform duration-200" />
                 <span className="text-sm">info@vocalfitness.com</span>
-              </div>
-              <div className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
+              </a>
+              <a href="https://wa.me/393515765749" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <Phone size={16} className="text-cyan-400 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">+39 02 1234 5678</span>
-              </div>
+                <span className="text-sm">+39 351 576 5749 <span className="text-xs text-slate-500">(solo WhatsApp support)</span></span>
+              </a>
               <div className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors duration-300 group">
                 <MapPin size={16} className="text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm">Milano, Italia</span>
+                <span className="text-sm">Chur, Svizzera</span>
               </div>
             </div>
           </div>
