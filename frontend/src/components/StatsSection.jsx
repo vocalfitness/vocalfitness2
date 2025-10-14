@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TrendingUp, Clock, Users, Award } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const StatsSection = () => {
+  const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [animatedValues, setAnimatedValues] = useState([0, 0, 0, 0]);
   const sectionRef = useRef(null);
