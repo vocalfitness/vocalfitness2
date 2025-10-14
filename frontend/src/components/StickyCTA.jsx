@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import ContactFormModal from './ContactFormModal';
 
 const StickyCTA = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
   const { language } = useLanguage();
 
   useEffect(() => {
