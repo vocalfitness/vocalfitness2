@@ -227,8 +227,8 @@ const ProfessorSection = () => {
                   </h4>
                   <p className="text-slate-300 leading-relaxed text-sm">
                     {isItalian 
-                      ? 'Metodo VocalFitness brevettato, validato da EF Education First, Cambridge Assessment e MIUR. Pubblicato su DappersClass in collaborazione con app leader mondiali come EWA English, LinoPanda, Elsa Speak, Bold Voice.'
-                      : 'Patented VocalFitness method, validated by EF Education First, Cambridge Assessment, and MIUR. Published on DappersClass in collaboration with world-leading apps like EWA English, LinoPanda, Elsa Speak, Bold Voice.'}
+                      ? 'Metodo VocalFitness brevettato, validato da EF Education First, E-Campus University, MUR, MIUR e DIESSE (Associazione Nazionale Docenti). Pubblicato su DappersClass in collaborazione con app leader mondiali come EWA English, LinoPanda, Elsa Speak, Bold Voice.'
+                      : 'Patented VocalFitness method, validated by EF Education First, E-Campus University, MUR, MIUR, and DIESSE (National Teachers Association). Published on DappersClass in collaboration with world-leading apps like EWA English, LinoPanda, Elsa Speak, Bold Voice.'}
                   </p>
                 </div>
               </div>
