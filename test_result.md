@@ -173,6 +173,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ Contact Form API endpoint tested successfully: POST /api/contact returns 201 status code with proper ContactFormResponse model including UUID, timestamps, and email_sent status. Complete form submission (all fields) works correctly. Minimal form submission (name, email, phone only) works with proper defaults. Data is stored in MongoDB contacts collection. Email sending logic works correctly - returns email_sent: false when SMTP not configured (expected in development). All test cases passed including database storage verification."
+      - working: true
+        agent: "testing"
+        comment: "✅ Zoho SMTP Email Sending VERIFIED: Tested contact form with newly configured Zoho SMTP (smtp.zoho.eu:587, admissions@vocalfitness.org). API returns HTTP 201 status, email_sent field is TRUE (not false), emails are successfully sent via SMTP without errors, and data is properly saved to MongoDB. Tested with sample payload from review request and multiple languages (IT/EN). Backend logs show no SMTP configuration errors for new requests. All requirements met successfully."
 
 frontend:
   - task: "Frontend MVP with Mock Data"
