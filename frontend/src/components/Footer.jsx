@@ -46,7 +46,7 @@ const Footer = () => {
                 { label: 'Il Metodo', href: '#method' },
                 { label: 'Professor Dapper', href: '#professor' },
                 { label: 'Risultati', href: '#results' },
-                { label: 'Processo', href: '#process' },
+                { label: 'DappersClass', href: '#dappersclass' },
                 { label: 'Testimonial', href: '#testimonials' }
               ].map((link) => (
                 <li key={link.label}>
