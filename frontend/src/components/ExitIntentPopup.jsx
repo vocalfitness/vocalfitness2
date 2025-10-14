@@ -29,7 +29,12 @@ const ExitIntentPopup = () => {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  const handleOpenForm = () => {
+    setIsVisible(false);
+    setShowContactForm(true);
+  };
+
+  if (!isVisible && !showContactForm) return null;
 
   const content = {
     it: {
