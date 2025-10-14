@@ -76,6 +76,29 @@ class Client(BaseModel):
     featured: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Contact Form Models
+class ContactFormSubmission(BaseModel):
+    name: str
+    email: str
+    phone: str
+    message: str = ""
+    discount: str = ""
+    language: str = "en"
+
+class ContactFormResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    message: str = ""
+    discount: str = ""
+    language: str = "en"
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    email_sent: bool = False
+
 class StatusCheckCreate(BaseModel):
     client_name: str
 
