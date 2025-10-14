@@ -47,6 +47,7 @@ const HomePage = () => {
       <div className="relative z-10">
         <Navbar />
         <HeroSection />
+        <SocialProofBanner />
         <ProfessorSection />
         <MethodSection />
         <StatsSection />
@@ -58,6 +59,10 @@ const HomePage = () => {
         <SuccessStoriesSection />
         <CTASection />
         <Footer />
+        
+        {/* Conversion Optimization Components */}
+        <StickyCTA />
+        <ExitIntentPopup />
       </div>
     </div>
   );
