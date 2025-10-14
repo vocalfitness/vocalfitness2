@@ -125,13 +125,15 @@ const DappersClassSection = () => {
         
         {/* Pre-title with sparkle effect */}
         <div className={`text-center mb-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}`}>
-          <div className="inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-full backdrop-blur-sm">
-            <Sparkles size={16} className="text-amber-400 animate-pulse" />
-            <span className="text-amber-400 text-sm font-medium tracking-wider uppercase">
-              {text.preTitle}
-            </span>
-            <Sparkles size={16} className="text-amber-400 animate-pulse" />
-          </div>
+          <a href="#dappersclass">
+            <div className="inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-full backdrop-blur-sm hover:border-amber-500/50 hover:bg-amber-500/30 transition-all duration-300 cursor-pointer">
+              <Sparkles size={16} className="text-amber-400 animate-pulse" />
+              <span className="text-amber-400 text-sm font-medium tracking-wider uppercase">
+                {text.preTitle}
+              </span>
+              <Sparkles size={16} className="text-amber-400 animate-pulse" />
+            </div>
+          </a>
         </div>
 
         {/* Main Title - Cinematic */}
