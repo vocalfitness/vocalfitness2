@@ -185,13 +185,12 @@ const AudienceSection = () => {
         {/* Bottom CTA */}
         <div className={`mt-16 text-center transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="bg-gradient-to-r from-slate-800/30 to-slate-700/30 backdrop-blur-md border border-slate-600/50 rounded-2xl p-8 max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-white mb-4">Sei Pronto per la Trasformazione?</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{text.cta.title}</h3>
             <p className="text-slate-300 mb-6 leading-relaxed">
-              Indipendentemente dal tuo settore professionale, VocalFitness può sbloccare il tuo pieno potenziale comunicativo 
-              e aprirti nuove opportunità a livello globale.
+              {text.cta.description}
             </p>
             <button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25">
-              Scopri Come Iniziare
+              {text.cta.button}
             </button>
           </div>
         </div>
