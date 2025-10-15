@@ -160,7 +160,7 @@ const ProcessSection = () => {
                     </div>
 
                     {/* Arrow for desktop */}
-                    {index < mockData.process.length - 1 && (
+                    {index < processSteps.length - 1 && (
                       <div className="hidden lg:block absolute -right-4 top-1/2 transform -translate-y-1/2 z-10">
                         <ArrowRight size={24} className={`transition-colors duration-500 ${
                           isCompleted ? 'text-emerald-500' : isActive ? 'text-blue-500' : 'text-slate-600'
