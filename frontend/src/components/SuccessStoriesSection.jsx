@@ -130,10 +130,10 @@ const SuccessStoriesSection = () => {
                       </div>
                       <div>
                         <h3 className="text-2xl md:text-3xl font-bold text-white">
-                          {mockData.successStories[selectedStory].title}
+                          {stories[selectedStory].title}
                         </h3>
                         <div className="text-blue-400 font-semibold">
-                          Settore: {mockData.successStories[selectedStory].sector}
+                          {language === 'it' ? 'Settore' : 'Sector'}: {stories[selectedStory].sector}
                         </div>
                       </div>
                     </div>
