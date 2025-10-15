@@ -32,7 +32,7 @@ const ProcessSection = () => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [language]);
 
   const content = {
     it: {
