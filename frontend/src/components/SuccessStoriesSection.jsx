@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { TrendingUp, Award, Zap, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, Award, Zap, ArrowUpRight, Film, Heart, Hammer, TrendingUpIcon, Scale, Plane } from 'lucide-react';
 import { Button } from './ui/button';
 import { mockData } from '../data/mock';
 import { useLanguage } from '../context/LanguageContext';
