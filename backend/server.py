@@ -302,6 +302,137 @@ async def submit_contact_form(input: ContactFormSubmission):
     
     return contact
 
+# Booking Form Endpoint
+@api_router.post("/booking", response_model=BookingFormResponse, status_code=201)
+async def submit_booking_form(input: BookingFormSubmission):
+    """Submit booking form for free assessment and send email notification"""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    booking = BookingFormResponse(**input.model_dump())
+    
+    # Send email notification
+    email_sent = False
+    try:
+        # Email configuration
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER', 'admissions@vocalfitness.org')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"Nuova Richiesta Valutazione Gratuita - {input.name}" if input.language == 'it' else f"New Free Assessment Request - {input.name}"
+        msg['From'] = smtp_user
+        msg['To'] = 'admissions@vocalfitness.org'
+        
+        # Translate sector names
+        sector_labels = {
+            'technology': 'Tecnologia' if input.language == 'it' else 'Technology',
+            'finance': 'Finanza' if input.language == 'it' else 'Finance',
+            'healthcare': 'Sanità' if input.language == 'it' else 'Healthcare',
+            'pharmaceutical': 'Farmaceutico' if input.language == 'it' else 'Pharmaceutical',
+            'engineering': 'Ingegneria' if input.language == 'it' else 'Engineering',
+            'legal': 'Legale' if input.language == 'it' else 'Legal',
+            'marketing': 'Marketing/Sales',
+            'entertainment': 'Entertainment',
+            'hospitality': 'Hospitality',
+            'education': 'Educazione' if input.language == 'it' else 'Education',
+            'consulting': 'Consulting',
+            'other': 'Altro' if input.language == 'it' else 'Other'
+        }
+        
+        sector_label = sector_labels.get(input.sector, input.sector)
+        
+        # Translate day names
+        day_labels = {
+            'monday': 'Lunedì' if input.language == 'it' else 'Monday',
+            'tuesday': 'Martedì' if input.language == 'it' else 'Tuesday',
+            'wednesday': 'Mercoledì' if input.language == 'it' else 'Wednesday',
+            'thursday': 'Giovedì' if input.language == 'it' else 'Thursday',
+            'friday': 'Venerdì' if input.language == 'it' else 'Friday',
+            'saturday': 'Sabato' if input.language == 'it' else 'Saturday'
+        }
+        
+        day_label = day_labels.get(input.preferredDay, input.preferredDay)
+        
+        # Email body
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 700px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
+                    {"🎯 Nuova Richiesta Valutazione Gratuita" if input.language == 'it' else "🎯 New Free Assessment Request"}
+                </h2>
+                
+                <div style="margin: 20px 0; background-color: #f8fafc; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #0284c7; margin-top: 0;">{"Informazioni Personali" if input.language == 'it' else "Personal Information"}</h3>
+                    <p><strong>{"Nome" if input.language == 'it' else "Name"}:</strong> {input.name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:{input.email}">{input.email}</a></p>
+                    <p><strong>{"Telefono" if input.language == 'it' else "Phone"}:</strong> <a href="tel:{input.phone}">{input.phone}</a></p>
+                    <p><strong>{"Età" if input.language == 'it' else "Age"}:</strong> {input.age} {"anni" if input.language == 'it' else "years"}</p>
+                </div>
+                
+                <div style="margin: 20px 0; background-color: #fefce8; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #ca8a04; margin-top: 0;">{"Informazioni Professionali" if input.language == 'it' else "Professional Information"}</h3>
+                    <p><strong>{"Settore" if input.language == 'it' else "Sector"}:</strong> <span style="color: #2563eb; font-weight: bold;">{sector_label}</span></p>
+                    {f'<p><strong>{"Livello Inglese Attuale" if input.language == "it" else "Current English Level"}:</strong> <span style="color: #059669; font-weight: bold;">{input.englishLevel}</span></p>' if input.englishLevel else ''}
+                </div>
+                
+                <div style="margin: 20px 0; background-color: #f0fdf4; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #059669; margin-top: 0;">{"Preferenze per il Contatto" if input.language == 'it' else "Contact Preferences"}</h3>
+                    <p><strong>{"Giorno Preferito" if input.language == 'it' else "Preferred Day"}:</strong> <span style="color: #0284c7; font-weight: bold;">{day_label}</span></p>
+                    <p><strong>{"Orario Preferito" if input.language == 'it' else "Preferred Time"}:</strong> <span style="color: #0284c7; font-weight: bold;">{input.preferredTime}</span></p>
+                </div>
+                
+                {f'''<div style="margin: 20px 0; background-color: #fef3c7; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #ca8a04; margin-top: 0;">{"Note Aggiuntive" if input.language == "it" else "Additional Notes"}</h3>
+                    <p>{input.message}</p>
+                </div>''' if input.message else ''}
+                
+                <div style="margin-top: 30px; padding: 20px; background-color: #dbeafe; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    <p style="margin: 0; color: #1e40af; font-weight: bold;">
+                        {"⚡ Azione Richiesta: Contattare il candidato entro 24 ore" if input.language == 'it' else "⚡ Action Required: Contact candidate within 24 hours"}
+                    </p>
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                    <p>{"Ricevuto il" if input.language == 'it' else "Received on"}: {datetime.now(timezone.utc).strftime('%d/%m/%Y alle %H:%M' if input.language == 'it' else '%d/%m/%Y at %H:%M')} UTC</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        part = MIMEText(html_body, 'html')
+        msg.attach(part)
+        
+        # Send email if SMTP is configured
+        if smtp_password:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+            email_sent = True
+        else:
+            print("SMTP not configured - Email would be sent in production")
+            email_sent = False
+            
+    except Exception as e:
+        print(f"Error sending booking email: {e}")
+        email_sent = False
+    
+    booking.email_sent = email_sent
+    
+    # Save to database
+    doc = booking.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.bookings.insert_one(doc)
+    
+    return booking
+
 # Include the router in the main app
 app.include_router(api_router)
 
