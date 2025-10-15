@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Menu, X, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import BookingFormModal from './BookingFormModal';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const { language, toggleLanguage, isItalian } = useLanguage();
 
   useEffect(() => {
