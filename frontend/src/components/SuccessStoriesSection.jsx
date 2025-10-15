@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { TrendingUp, Award, Zap, ArrowUpRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const SuccessStoriesSection = () => {
+  const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState(0);
   const sectionRef = useRef(null);
