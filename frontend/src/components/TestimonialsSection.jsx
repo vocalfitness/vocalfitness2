@@ -71,6 +71,27 @@ const TestimonialsSection = () => {
     setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
+  const content = {
+    it: {
+      title: "Testimonianze di Eccellenza",
+      subtitle: "Le voci dei nostri clienti risuonano più eloquentemente di qualsiasi materiale marketing",
+      loading: "Caricamento testimonianze...",
+      error: "Errore nel caricamento",
+      globalRecognitions: "Riconoscimenti Globali",
+      recognitionsDesc: "VocalFitness è riconosciuto da istituzioni accademiche e organizzazioni educative leader a livello mondiale"
+    },
+    en: {
+      title: "Excellence Testimonials",
+      subtitle: "Our clients' voices resonate more eloquently than any marketing material",
+      loading: "Loading testimonials...",
+      error: "Loading error",
+      globalRecognitions: "Global Recognitions",
+      recognitionsDesc: "VocalFitness is recognized by leading academic institutions and educational organizations worldwide"
+    }
+  };
+
+  const text = content[language] || content.en;
+
   // Show loading state
   if (loading) {
     return (
