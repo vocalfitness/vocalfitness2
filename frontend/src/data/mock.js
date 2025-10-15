@@ -260,27 +260,52 @@ export const mockData = {
     }
   ],
 
-  successStories: [
-    {
-      number: "1",
-      title: "Tech Leader - Dalla Confusione alla Leadership Globale",
-      sector: "Tecnologia",
-      challenge: "Un leader nello sviluppo software, con un italiano di livello A2, faticava a essere percepito come autorevole nelle riunioni internazionali.",
-      result: "In sole 10 lezioni, ha raggiunto una pronuncia di livello C1+. Ha guidato con successo un'acquisizione internazionale e è stato promosso a Direttore Tecnico Internazionale."
-    },
-    {
-      number: "2",
-      title: "Ricercatrice Farmaceutica - Riconoscimento Internazionale", 
-      sector: "Farmaceutico",
-      challenge: "Una brillante ricercatrice senior provava imbarazzo nel presentare le sue scoperte a conferenze globali.",
-      result: "Dopo 8 settimane ha raggiunto il livello C2. Ha presentato al World Medical Congress con clamoroso successo, attirando finanziamenti significativi."
-    },
-    {
-      number: "3",
-      title: "Analista Finanziario - Accordo Milionario",
-      sector: "Finanziario", 
-      challenge: "Un analista di private equity si sentiva insicuro durante le negoziazioni ad alto rischio con investitori anglofoni.",
-      result: "Ha conquistato una pronuncia fluida di livello C2 in 10 lezioni. Ha chiuso due accordi multimilionari e è stato promosso a Partner Associato."
-    }
-  ]
+  successStories: {
+    it: [
+      {
+        number: "1",
+        title: "Tech Leader - Dalla Confusione alla Leadership Globale",
+        sector: "Tecnologia",
+        challenge: "Un leader nello sviluppo software, con un italiano di livello A2, faticava a essere percepito come autorevole nelle riunioni internazionali.",
+        result: "In sole 10 lezioni, ha raggiunto una pronuncia di livello C1+. Ha guidato con successo un'acquisizione internazionale e è stato promosso a Direttore Tecnico Internazionale."
+      },
+      {
+        number: "2",
+        title: "Ricercatrice Farmaceutica - Riconoscimento Internazionale", 
+        sector: "Farmaceutico",
+        challenge: "Una brillante ricercatrice senior provava imbarazzo nel presentare le sue scoperte a conferenze globali.",
+        result: "Dopo 8 settimane ha raggiunto il livello C2. Ha presentato al World Medical Congress con clamoroso successo, attirando finanziamenti significativi."
+      },
+      {
+        number: "3",
+        title: "Analista Finanziario - Accordo Milionario",
+        sector: "Finanziario", 
+        challenge: "Un analista di private equity si sentiva insicuro durante le negoziazioni ad alto rischio con investitori anglofoni.",
+        result: "Ha conquistato una pronuncia fluida di livello C2 in 10 lezioni. Ha chiuso due accordi multimilionari e è stato promosso a Partner Associato."
+      }
+    ],
+    en: [
+      {
+        number: "1",
+        title: "Tech Leader - From Confusion to Global Leadership",
+        sector: "Technology",
+        challenge: "A software development leader, with A2 level English, struggled to be perceived as authoritative in international meetings.",
+        result: "In just 10 lessons, achieved C1+ pronunciation. Successfully led an international acquisition and was promoted to International Technical Director."
+      },
+      {
+        number: "2",
+        title: "Pharmaceutical Researcher - International Recognition", 
+        sector: "Pharmaceutical",
+        challenge: "A brilliant senior researcher felt embarrassed presenting her discoveries at global conferences.",
+        result: "After 8 weeks reached C2 level. Presented at World Medical Congress with resounding success, attracting significant funding."
+      },
+      {
+        number: "3",
+        title: "Financial Analyst - Million Dollar Deal",
+        sector: "Financial", 
+        challenge: "A private equity analyst felt insecure during high-stakes negotiations with English-speaking investors.",
+        result: "Achieved fluent C2 pronunciation in 10 lessons. Closed two multimillion-dollar deals and was promoted to Associate Partner."
+      }
+    ]
+  }
 };
