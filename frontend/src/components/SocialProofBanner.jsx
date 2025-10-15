@@ -43,8 +43,8 @@ const SocialProofBanner = () => {
         const progress = currentStep / steps;
         
         setCounters({
-          students: Math.floor(50000 * progress),
-          lessons: Math.floor(700000 * progress),
+          students: Math.floor(10000 * progress),
+          lessons: Math.floor(25000 * progress),
           successRate: Math.floor(96 * progress),
           companies: Math.floor(100 * progress)
         });
@@ -52,8 +52,8 @@ const SocialProofBanner = () => {
         if (currentStep >= steps) {
           clearInterval(timer);
           setCounters({
-            students: 50000,
-            lessons: 700000,
+            students: 10000,
+            lessons: 25000,
             successRate: 96,
             companies: 100
           });
