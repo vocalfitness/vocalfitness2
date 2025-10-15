@@ -347,6 +347,48 @@ export const mockData = {
         sector: "Financial", 
         challenge: "A private equity analyst felt insecure during high-stakes negotiations with English-speaking investors.",
         result: "Achieved fluent C2 pronunciation in 10 lessons. Closed two multimillion-dollar deals and was promoted to Associate Partner."
+      },
+      {
+        number: "4",
+        title: "Film Actor - From Supporting Roles to Lead",
+        sector: "Entertainment",
+        challenge: "A talented Italian theater actor lost auditions for Hollywood productions due to his marked accent limiting him to stereotypical roles.",
+        result: "After 12 weeks of VocalFitness achieved C2 articulation. Secured lead role in international Netflix series and signed with major Los Angeles agency."
+      },
+      {
+        number: "5",
+        title: "Cardiac Surgeon - Global Medical Leadership",
+        sector: "Medicine",
+        challenge: "A renowned European cardiac surgeon hesitated accepting invitations to present innovative techniques at U.S. congresses due to English pronunciation insecurity.",
+        result: "In 10 weeks perfected pronunciation to C2 level. Delivered keynote at American College of Cardiology, appointed visiting professor at Johns Hopkins, published in NEJM."
+      },
+      {
+        number: "6",
+        title: "Aerospace Project Manager - International Contracts",
+        sector: "Engineering",
+        challenge: "A senior aerospace engineer lost credibility with NASA and ESA clients during technical presentations due to unclear pronunciation of technical terminology.",
+        result: "VocalFitness brought him from B1 to C2 in 8 weeks. Led negotiations for €45M ESA contract and was promoted to Director of International Programs."
+      },
+      {
+        number: "7",
+        title: "CMO - From Regional Manager to Global Leader",
+        sector: "Sales & Marketing",
+        challenge: "An Italian Chief Marketing Officer with brilliant European results was repeatedly passed over for global C-suite positions due to perceptions about her communication authority.",
+        result: "After 10 VocalFitness sessions reached C2 level. Appointed Global CMO of Fortune 500 company, managing teams in 47 countries with $800M budget."
+      },
+      {
+        number: "8",
+        title: "International Lawyer - Multimillion Arbitrations",
+        sector: "Legal",
+        challenge: "A lawyer specializing in international arbitration lost critical cases because his oral arguments lacked the persuasive impact of native English-speaking colleagues.",
+        result: "VocalFitness transformed him in 12 weeks (C2 level). Won 4 consecutive arbitrations totaling €120M and was named equity partner at his firm."
+      },
+      {
+        number: "9",
+        title: "Hospitality Director - Luxury Global Expansion",
+        sector: "Aviation & Hospitality",
+        challenge: "A luxury hotel general manager excelled operationally but was blocked from corporate promotions due to accent undermining his executive image with VIP international clients.",
+        result: "In 10 weeks achieved C1+ pronunciation. Promoted to Regional Director for Europe and Middle East of international luxury chain, overseeing 23 properties."
       }
     ]
   }
