@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Briefcase, Globe, Mic, GraduationCap } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const AudienceSection = () => {
+  const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const sectionRef = useRef(null);
