@@ -137,6 +137,13 @@ const HeroSection = () => {
         isOpen={showBookingForm} 
         onClose={() => setShowBookingForm(false)}
       />
+
+      {/* Video Modal */}
+      <VideoModal 
+        isOpen={showVideoModal} 
+        onClose={() => setShowVideoModal(false)}
+        videoUrl="https://www.youtube.com/watch?v=u8TzrIw_62k"
+      />
     </section>
   );
 };
