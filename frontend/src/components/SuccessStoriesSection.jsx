@@ -77,11 +77,11 @@ const SuccessStoriesSection = () => {
         <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Storie di Successo Reali
+              {text.title}
             </span>
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-            L'Impatto di VocalFitness: trasformazioni professionali concrete che hanno aperto nuove opportunità
+            {text.subtitle}
           </p>
         </div>
 
