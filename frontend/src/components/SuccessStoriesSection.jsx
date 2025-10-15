@@ -86,8 +86,8 @@ const SuccessStoriesSection = () => {
           </p>
         </div>
 
-        {/* Story selector tabs */}
-        <div className={`flex flex-col sm:flex-row justify-center gap-4 mb-12 transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        {/* Story selector tabs - Grid layout for 9 stories */}
+        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 max-w-6xl mx-auto mb-12 transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {stories.map((story, index) => {
             const IconComponent = icons[index];
             return (
@@ -95,14 +95,14 @@ const SuccessStoriesSection = () => {
                 key={index}
                 variant={selectedStory === index ? "default" : "outline"}
                 onClick={() => setSelectedStory(index)}
-                className={`flex items-center gap-2 px-6 py-3 transition-all duration-300 ${
+                className={`flex items-center justify-center gap-2 px-4 py-3 transition-all duration-300 text-sm ${
                   selectedStory === index 
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg' 
-                    : 'border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500/50 hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' 
+                    : 'border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500/50 hover:text-white hover:scale-102'
                 }`}
               >
-                <IconComponent size={20} />
-                {story.sector}
+                <IconComponent size={18} />
+                <span className="truncate">{story.sector}</span>
               </Button>
             );
           })}
