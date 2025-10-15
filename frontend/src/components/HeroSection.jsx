@@ -61,17 +61,9 @@ const HeroSection = () => {
           </div>
 
           {/* Main heading */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent">
-              VocalFitness
-            </span>
-            <br />
-            <span className="text-slate-300 text-2xl md:text-4xl lg:text-5xl font-normal">
-              {isItalian ? "L'Eccellenza nella" : "Excellence in"}
-            </span>
-            <br />
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-              {isItalian ? "Fonetica Articolatoria" : "Articulatory Phonetics"}
+              {content.title}
             </span>
           </h1>
 
