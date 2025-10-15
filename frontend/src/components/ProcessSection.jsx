@@ -188,33 +188,30 @@ const ProcessSection = () => {
             
             {/* Flexibility info */}
             <div className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-500">
-              <h3 className="text-xl font-bold text-white mb-4">Flessibilità Delivery Ibrida</h3>
+              <h3 className="text-xl font-bold text-white mb-4">{text.flexibility.title}</h3>
               <p className="text-slate-300 leading-relaxed mb-4">
-                Riconoscendo agende esigenti di professionisti globali, VocalFitness offre modalità delivery 
-                flessibili che mantengono rigore pedagogico pur accomodando vincoli logistici.
+                {text.flexibility.description}
               </p>
               <div className="flex items-center gap-2 text-blue-400">
                 <CheckCircle size={16} />
-                <span className="text-sm">Sessioni in-person e virtuali</span>
+                <span className="text-sm">{text.flexibility.feature}</span>
               </div>
             </div>
 
             {/* Results timeline */}
             <div className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 hover:border-cyan-500/50 transition-all duration-500">
-              <h3 className="text-xl font-bold text-white mb-4">Timeline dei Risultati</h3>
+              <h3 className="text-xl font-bold text-white mb-4">{text.timeline.title}</h3>
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Settimane 1-3</span>
-                  <span className="text-blue-400 text-sm">Fondamenti & Diagnosi</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Settimane 4-8</span>
-                  <span className="text-cyan-400 text-sm">Condizionamento Intensivo</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">Settimane 8-12</span>
-                  <span className="text-emerald-400 text-sm">Mastery & Consolidamento</span>
-                </div>
+                {text.timeline.weeks.map((week, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-slate-300">{week.period}</span>
+                    <span className={`text-sm ${
+                      index === 0 ? 'text-blue-400' : 
+                      index === 1 ? 'text-cyan-400' : 
+                      'text-emerald-400'
+                    }`}>{week.phase}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
