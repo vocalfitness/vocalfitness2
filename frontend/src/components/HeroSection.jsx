@@ -87,16 +87,15 @@ const HeroSection = () => {
               <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
             </Button>
             
-            <a href="#dappersclass">
-              <Button 
-                variant="outline"
-                size="lg"
-                className="group border-2 border-slate-600 bg-slate-900/50 backdrop-blur-sm hover:border-blue-500 hover:bg-slate-800/80 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300"
-              >
-                <Play size={20} className="mr-2 group-hover:scale-110 transition-transform duration-200" />
-                {content.ctaButtons[1].text}
-              </Button>
-            </a>
+            <Button 
+              onClick={() => setShowVideoModal(true)}
+              variant="outline"
+              size="lg"
+              className="group border-2 border-slate-600 bg-slate-900/50 backdrop-blur-sm hover:border-blue-500 hover:bg-slate-800/80 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300"
+            >
+              <Play size={20} className="mr-2 group-hover:scale-110 transition-transform duration-200" />
+              {content.ctaButtons[1].text}
+            </Button>
           </div>
 
           {/* Floating cards */}
