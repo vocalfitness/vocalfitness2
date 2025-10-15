@@ -106,7 +106,7 @@ const ProcessSection = () => {
           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-slate-700 via-blue-500/50 to-slate-700 transform -translate-y-1/2"></div>
           
           <div className="grid lg:grid-cols-5 gap-8">
-            {mockData.process.map((step, index) => {
+            {processSteps.map((step, index) => {
               const isActive = activeStep === index;
               const isCompleted = activeStep > index;
               
