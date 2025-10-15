@@ -139,31 +139,29 @@ const CTASection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full px-6 py-3 mb-8 group hover:border-blue-500/50 transition-all duration-300">
             <Sparkles size={18} className="text-blue-400 group-hover:animate-pulse" />
-            <span className="text-slate-300 font-medium">Il Percorso verso l'Eccellenza Comunicativa Inizia Oggi</span>
+            <span className="text-slate-300 font-medium">{text.badge}</span>
           </div>
 
           {/* Main heading */}
           <h2 className="text-4xl md:text-6xl font-bold mb-8 leading-tight">
             <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent">
-              Inizia la Tua
+              {text.heading1}
             </span>
             <br />
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-              Trasformazione Vocale
+              {text.heading2}
             </span>
           </h2>
 
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-4xl mx-auto leading-relaxed">
-            Se sei un dirigente che aspira a comandare sale riunioni globali, un performer che richiede dizione impeccabile, 
-            o un leader accademico che desidera amplificare il proprio impatto—VocalFitness offre la soluzione trasformativa che stai cercando.
+            {text.subtitle}
           </p>
 
           {/* Exclusivity notice */}
           <div className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 max-w-3xl mx-auto mb-12">
             <p className="text-slate-300 leading-relaxed">
-              <strong className="text-blue-400">Esclusività Garantita:</strong> Il Professor Steve Dapper accetta un numero limitato di clienti 
-              per mantenere standard qualitativi eccezionali e fornire l'attenzione personalizzata che il metodo richiede.
+              <strong className="text-blue-400">{text.exclusivity.title}</strong>{text.exclusivity.text}
             </p>
           </div>
 
