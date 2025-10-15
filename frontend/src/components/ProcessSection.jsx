@@ -16,7 +16,6 @@ const ProcessSection = () => {
           setIsVisible(true);
           
           // Auto-advance through steps
-          const processSteps = mockData.process[language] || mockData.process.en;
           const interval = setInterval(() => {
             setActiveStep(prev => (prev + 1) % processSteps.length);
           }, 3000);
