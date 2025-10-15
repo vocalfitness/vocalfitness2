@@ -171,7 +171,7 @@ const ProcessSection = () => {
                   </div>
 
                   {/* Mobile arrow */}
-                  {index < mockData.process.length - 1 && (
+                  {index < processSteps.length - 1 && (
                     <div className="lg:hidden flex justify-center mt-4 mb-4">
                       <ArrowRight size={24} className="text-slate-600 rotate-90" />
                     </div>
