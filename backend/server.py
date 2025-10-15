@@ -99,6 +99,39 @@ class ContactFormResponse(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     email_sent: bool = False
 
+# Booking Form Models
+class BookingFormSubmission(BaseModel):
+    name: str
+    email: str
+    phone: str
+    sector: str
+    englishLevel: str = ""
+    age: str
+    preferredDay: str
+    preferredTime: str
+    message: str = ""
+    type: str = "booking"
+    language: str = "en"
+
+class BookingFormResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    sector: str
+    englishLevel: str = ""
+    age: str
+    preferredDay: str
+    preferredTime: str
+    message: str = ""
+    type: str = "booking"
+    language: str = "en"
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    email_sent: bool = False
+
 class StatusCheckCreate(BaseModel):
     client_name: str
 
