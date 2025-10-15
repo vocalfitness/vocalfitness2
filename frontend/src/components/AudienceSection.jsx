@@ -193,13 +193,29 @@ const AudienceSection = () => {
             <p className="text-slate-300 mb-6 leading-relaxed">
               {text.cta.description}
             </p>
-            <button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25">
+            <button 
+              onClick={() => setShowLevelTest(true)}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
+            >
               {text.cta.button}
             </button>
           </div>
         </div>
 
       </div>
+
+      {/* Level Test Modal */}
+      <LevelTestModal 
+        isOpen={showLevelTest} 
+        onClose={() => setShowLevelTest(false)}
+        onBookingOpen={() => setShowBookingForm(true)}
+      />
+
+      {/* Booking Form Modal */}
+      <BookingFormModal 
+        isOpen={showBookingForm} 
+        onClose={() => setShowBookingForm(false)}
+      />
     </section>
   );
 };
