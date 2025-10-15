@@ -156,46 +156,14 @@ const AudienceSection = () => {
 
                   {/* Benefits list based on audience type */}
                   <div className="mt-6 space-y-3">
-                    {index === 0 && [ // Dirigenti
-                      "Conference call globali",
-                      "Presentazioni agli stakeholder", 
-                      "Negoziazioni multimilionarie"
-                    ].map((benefit, i) => (
+                    {text.benefits[index].map((benefit, i) => (
                       <div key={i} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-                        <span className="text-slate-400 text-sm">{benefit}</span>
-                      </div>
-                    ))}
-                    
-                    {index === 1 && [ // Professionisti
-                      "Collaborazione internazionale",
-                      "Avanzamento carriera",
-                      "Eliminazione barriere comunicative"
-                    ].map((benefit, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"></div>
-                        <span className="text-slate-400 text-sm">{benefit}</span>
-                      </div>
-                    ))}
-
-                    {index === 2 && [ // Attori e Cantanti
-                      "Ruoli cinematografici",
-                      "Produzioni teatrali",
-                      "Registrazioni musicali"
-                    ].map((benefit, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-                        <span className="text-slate-400 text-sm">{benefit}</span>
-                      </div>
-                    ))}
-
-                    {index === 3 && [ // Leader Accademici
-                      "Oratori keynote",
-                      "Impatto pedagogico",
-                      "Influenza accademica"
-                    ].map((benefit, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                          index === 1 ? 'bg-gradient-to-r from-emerald-500 to-teal-500' :
+                          index === 2 ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                          'bg-gradient-to-r from-orange-500 to-red-500'
+                        }`}></div>
                         <span className="text-slate-400 text-sm">{benefit}</span>
                       </div>
                     ))}
