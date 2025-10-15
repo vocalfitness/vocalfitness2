@@ -262,16 +262,14 @@ const CTASection = () => {
         <div className={`text-center transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-md border border-slate-600/50 rounded-3xl p-8 max-w-5xl mx-auto">
-            <h3 className="text-2xl font-bold text-white mb-4">Investimento in Eccellenza Duratura</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{text.investment.title}</h3>
             <p className="text-slate-300 leading-relaxed mb-6">
-              VocalFitness rappresenta un investimento in competenza comunicativa permanente. Diversamente da app linguistiche 
-              che producono guadagni temporanei, il metodo VocalFitness ricablà l'architettura fonologica fondamentale. 
-              I risultati persistono perché i cambiamenti operano a livello neuromuscolare—diventano automatici e inconsci.
+              {text.investment.description}
             </p>
             
             <div className="inline-flex items-center gap-2 text-blue-400 font-medium">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span>VocalFitness non è una spesa—è un investimento strategico in eccellenza duratura</span>
+              <span>{text.investment.tagline}</span>
             </div>
           </div>
 
