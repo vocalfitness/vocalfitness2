@@ -130,6 +130,12 @@ const HeroSection = () => {
           <div className="w-1 h-3 bg-slate-400 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
+
+      {/* Booking Form Modal */}
+      <BookingFormModal 
+        isOpen={showBookingForm} 
+        onClose={() => setShowBookingForm(false)}
+      />
     </section>
   );
 };
