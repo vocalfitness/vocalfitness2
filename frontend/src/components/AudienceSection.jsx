@@ -2,11 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Briefcase, Globe, Mic, GraduationCap } from 'lucide-react';
 import { mockData } from '../data/mock';
 import { useLanguage } from '../context/LanguageContext';
+import LevelTestModal from './LevelTestModal';
+import BookingFormModal from './BookingFormModal';
 
 const AudienceSection = () => {
   const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showLevelTest, setShowLevelTest] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const sectionRef = useRef(null);
 
   useEffect(() => {
