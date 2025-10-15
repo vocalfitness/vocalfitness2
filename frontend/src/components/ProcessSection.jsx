@@ -88,11 +88,11 @@ const ProcessSection = () => {
         <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Il Processo VocalFitness
+              {text.title}
             </span>
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8">
-            Dal Diagnostic alla Mastery: Un percorso strutturato verso l'eccellenza comunicativa
+            {text.subtitle}
           </p>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 mx-auto rounded-full"></div>
         </div>
