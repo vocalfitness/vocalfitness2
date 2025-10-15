@@ -126,7 +126,7 @@ const SuccessStoriesSection = () => {
                   <div>
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                        {mockData.successStories[selectedStory].number}
+                        {stories[selectedStory].number}
                       </div>
                       <div>
                         <h3 className="text-2xl md:text-3xl font-bold text-white">
