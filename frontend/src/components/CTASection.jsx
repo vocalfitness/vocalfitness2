@@ -232,9 +232,9 @@ const CTASection = () => {
                 <Download size={32} className="text-purple-400" />
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-4">Scarica Guida VocalFitness</h3>
+              <h3 className="text-xl font-bold text-white mb-4">{text.cta3.title}</h3>
               <p className="text-slate-300 mb-6 leading-relaxed">
-                Accedi a materiali introduttivi sui principi di fonologia articolatoria e condizionamento neuromuscolare.
+                {text.cta3.description}
               </p>
 
               <a href="#method">
@@ -242,12 +242,12 @@ const CTASection = () => {
                   variant="outline" 
                   className="w-full border-2 border-purple-600 bg-purple-600/10 hover:bg-purple-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
                 >
-                  Scopri il Metodo
+                  {text.cta3.button}
                   <Download size={18} className="ml-2 group-hover:translate-y-1 transition-transform duration-200" />
                 </Button>
               </a>
 
-              <div className="text-xs text-slate-400 mt-3">PDF completo • Accesso immediato</div>
+              <div className="text-xs text-slate-400 mt-3">{text.cta3.disclaimer}</div>
             </div>
           </div>
 
