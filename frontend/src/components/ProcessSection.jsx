@@ -72,6 +72,7 @@ const ProcessSection = () => {
   };
 
   const text = content[language] || content.en;
+  const processSteps = mockData.process[language] || mockData.process.en;
 
   return (
     <section id="process" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
