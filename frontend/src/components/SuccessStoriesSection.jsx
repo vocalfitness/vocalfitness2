@@ -27,7 +27,7 @@ const SuccessStoriesSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  const icons = [TrendingUp, Award, Zap];
+  const icons = [TrendingUp, Award, Zap, Film, Heart, Hammer, TrendingUpIcon, Scale, Plane];
   const stories = mockData.successStories[language] || mockData.successStories.en;
 
   const content = {
