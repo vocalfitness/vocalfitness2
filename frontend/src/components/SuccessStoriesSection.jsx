@@ -166,7 +166,7 @@ const SuccessStoriesSection = () => {
                       Risultato VocalFitness
                     </h4>
                     <p className="text-slate-300 leading-relaxed">
-                      {mockData.successStories[selectedStory].result}
+                      {stories[selectedStory].result}
                     </p>
                   </div>
 
