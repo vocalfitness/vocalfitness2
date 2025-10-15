@@ -282,6 +282,48 @@ export const mockData = {
         sector: "Finanziario", 
         challenge: "Un analista di private equity si sentiva insicuro durante le negoziazioni ad alto rischio con investitori anglofoni.",
         result: "Ha conquistato una pronuncia fluida di livello C2 in 10 lezioni. Ha chiuso due accordi multimilionari e è stato promosso a Partner Associato."
+      },
+      {
+        number: "4",
+        title: "Attore Cinematografico - Da Ruoli Secondari a Protagonista",
+        sector: "Entertainment",
+        challenge: "Un talentuoso attore teatrale italiano perdeva audizioni per produzioni hollywoodiane a causa del suo marcato accento che lo limitava a ruoli stereotipati.",
+        result: "Dopo 12 settimane di VocalFitness ha raggiunto articolazione C2. Ha ottenuto il ruolo da protagonista in una serie Netflix internazionale e firmato con una major agency di Los Angeles."
+      },
+      {
+        number: "5",
+        title: "Chirurgo Cardiaco - Leadership Medica Globale",
+        sector: "Medicina",
+        challenge: "Un chirurgo cardiaco di fama europea esitava ad accettare inviti per presentare tecniche innovative in congressi USA a causa dell'insicurezza nella pronuncia inglese.",
+        result: "In 10 settimane ha perfezionato la pronuncia al livello C2. Ha tenuto keynote al American College of Cardiology, è stato nominato visiting professor a Johns Hopkins e ha pubblicato su NEJM."
+      },
+      {
+        number: "6",
+        title: "Project Manager Aerospaziale - Contratti Internazionali",
+        sector: "Engineering",
+        challenge: "Un ingegnere aerospaziale senior perdeva credibilità con clienti NASA e ESA durante presentazioni tecniche a causa di pronuncia poco chiara di terminologia tecnica.",
+        result: "VocalFitness lo ha portato da B1 a C2 in 8 settimane. Ha guidato negoziazioni per un contratto da €45M con l'ESA ed è stato promosso a Director of International Programs."
+      },
+      {
+        number: "7",
+        title: "CMO - Da Manager Regionale a Leader Globale",
+        sector: "Sales & Marketing",
+        challenge: "Una Chief Marketing Officer italiana con risultati brillanti in Europa veniva ripetutamente scavalcata per posizioni C-suite globali a causa di percezioni sulla sua autorevolezza comunicativa.",
+        result: "Dopo 10 sessioni VocalFitness ha raggiunto livello C2. È stata nominata Global CMO di una Fortune 500, gestendo team in 47 paesi con budget di $800M."
+      },
+      {
+        number: "8",
+        title: "Avvocato Internazionale - Arbitrati Multimilionari",
+        sector: "Legal",
+        challenge: "Un avvocato specializzato in arbitrato internazionale perdeva casi critici perché le sue argomentazioni orali non avevano l'impatto persuasivo dei colleghi anglofoni nativi.",
+        result: "VocalFitness lo ha trasformato in 12 settimane (livello C2). Ha vinto 4 arbitrati consecutivi per un valore totale di €120M e è stato nominato partner equity nel suo studio."
+      },
+      {
+        number: "9",
+        title: "Direttore Hospitality - Espansione Luxury Globale",
+        sector: "Aviation & Hospitality",
+        challenge: "Un general manager di hotel di lusso eccelleva operativamente ma veniva bloccato nelle promozioni corporate a causa dell'accento che minava la sua immagine executive con clienti internazionali VIP.",
+        result: "In 10 settimane ha raggiunto pronuncia C1+. È stato promosso a Regional Director per Europa e Medio Oriente di una catena luxury internazionale, supervisionando 23 proprietà."
       }
     ],
     en: [
