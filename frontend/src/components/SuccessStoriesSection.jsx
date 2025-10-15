@@ -155,7 +155,7 @@ const SuccessStoriesSection = () => {
                       Sfida Iniziale
                     </h4>
                     <p className="text-slate-300 leading-relaxed">
-                      {mockData.successStories[selectedStory].challenge}
+                      {stories[selectedStory].challenge}
                     </p>
                   </div>
 
