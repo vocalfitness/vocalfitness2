@@ -93,7 +93,7 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
           question: "Quanto è urgente per te migliorare il tuo inglese?",
           type: 'single',
           options: [
-            { value: 'very_urgent', label: 'Molto urgente - Ho un'opportunità importante nei prossimi 3 mesi', urgency: 3 },
+            { value: 'very_urgent', label: 'Molto urgente - Ho un\'opportunità importante nei prossimi 3 mesi', urgency: 3 },
             { value: 'urgent', label: 'Urgente - Voglio risultati entro 6 mesi', urgency: 2 },
             { value: 'moderate', label: 'Moderato - Miglioramento graduale nel prossimo anno', urgency: 1 }
           ]
