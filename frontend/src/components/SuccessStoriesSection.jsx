@@ -88,7 +88,7 @@ const SuccessStoriesSection = () => {
 
         {/* Story selector tabs */}
         <div className={`flex flex-col sm:flex-row justify-center gap-4 mb-12 transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          {mockData.successStories.map((story, index) => {
+          {stories.map((story, index) => {
             const IconComponent = icons[index];
             return (
               <Button
