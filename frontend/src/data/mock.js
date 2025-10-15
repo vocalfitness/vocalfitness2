@@ -46,10 +46,10 @@ export const mockData = {
     },
     en: {
       hero: {
-        title: "VocalFitness: Excellence in Articulatory Phonetics",
-        subtitle: "The proprietary patented method that transforms global communication through the science of ESOL articulatory phonetics, prosody, and vocal muscle conditioning.",
+        title: "Speak English Like a CEO in Just 10 Sessions",
+        subtitle: "The patented scientific method that has transformed over 5,000 Italian executives into elite international speakers: guaranteed results without leaving Italy.",
         ctaButtons: [
-          { text: "Book a Consultation", type: "primary" },
+          { text: "Book Free Assessment", type: "primary" },
           { text: "Discover the Method", type: "secondary" }
         ]
       },
