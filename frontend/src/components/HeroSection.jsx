@@ -3,10 +3,12 @@ import { Button } from './ui/button';
 import { ArrowRight, Play, Sparkles } from 'lucide-react';
 import { mockData } from '../data/mock';
 import { useLanguage } from '../context/LanguageContext';
+import BookingFormModal from './BookingFormModal';
 
 const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const { language, isItalian } = useLanguage();
 
   useEffect(() => {
