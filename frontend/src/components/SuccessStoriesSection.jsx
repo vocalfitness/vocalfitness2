@@ -207,18 +207,13 @@ const SuccessStoriesSection = () => {
         <div className={`mt-16 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-white mb-2">Il Pattern del Successo</h3>
-            <p className="text-slate-400">Risultati consistenti attraverso diversi settori professionali</p>
+            <h3 className="text-2xl font-bold text-white mb-2">{text.patternTitle}</h3>
+            <p className="text-slate-400">{text.patternDescription}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {[
-              { stat: "3", label: "Settori Differenti", desc: "Tech, Pharma, Finance" },
-              { stat: "100%", label: "Successo Rate", desc: "Obiettivi Raggiunti" },
-              { stat: "C2", label: "Livello Medio", desc: "Pronuncia Raggiunta" },
-              { stat: "12x", label: "ROI Medio", desc: "Return on Investment" }
-            ].map((item, index) => (
+            {text.stats.map((item, index) => (
               <div key={index} className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 text-center hover:border-blue-500/30 hover:bg-slate-800/50 transition-all duration-500 group">
                 <div className="text-3xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors duration-300">
                   {item.stat}
