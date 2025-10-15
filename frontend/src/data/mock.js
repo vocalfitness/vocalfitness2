@@ -3,10 +3,10 @@ export const mockData = {
   languages: {
     it: {
       hero: {
-        title: "VocalFitness: L'Eccellenza nella Fonetica Articolatoria",
-        subtitle: "Il metodo proprietario brevettato che trasforma la comunicazione globale attraverso la scienza della fonetica articolatoria ESOL, della prosodia e del condizionamento muscolare vocale.",
+        title: "Parla Inglese Come un CEO in Sole 10 Sedute",
+        subtitle: "Il metodo scientifico brevettato che ha trasformato oltre 5.000 executive italiani in speaker internazionali d'élite: risultati garantiti senza lasciare l'Italia.",
         ctaButtons: [
-          { text: "Prenota una Consulenza", type: "primary" },
+          { text: "Prenota Valutazione Gratuita", type: "primary" },
           { text: "Scopri il Metodo", type: "secondary" }
         ]
       },
