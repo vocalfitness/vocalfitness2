@@ -33,6 +33,45 @@ const ProcessSection = () => {
     return () => observer.disconnect();
   }, []);
 
+  const content = {
+    it: {
+      title: "Il Processo VocalFitness",
+      subtitle: "Dal Diagnostic alla Mastery: Un percorso strutturato verso l'eccellenza comunicativa",
+      flexibility: {
+        title: "Flessibilità Delivery Ibrida",
+        description: "Riconoscendo agende esigenti di professionisti globali, VocalFitness offre modalità delivery flessibili che mantengono rigore pedagogico pur accomodando vincoli logistici.",
+        feature: "Sessioni in-person e virtuali"
+      },
+      timeline: {
+        title: "Timeline dei Risultati",
+        weeks: [
+          { period: "Settimane 1-3", phase: "Fondamenti & Diagnosi" },
+          { period: "Settimane 4-8", phase: "Condizionamento Intensivo" },
+          { period: "Settimane 8-12", phase: "Mastery & Consolidamento" }
+        ]
+      }
+    },
+    en: {
+      title: "The VocalFitness Process",
+      subtitle: "From Diagnostic to Mastery: A structured path to communication excellence",
+      flexibility: {
+        title: "Hybrid Delivery Flexibility",
+        description: "Recognizing the demanding schedules of global professionals, VocalFitness offers flexible delivery modalities that maintain pedagogical rigor while accommodating logistical constraints.",
+        feature: "In-person and virtual sessions"
+      },
+      timeline: {
+        title: "Results Timeline",
+        weeks: [
+          { period: "Weeks 1-3", phase: "Foundations & Diagnosis" },
+          { period: "Weeks 4-8", phase: "Intensive Conditioning" },
+          { period: "Weeks 8-12", phase: "Mastery & Consolidation" }
+        ]
+      }
+    }
+  };
+
+  const text = content[language] || content.en;
+
   return (
     <section id="process" ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
       
