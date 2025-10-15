@@ -204,9 +204,9 @@ const CTASection = () => {
                 <MessageCircle size={32} className="text-emerald-400" />
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-4">Contatta Prof. Dapper</h3>
+              <h3 className="text-xl font-bold text-white mb-4">{text.cta2.title}</h3>
               <p className="text-slate-300 mb-6 leading-relaxed">
-                Comunica direttamente con il creatore del metodo per discutere esigenze uniche e aspettative risultati.
+                {text.cta2.description}
               </p>
 
               <a href="mailto:admissions@vocalfitness.org">
@@ -214,12 +214,12 @@ const CTASection = () => {
                   variant="outline" 
                   className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
                 >
-                  Contatto Diretto
+                  {text.cta2.button}
                   <MessageCircle size={18} className="ml-2 group-hover:scale-110 transition-transform duration-200" />
                 </Button>
               </a>
 
-              <div className="text-xs text-slate-400 mt-3">Conversazione confidenziale • Senza pressione</div>
+              <div className="text-xs text-slate-400 mt-3">{text.cta2.disclaimer}</div>
             </div>
           </div>
 
