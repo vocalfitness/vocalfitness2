@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { mockData } from '../data/mock';
+import { useLanguage } from '../context/LanguageContext';
 
 const ProcessSection = () => {
+  const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const sectionRef = useRef(null);
