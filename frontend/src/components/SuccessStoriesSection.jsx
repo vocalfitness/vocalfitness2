@@ -28,6 +28,7 @@ const SuccessStoriesSection = () => {
   }, []);
 
   const icons = [TrendingUp, Award, Zap];
+  const stories = mockData.successStories[language] || mockData.successStories.en;
 
   const content = {
     it: {
