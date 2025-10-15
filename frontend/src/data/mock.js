@@ -185,33 +185,62 @@ export const mockData = {
     }
   ],
 
-  process: [
-    {
-      step: "01",
-      title: "Valutazione Fonologica Comprensiva",
-      description: "Analisi diagnostica dettagliata che mappa pattern articolatori esistenti e identifica sostituzioni fonetiche specifiche."
-    },
-    {
-      step: "02", 
-      title: "Progettazione Protocollo Personalizzato",
-      description: "Protocollo training individualizzato basato sui risultati diagnostici dello studente."
-    },
-    {
-      step: "03",
-      title: "Condizionamento Neuromuscolare Intensivo",
-      description: "Esercizi progressivi che ricondizionano muscolatura articolatoria con feedback immediato."
-    },
-    {
-      step: "04",
-      title: "Integrazione Prosodia",
-      description: "Training su pattern prosodici e applicazione in scenari professionali realistici."
-    },
-    {
-      step: "05",
-      title: "Consolidamento e Valutazione",
-      description: "Valutazioni periodiche e strategie di mantenimento a lungo termine."
-    }
-  ],
+  process: {
+    it: [
+      {
+        step: "01",
+        title: "Valutazione Fonologica Comprensiva",
+        description: "Analisi diagnostica dettagliata che mappa pattern articolatori esistenti e identifica sostituzioni fonetiche specifiche."
+      },
+      {
+        step: "02", 
+        title: "Progettazione Protocollo Personalizzato",
+        description: "Protocollo training individualizzato basato sui risultati diagnostici dello studente."
+      },
+      {
+        step: "03",
+        title: "Condizionamento Neuromuscolare Intensivo",
+        description: "Esercizi progressivi che ricondizionano muscolatura articolatoria con feedback immediato."
+      },
+      {
+        step: "04",
+        title: "Integrazione Prosodia",
+        description: "Training su pattern prosodici e applicazione in scenari professionali realistici."
+      },
+      {
+        step: "05",
+        title: "Consolidamento e Valutazione",
+        description: "Valutazioni periodiche e strategie di mantenimento a lungo termine."
+      }
+    ],
+    en: [
+      {
+        step: "01",
+        title: "Comprehensive Phonological Assessment",
+        description: "Detailed diagnostic analysis mapping existing articulatory patterns and identifying specific phonetic substitutions."
+      },
+      {
+        step: "02", 
+        title: "Personalized Protocol Design",
+        description: "Individualized training protocol based on the student's diagnostic results."
+      },
+      {
+        step: "03",
+        title: "Intensive Neuromuscular Conditioning",
+        description: "Progressive exercises reconditioning articulatory musculature with immediate feedback."
+      },
+      {
+        step: "04",
+        title: "Prosody Integration",
+        description: "Training on prosodic patterns and application in realistic professional scenarios."
+      },
+      {
+        step: "05",
+        title: "Consolidation and Evaluation",
+        description: "Periodic assessments and long-term maintenance strategies."
+      }
+    ]
+  },
 
   testimonials: [
     {
