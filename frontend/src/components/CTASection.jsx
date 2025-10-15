@@ -67,6 +67,11 @@ const CTASection = () => {
         description: "Accedi a guide complete che spiegano la scienza dietro VocalFitness e perché approcci tradizionali falliscono.",
         button: "Ottieni Risorse",
         disclaimer: "Nessuna registrazione • Download immediato"
+      },
+      investment: {
+        title: "Investimento in Eccellenza Duratura",
+        description: "VocalFitness rappresenta un investimento in competenza comunicativa permanente. Diversamente da app linguistiche che producono guadagni temporanei, il metodo VocalFitness ricabla l'architettura fonologica fondamentale. I risultati persistono perché i cambiamenti operano a livello neuromuscolare—diventano automatici e inconsci.",
+        tagline: "VocalFitness non è una spesa—è un investimento strategico in eccellenza duratura"
       }
     },
     en: {
