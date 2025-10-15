@@ -97,7 +97,7 @@ const TestimonialsSection = () => {
     return (
       <section id="testimonials" className="py-24 bg-slate-950 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="text-slate-400 text-xl">Loading testimonials...</div>
+          <div className="text-slate-400 text-xl">{text.loading}</div>
         </div>
       </section>
     );
