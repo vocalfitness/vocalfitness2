@@ -40,6 +40,67 @@ const CTASection = () => {
     };
   }, []);
 
+  const content = {
+    it: {
+      badge: "Il Percorso verso l'Eccellenza Comunicativa Inizia Oggi",
+      heading1: "Inizia la Tua",
+      heading2: "Trasformazione Vocale",
+      subtitle: "Se sei un dirigente che aspira a comandare sale riunioni globali, un performer che richiede dizione impeccabile, o un leader accademico che desidera amplificare il proprio impatto—VocalFitness offre la soluzione trasformativa che stai cercando.",
+      exclusivity: {
+        title: "Esclusività Garantita:",
+        text: " Il Professor Steve Dapper accetta un numero limitato di clienti per mantenere standard qualitativi eccezionali e fornire l'attenzione personalizzata che il metodo richiede."
+      },
+      cta1: {
+        title: "Prenota Valutazione Diagnostica",
+        description: "Sessione iniziale comprensiva che mappa pattern articolatori attuali e identifica opportunità trasformative specifiche.",
+        button: "Prenota Consulenza Gratuita",
+        disclaimer: "Nessun obbligo • Solo comprensione chiara"
+      },
+      cta2: {
+        title: "Contatta Prof. Dapper",
+        description: "Comunica direttamente con il creatore del metodo per discutere esigenze uniche e aspettative risultati.",
+        button: "Contatto Diretto",
+        disclaimer: "Conversazione confidenziale • Senza pressione"
+      },
+      cta3: {
+        title: "Scarica Risorse Gratuite",
+        description: "Accedi a guide complete che spiegano la scienza dietro VocalFitness e perché approcci tradizionali falliscono.",
+        button: "Ottieni Risorse",
+        disclaimer: "Nessuna registrazione • Download immediato"
+      }
+    },
+    en: {
+      badge: "The Journey to Communication Excellence Starts Today",
+      heading1: "Begin Your",
+      heading2: "Vocal Transformation",
+      subtitle: "Whether you're an executive aspiring to command global boardrooms, a performer requiring impeccable diction, or an academic leader desiring to amplify your impact—VocalFitness offers the transformative solution you're looking for.",
+      exclusivity: {
+        title: "Guaranteed Exclusivity:",
+        text: " Professor Steve Dapper accepts a limited number of clients to maintain exceptional quality standards and provide the personalized attention the method requires."
+      },
+      cta1: {
+        title: "Book Diagnostic Assessment",
+        description: "Comprehensive initial session that maps current articulatory patterns and identifies specific transformative opportunities.",
+        button: "Book Free Consultation",
+        disclaimer: "No obligation • Just clear understanding"
+      },
+      cta2: {
+        title: "Contact Prof. Dapper",
+        description: "Communicate directly with the method creator to discuss unique needs and result expectations.",
+        button: "Direct Contact",
+        disclaimer: "Confidential conversation • No pressure"
+      },
+      cta3: {
+        title: "Download Free Resources",
+        description: "Access comprehensive guides explaining the science behind VocalFitness and why traditional approaches fail.",
+        button: "Get Resources",
+        disclaimer: "No registration • Immediate download"
+      }
+    }
+  };
+
+  const text = content[language] || content.en;
+
   return (
     <section ref={sectionRef} className="py-24 bg-slate-950 relative overflow-hidden">
       
