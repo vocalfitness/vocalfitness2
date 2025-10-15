@@ -76,15 +76,14 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <a href="#method">
-              <Button 
-                size="lg"
-                className="group bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25"
-              >
-                {content.ctaButtons[0].text}
-                <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-              </Button>
-            </a>
+            <Button 
+              onClick={() => setShowBookingForm(true)}
+              size="lg"
+              className="group bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25"
+            >
+              {content.ctaButtons[0].text}
+              <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+            </Button>
             
             <a href="#dappersclass">
               <Button 
