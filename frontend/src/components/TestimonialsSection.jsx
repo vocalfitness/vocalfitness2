@@ -254,7 +254,8 @@ const TestimonialsSection = () => {
           
           <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-2xl p-8 max-w-4xl mx-auto">
             
-            <h3 className="text-2xl font-bold text-white mb-6">{text.globalRecognitions}</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{text.globalRecognitions}</h3>
+            <p className="text-slate-400 mb-8 max-w-2xl mx-auto">{text.recognitionsDesc}</p>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-center">
               {[
