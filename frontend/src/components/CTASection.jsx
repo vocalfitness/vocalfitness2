@@ -179,19 +179,19 @@ const CTASection = () => {
                 <Calendar size={32} className="text-blue-400" />
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-4">Prenota Valutazione Diagnostica</h3>
+              <h3 className="text-xl font-bold text-white mb-4">{text.cta1.title}</h3>
               <p className="text-slate-300 mb-6 leading-relaxed">
-                Sessione iniziale comprensiva che mappa pattern articolatori attuali e identifica opportunità trasformative specifiche.
+                {text.cta1.description}
               </p>
 
               <a href="#dappersclass">
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 group">
-                  Prenota Consulenza Gratuita
+                  {text.cta1.button}
                   <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
                 </Button>
               </a>
 
-              <div className="text-xs text-slate-400 mt-3">Nessun obbligo • Solo comprensione chiara</div>
+              <div className="text-xs text-slate-400 mt-3">{text.cta1.disclaimer}</div>
             </div>
           </div>
 
