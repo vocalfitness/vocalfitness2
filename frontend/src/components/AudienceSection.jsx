@@ -33,6 +33,41 @@ const AudienceSection = () => {
     'graduation-cap': GraduationCap
   };
 
+  const content = {
+    it: {
+      title: "Chi Beneficia di VocalFitness",
+      subtitle: "VocalFitness è progettato per professionisti d'élite che operano nei contesti comunicativi più esigenti del mondo",
+      benefits: [
+        ["Conference call globali", "Presentazioni agli stakeholder", "Negoziazioni multimilionarie"],
+        ["Collaborazione internazionale", "Avanzamento carriera", "Eliminazione barriere comunicative"],
+        ["Ruoli cinematografici", "Produzioni teatrali", "Registrazioni musicali"],
+        ["Oratori keynote", "Impatto pedagogico", "Influenza accademica"]
+      ],
+      cta: {
+        title: "Sei Pronto per la Trasformazione?",
+        description: "Indipendentemente dal tuo settore professionale, VocalFitness può sbloccare il tuo pieno potenziale comunicativo e aprirti nuove opportunità a livello globale.",
+        button: "Scopri Come Iniziare"
+      }
+    },
+    en: {
+      title: "Who Benefits from VocalFitness",
+      subtitle: "VocalFitness is designed for elite professionals operating in the world's most demanding communication contexts",
+      benefits: [
+        ["Global conference calls", "Stakeholder presentations", "Multi-million negotiations"],
+        ["International collaboration", "Career advancement", "Communication barrier elimination"],
+        ["Film roles", "Theatrical productions", "Music recordings"],
+        ["Keynote speakers", "Pedagogical impact", "Academic influence"]
+      ],
+      cta: {
+        title: "Ready for Transformation?",
+        description: "Regardless of your professional sector, VocalFitness can unlock your full communication potential and open new global opportunities.",
+        button: "Discover How to Start"
+      }
+    }
+  };
+
+  const text = content[language] || content.en;
+
   return (
     <section ref={sectionRef} className="py-24 bg-slate-950 relative overflow-hidden">
       
