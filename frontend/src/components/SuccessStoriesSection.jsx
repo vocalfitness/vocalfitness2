@@ -29,6 +29,33 @@ const SuccessStoriesSection = () => {
 
   const icons = [TrendingUp, Award, Zap];
 
+  const content = {
+    it: {
+      title: "Storie di Successo Reali",
+      subtitle: "L'Impatto di VocalFitness: trasformazioni professionali concrete che hanno aperto nuove opportunità",
+      patternTitle: "Il Pattern del Successo",
+      patternDescription: "Attraverso centinaia di clienti, emerge un pattern chiaro:",
+      stats: [
+        { stat: "52%", label: "Crescita Promozioni", desc: "Entro 18 Mesi" },
+        { stat: "96%", label: "Comprensibilità", desc: "Rating Post-Training" },
+        { stat: "100%", label: "Successo Rate", desc: "Obiettivi Raggiunti" }
+      ]
+    },
+    en: {
+      title: "Real Success Stories",
+      subtitle: "VocalFitness Impact: concrete professional transformations that opened new opportunities",
+      patternTitle: "The Success Pattern",
+      patternDescription: "Across hundreds of clients, a clear pattern emerges:",
+      stats: [
+        { stat: "52%", label: "Promotion Growth", desc: "Within 18 Months" },
+        { stat: "96%", label: "Comprehensibility", desc: "Post-Training Rating" },
+        { stat: "100%", label: "Success Rate", desc: "Goals Achieved" }
+      ]
+    }
+  };
+
+  const text = content[language] || content.en;
+
   return (
     <section ref={sectionRef} className="py-24 bg-gradient-to-b from-slate-900 to-slate-950 relative overflow-hidden">
       
