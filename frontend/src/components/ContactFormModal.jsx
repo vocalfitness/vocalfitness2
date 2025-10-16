@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Send, CheckCircle, AlertCircle, User, Mail, Phone, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
+import engagementTracker from '../utils/engagementTracker';
 
 const ContactFormModal = ({ isOpen, onClose, discount = null }) => {
+  // Track when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      engagementTracker.markInteraction('ContactForm');
+    }
+  }, [isOpen]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
