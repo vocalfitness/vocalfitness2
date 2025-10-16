@@ -158,25 +158,31 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
     <>
       {/* Backdrop - Clickable to close */}
       <div 
-        className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9998]" 
+        className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[99998]" 
         onClick={onClose}
       ></div>
       
-      {/* Modal */}
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-        <div 
-          className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-6xl my-4 sm:my-8"
-          onClick={(e) => e.stopPropagation()}
-        >
-          
-          {/* Close button - Enhanced visibility for mobile */}
+      {/* Modal Container */}
+      <div className="fixed inset-0 z-[99999] flex flex-col">
+        
+        {/* Close button bar - ALWAYS VISIBLE at top */}
+        <div className="flex justify-end items-center p-3 bg-slate-900/95 border-b border-slate-700">
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-[10000] text-white bg-red-600 hover:bg-red-700 rounded-full p-2 sm:p-3 transition-all duration-200 shadow-2xl ring-2 ring-white/20 hover:scale-110"
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full transition-all duration-200 shadow-2xl hover:scale-105"
             aria-label="Chiudi"
           >
-            <X size={24} className="sm:w-6 sm:h-6" />
+            <X size={20} />
+            <span className="text-sm">{language === 'it' ? 'Chiudi' : 'Close'}</span>
           </button>
+        </div>
+
+        {/* Modal Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4">
+          <div 
+            className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-6xl mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
 
           {/* Header */}
           <div className="p-6 border-b border-slate-700/50">
