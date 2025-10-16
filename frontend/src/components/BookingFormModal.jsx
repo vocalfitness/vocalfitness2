@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import engagementTracker from '../utils/engagementTracker';
 
 const BookingFormModal = ({ isOpen, onClose }) => {
   const { language } = useLanguage();
+
+  // Track when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      engagementTracker.markInteraction('BookingForm');
+    }
+  }, [isOpen]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [formData, setFormData] = useState({
