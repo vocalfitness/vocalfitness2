@@ -134,25 +134,26 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Clickable to close */}
       <div 
         className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9998]" 
         onClick={onClose}
       ></div>
       
       {/* Modal */}
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
         <div 
-          className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-6xl my-8"
+          className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-6xl my-4 sm:my-8"
           onClick={(e) => e.stopPropagation()}
         >
           
-          {/* Close button */}
+          {/* Close button - Enhanced visibility for mobile */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 text-slate-400 hover:text-white transition-colors duration-200 bg-slate-800/80 rounded-full p-2 hover:bg-slate-700"
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-[10000] text-white bg-red-600 hover:bg-red-700 rounded-full p-2 sm:p-3 transition-all duration-200 shadow-2xl ring-2 ring-white/20 hover:scale-110"
+            aria-label="Chiudi"
           >
-            <X size={24} />
+            <X size={24} className="sm:w-6 sm:h-6" />
           </button>
 
           {/* Header */}
