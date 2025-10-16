@@ -502,6 +502,7 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
               </Button>
             </div>
 
+            </div>
           </div>
         </div>
       </>
