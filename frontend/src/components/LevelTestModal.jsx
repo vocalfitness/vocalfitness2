@@ -639,6 +639,18 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
             )}
           </div>
 
+          {/* Bottom close button for extra safety */}
+          <div className="p-4 border-t border-slate-700/50 bg-slate-800/50">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full border-2 border-red-600 bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-lg"
+            >
+              <X size={20} className="mr-2" />
+              {text.closeTest}
+            </Button>
+          </div>
+
           </div>
         </div>
       </div>
