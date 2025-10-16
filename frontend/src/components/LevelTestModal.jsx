@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, ArrowRight, ArrowLeft, Award, Target, Clock, Loader2, Calendar } from 'lucide-react';
 import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import engagementTracker from '../utils/engagementTracker';
 
 const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
   const { language } = useLanguage();
@@ -12,6 +13,13 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
   const [showResults, setShowResults] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState(null);
+
+  // Track when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      engagementTracker.markInteraction('LevelTest');
+    }
+  }, [isOpen]);
 
   const content = {
     it: {
