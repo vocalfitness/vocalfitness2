@@ -316,6 +316,18 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
 
           </div>
 
+          {/* Mobile-friendly close button at bottom */}
+          <div className="p-4 border-t border-slate-700/50 sm:hidden">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full border-2 border-slate-600 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3"
+            >
+              <X size={18} className="mr-2" />
+              {language === 'it' ? 'Chiudi Video' : 'Close Video'}
+            </Button>
+          </div>
+
         </div>
       </div>
     </>
