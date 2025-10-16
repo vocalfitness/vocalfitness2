@@ -639,6 +639,7 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
             )}
           </div>
 
+          </div>
         </div>
       </div>
     </>
