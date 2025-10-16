@@ -3,6 +3,7 @@ import { X, Play, Mail, User, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import engagementTracker from '../utils/engagementTracker';
 
 const VideoModal = ({ isOpen, onClose, videoUrl }) => {
   const { language } = useLanguage();
@@ -14,6 +15,13 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
     name: '',
     email: ''
   });
+
+  // Track when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      engagementTracker.markInteraction('VideoModal');
+    }
+  }, [isOpen]);
 
   // Extract YouTube video ID
   const getVideoId = (url) => {
