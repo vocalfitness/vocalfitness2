@@ -52,6 +52,28 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
     }
   }, [isOpen]);
 
+  // Handle browser back button to close modal (important for mobile)
+  useEffect(() => {
+    if (isOpen) {
+      // Add a state to history when modal opens
+      window.history.pushState({ modalOpen: true }, '');
+      
+      const handlePopState = (e) => {
+        if (isOpen) {
+          onClose();
+          // Prevent default back behavior
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen, onClose]);
+
   const content = {
     it: {
       title: "Scopri il Metodo VocalFitness",
