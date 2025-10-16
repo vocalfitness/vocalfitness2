@@ -2,19 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { X, Gift, ArrowRight, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import ContactFormModal from './ContactFormModal';
+import engagementTracker from '../utils/engagementTracker';
 
 const ExitIntentPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [hasShown, setHasShown] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
+  const [timeOnSite, setTimeOnSite] = useState(0);
+  const [scrollPercentage, setScrollPercentage] = useState(0);
   const { language } = useLanguage();
 
+  // Track time on site
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeOnSite(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Track scroll percentage
+  useEffect(() => {
+    const handleScroll = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrolled = (scrollTop / (documentHeight - windowHeight)) * 100;
+      setScrollPercentage(scrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial calculation
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Exit-intent logic with smart conditions
   useEffect(() => {
     const handleMouseLeave = (e) => {
-      // Trigger when mouse leaves from top of viewport
-      if (e.clientY <= 0 && !hasShown) {
+      // Check all conditions before showing popup
+      const meetsTimeRequirement = timeOnSite >= 30; // At least 30 seconds
+      const meetsScrollRequirement = scrollPercentage >= 40; // At least 40% scrolled
+      const noCtaInteraction = !engagementTracker.hasUserInteracted(); // No CTA clicked
+      const notShownYet = !hasShown && !engagementTracker.hasPopupBeenShown(); // Not shown before
+      const exitIntent = e.clientY <= 0; // Mouse leaving from top
+
+      // Only show if ALL conditions are met
+      if (exitIntent && meetsTimeRequirement && meetsScrollRequirement && noCtaInteraction && notShownYet) {
+        console.log('[ExitIntentPopup] Showing popup - all conditions met:', {
+          timeOnSite,
+          scrollPercentage,
+          noCtaInteraction,
+          notShownYet
+        });
         setIsVisible(true);
         setHasShown(true);
+        engagementTracker.markPopupShown();
+      } else if (exitIntent) {
+        console.log('[ExitIntentPopup] Exit intent detected but conditions not met:', {
+          timeOnSite,
+          meetsTimeRequirement,
+          scrollPercentage,
+          meetsScrollRequirement,
+          noCtaInteraction,
+          notShownYet
+        });
       }
     };
 
@@ -23,7 +75,7 @@ const ExitIntentPopup = () => {
     return () => {
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [hasShown]);
+  }, [hasShown, timeOnSite, scrollPercentage]);
 
   const handleClose = () => {
     setIsVisible(false);
