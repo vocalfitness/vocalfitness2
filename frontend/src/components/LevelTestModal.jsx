@@ -481,7 +481,12 @@ const LevelTestModal = ({ isOpen, onClose, onBookingOpen }) => {
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
         <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-3xl my-8" onClick={(e) => e.stopPropagation()}>
           
-          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white z-10">
+          {/* Close button - Enhanced for mobile */}
+          <button 
+            onClick={onClose} 
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-[10000] text-white bg-red-600 hover:bg-red-700 rounded-full p-2 sm:p-3 transition-all duration-200 shadow-2xl ring-2 ring-white/20 hover:scale-110"
+            aria-label="Chiudi"
+          >
             <X size={24} />
           </button>
 
