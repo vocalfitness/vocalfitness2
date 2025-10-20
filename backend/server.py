@@ -648,12 +648,22 @@ Rules:
         # Fallback to simple extraction
         pass
     
-    # Check if conversation is complete
-    is_complete = all([
-        lead.get('name'),
-        lead.get('email'),
-        lead.get('english_level'),
-        lead.get('goal'),
+    # Check for hesitation or refusal signals
+    hesitation_keywords = ['no', 'non voglio', "don't want", 'preferisco', 'prefer', 
+                          'parlare con', 'talk to', 'chiamare', 'call', 'esitante', 
+                          'hesitant', 'forse', 'maybe', 'non so', "don't know"]
+    user_message_lower = input.message.lower()
+    is_hesitant = any(keyword in user_message_lower for keyword in hesitation_keywords)
+    
+    # If user is hesitant or we have at least name OR email, consider offering WhatsApp
+    can_offer_whatsapp = is_hesitant or lead.get('name') or lead.get('email')
+    
+    # Check if conversation is complete (either all data OR hesitant user)
+    is_complete = (
+        all([lead.get('name'), lead.get('email'), lead.get('english_level'), lead.get('goal'), lead.get('urgency')])
+        or (is_hesitant and len(lead["conversation_history"]) >= 3)  # After 3 messages and hesitant
+        or (can_offer_whatsapp and len(lead["conversation_history"]) >= 5)  # After 5 messages with some data
+    )
         lead.get('urgency')
     ])
     
