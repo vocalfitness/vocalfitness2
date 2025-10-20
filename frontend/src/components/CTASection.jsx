@@ -291,6 +291,12 @@ const CTASection = () => {
         isOpen={isChatbotOpen} 
         onClose={() => setIsChatbotOpen(false)} 
       />
+      
+      {/* Booking Form Modal */}
+      <BookingFormModal 
+        isOpen={isBookingOpen} 
+        onClose={() => setIsBookingOpen(false)} 
+      />
     </section>
   );
 };
