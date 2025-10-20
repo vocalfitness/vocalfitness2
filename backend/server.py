@@ -581,46 +581,74 @@ WHEN ALL DATA IS COLLECTED, respond EXACTLY like this:
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
     
-    # Try to extract data from conversation using simple keyword matching
-    message_lower = input.message.lower()
-    
-    # Extract name (if not yet collected and message looks like a name)
-    if not lead.get('name') and len(input.message.split()) <= 4 and '@' not in input.message:
-        # Simple heuristic: if it's short and not an email, could be a name
-        if any(word in lead["conversation_history"][-2]["content"].lower() if len(lead["conversation_history"]) >= 2 else "" 
-               for word in ['nome', 'name', 'chiamare', 'called']):
-            lead['name'] = input.message.strip()
-    
-    # Extract email
-    if '@' in input.message and '.' in input.message and not lead.get('email'):
+    # Use AI to extract structured data from the user's message
+    extraction_prompt = f"""Analyze this user message and extract information if present. Return ONLY the values found, or "NOT_FOUND" if not present.
+
+User message: "{input.message}"
+Previous AI question: "{lead["conversation_history"][-2]["content"] if len(lead["conversation_history"]) >= 2 else ""}"
+
+Extract and return in this EXACT format (one per line):
+NAME: [full name if this looks like a name response, otherwise NOT_FOUND]
+EMAIL: [email address if present, otherwise NOT_FOUND]
+ENGLISH_LEVEL: [level if mentioned (A1,A2,B1,B2,C1,C2,beginner,intermediate,advanced), otherwise NOT_FOUND]
+GOAL: [goal/objective if mentioned, otherwise NOT_FOUND]
+URGENCY: [timeframe if mentioned (immediately, within 1 month, etc), otherwise NOT_FOUND]
+
+Rules:
+- If the AI just asked for name and user gave a short text (2-4 words, no @), it's likely a NAME
+- Look for @ and . together for EMAIL
+- Look for level keywords for ENGLISH_LEVEL
+- Be smart: if AI asked "quando vuoi iniziare" and user says "subito", that's URGENCY
+- Return NOT_FOUND if genuinely not present"""
+
+    # Quick extraction using AI
+    try:
+        extraction_chat = LlmChat(
+            api_key=emergent_key,
+            session_id=f"{input.session_id}_extract",
+            system_message="You are a data extraction assistant. Extract information precisely as requested."
+        )
+        extraction_chat.with_model("openai", "gpt-4o-mini")
+        extraction_result = await extraction_chat.send_message(UserMessage(text=extraction_prompt))
+        
+        # Parse extraction result
         import re
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        emails = re.findall(email_pattern, input.message)
-        if emails:
-            lead['email'] = emails[0]
-    
-    # Extract English level
-    if not lead.get('english_level'):
-        level_keywords = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'beginner', 'intermediate', 'advanced', 
-                         'principiante', 'intermedio', 'avanzato', 'elementare', 'base']
-        for keyword in level_keywords:
-            if keyword in message_lower:
-                lead['english_level'] = input.message.strip()
-                break
-    
-    # Extract goal
-    if not lead.get('goal') and len(lead["conversation_history"]) > 4:
-        goal_keywords = ['lavoro', 'work', 'studio', 'study', 'trasferimento', 'relocation', 'carriera', 
-                        'career', 'business', 'personale', 'personal', 'crescita', 'growth']
-        if any(keyword in message_lower for keyword in goal_keywords):
-            lead['goal'] = input.message.strip()
-    
-    # Extract urgency
-    if not lead.get('urgency') and len(lead["conversation_history"]) > 6:
-        urgency_keywords = ['subito', 'immediately', 'ora', 'now', 'mese', 'month', 'settimana', 
-                           'week', 'esplorando', 'exploring', 'interessato', 'interested']
-        if any(keyword in message_lower for keyword in urgency_keywords):
-            lead['urgency'] = input.message.strip()
+        name_match = re.search(r'NAME:\s*(.+)', extraction_result)
+        email_match = re.search(r'EMAIL:\s*(.+)', extraction_result)
+        level_match = re.search(r'ENGLISH_LEVEL:\s*(.+)', extraction_result)
+        goal_match = re.search(r'GOAL:\s*(.+)', extraction_result)
+        urgency_match = re.search(r'URGENCY:\s*(.+)', extraction_result)
+        
+        # Update lead data only if not already collected and extraction found something valid
+        if name_match and not lead.get('name'):
+            extracted_name = name_match.group(1).strip()
+            if extracted_name != "NOT_FOUND" and len(extracted_name) > 0:
+                lead['name'] = extracted_name
+        
+        if email_match and not lead.get('email'):
+            extracted_email = email_match.group(1).strip()
+            if extracted_email != "NOT_FOUND" and '@' in extracted_email:
+                lead['email'] = extracted_email
+        
+        if level_match and not lead.get('english_level'):
+            extracted_level = level_match.group(1).strip()
+            if extracted_level != "NOT_FOUND" and len(extracted_level) > 0:
+                lead['english_level'] = extracted_level
+        
+        if goal_match and not lead.get('goal'):
+            extracted_goal = goal_match.group(1).strip()
+            if extracted_goal != "NOT_FOUND" and len(extracted_goal) > 0:
+                lead['goal'] = extracted_goal
+        
+        if urgency_match and not lead.get('urgency'):
+            extracted_urgency = urgency_match.group(1).strip()
+            if extracted_urgency != "NOT_FOUND" and len(extracted_urgency) > 0:
+                lead['urgency'] = extracted_urgency
+                
+    except Exception as e:
+        print(f"Error in data extraction: {e}")
+        # Fallback to simple extraction
+        pass
     
     # Check if conversation is complete
     is_complete = all([
