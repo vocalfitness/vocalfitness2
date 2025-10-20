@@ -247,7 +247,7 @@ const CTASection = () => {
                 {text.cta3.description}
               </p>
 
-              <a href="#method">
+              <a href="/risorse">
                 <Button 
                   variant="outline" 
                   className="w-full border-2 border-purple-600 bg-purple-600/10 hover:bg-purple-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
