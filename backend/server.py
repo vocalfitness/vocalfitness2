@@ -659,7 +659,7 @@ Rules:
     can_offer_whatsapp = is_hesitant or lead.get('name') or lead.get('email')
     
     # Check if conversation is complete (either all data OR hesitant user)
-    is_complete = (
+    is_complete = bool(
         all([lead.get('name'), lead.get('email'), lead.get('english_level'), lead.get('goal'), lead.get('urgency')])
         or (is_hesitant and len(lead["conversation_history"]) >= 3)  # After 3 messages and hesitant
         or (can_offer_whatsapp and len(lead["conversation_history"]) >= 5)  # After 5 messages with some data
