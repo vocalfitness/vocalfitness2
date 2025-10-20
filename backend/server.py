@@ -433,6 +433,226 @@ async def submit_booking_form(input: BookingFormSubmission):
     
     return booking
 
+# AI Chatbot Models
+class ChatMessage(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+    language: str = "it"
+
+class ChatResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    session_id: str
+    message: str
+    is_complete: bool = False
+    collected_data: dict = {}
+
+class LeadData(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str
+    name: str = ""
+    email: str = ""
+    english_level: str = ""
+    goal: str = ""
+    urgency: str = ""
+    language: str = "it"
+    conversation_history: List[dict] = []
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: datetime = None
+
+# AI Chatbot Endpoint
+@api_router.post("/chat", response_model=ChatResponse)
+async def chat_with_alice(input: ChatRequest):
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    # Get or create lead data from DB
+    lead = await db.leads.find_one({"session_id": input.session_id})
+    
+    if not lead:
+        lead = {
+            "id": str(uuid.uuid4()),
+            "session_id": input.session_id,
+            "name": "",
+            "email": "",
+            "english_level": "",
+            "goal": "",
+            "urgency": "",
+            "language": input.language,
+            "conversation_history": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": None
+        }
+        await db.leads.insert_one(lead)
+    
+    # Add user message to history
+    lead["conversation_history"].append({
+        "role": "user",
+        "content": input.message,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Create system message based on language and conversation state
+    system_message = ""
+    if input.language == "it":
+        system_message = f"""Sei Alice, l'assistente virtuale di VocalFitness. Sei cordiale, professionale ed esperta di fonetica inglese.
+
+Il tuo compito è qualificare il lead facendo queste domande IN ORDINE:
+1. Nome completo
+2. Email
+3. Livello di inglese attuale (A1-C2 o beginner/intermediate/advanced)
+4. Obiettivo principale (es: lavoro, studio, trasferimento, crescita personale)
+5. Quando vuole iniziare? (immediatamente, entro 1 mese, tra 1-3 mesi, sto solo esplorando)
+
+STATO ATTUALE:
+- Nome: {lead.get('name', 'NON RACCOLTO')}
+- Email: {lead.get('email', 'NON RACCOLTO')}
+- Livello inglese: {lead.get('english_level', 'NON RACCOLTO')}
+- Obiettivo: {lead.get('goal', 'NON RACCOLTO')}
+- Urgenza: {lead.get('urgency', 'NON RACCOLTO')}
+
+ISTRUZIONI:
+- Fai UNA SOLA domanda per volta
+- Se un dato è "NON RACCOLTO", chiedi quel dato
+- Quando l'utente risponde, estrai l'informazione e passa alla domanda successiva
+- Sii naturale e conversazionale, non robotica
+- Quando hai raccolto TUTTI i 5 dati, ringrazia e di' che stai mettendo in contatto con Alice (umana) su WhatsApp
+- Se l'utente chiede info su VocalFitness, rispondi brevemente e poi torna alle domande
+- Mantieni il tono: cordiale ma efficiente
+
+QUANDO TUTTI I DATI SONO RACCOLTI, rispondi ESATTAMENTE così:
+"Perfetto [Nome]! Ho tutte le informazioni che mi servono. Ti metto subito in contatto con Alice, l'assistente personale del Professor Dapper, via WhatsApp. Lei organizzerà la tua valutazione gratuita! 📱"
+"""
+    else:
+        system_message = f"""You are Alice, the VocalFitness virtual assistant. You are friendly, professional, and an expert in English phonetics.
+
+Your job is to qualify the lead by asking these questions IN ORDER:
+1. Full name
+2. Email
+3. Current English level (A1-C2 or beginner/intermediate/advanced)
+4. Main goal (e.g., work, study, relocation, personal growth)
+5. When do they want to start? (immediately, within 1 month, in 1-3 months, just exploring)
+
+CURRENT STATUS:
+- Name: {lead.get('name', 'NOT COLLECTED')}
+- Email: {lead.get('email', 'NOT COLLECTED')}
+- English level: {lead.get('english_level', 'NOT COLLECTED')}
+- Goal: {lead.get('goal', 'NOT COLLECTED')}
+- Urgency: {lead.get('urgency', 'NOT COLLECTED')}
+
+INSTRUCTIONS:
+- Ask ONE question at a time
+- If data is "NOT COLLECTED", ask for that data
+- When the user responds, extract the information and move to the next question
+- Be natural and conversational, not robotic
+- When you have collected ALL 5 data points, thank them and say you're connecting them with Alice (human) via WhatsApp
+- If user asks about VocalFitness, answer briefly then return to questions
+- Keep the tone: friendly but efficient
+
+WHEN ALL DATA IS COLLECTED, respond EXACTLY like this:
+"Perfect [Name]! I have all the information I need. I'll connect you right away with Alice, Professor Dapper's personal assistant, via WhatsApp. She'll organize your free assessment! 📱"
+"""
+    
+    # Initialize AI chat
+    emergent_key = os.environ.get('EMERGENT_LLM_KEY')
+    chat = LlmChat(
+        api_key=emergent_key,
+        session_id=input.session_id,
+        system_message=system_message
+    )
+    
+    # Use GPT-4o-mini (default, cost-effective)
+    chat.with_model("openai", "gpt-4o-mini")
+    
+    # Send user message
+    user_msg = UserMessage(text=input.message)
+    ai_response = await chat.send_message(user_msg)
+    
+    # Add AI response to history
+    lead["conversation_history"].append({
+        "role": "assistant",
+        "content": ai_response,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Try to extract data from conversation using simple keyword matching
+    message_lower = input.message.lower()
+    
+    # Extract name (if not yet collected and message looks like a name)
+    if not lead.get('name') and len(input.message.split()) <= 4 and '@' not in input.message:
+        # Simple heuristic: if it's short and not an email, could be a name
+        if any(word in lead["conversation_history"][-2]["content"].lower() if len(lead["conversation_history"]) >= 2 else "" 
+               for word in ['nome', 'name', 'chiamare', 'called']):
+            lead['name'] = input.message.strip()
+    
+    # Extract email
+    if '@' in input.message and '.' in input.message and not lead.get('email'):
+        import re
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        emails = re.findall(email_pattern, input.message)
+        if emails:
+            lead['email'] = emails[0]
+    
+    # Extract English level
+    if not lead.get('english_level'):
+        level_keywords = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'beginner', 'intermediate', 'advanced', 
+                         'principiante', 'intermedio', 'avanzato', 'elementare', 'base']
+        for keyword in level_keywords:
+            if keyword in message_lower:
+                lead['english_level'] = input.message.strip()
+                break
+    
+    # Extract goal
+    if not lead.get('goal') and len(lead["conversation_history"]) > 4:
+        goal_keywords = ['lavoro', 'work', 'studio', 'study', 'trasferimento', 'relocation', 'carriera', 
+                        'career', 'business', 'personale', 'personal', 'crescita', 'growth']
+        if any(keyword in message_lower for keyword in goal_keywords):
+            lead['goal'] = input.message.strip()
+    
+    # Extract urgency
+    if not lead.get('urgency') and len(lead["conversation_history"]) > 6:
+        urgency_keywords = ['subito', 'immediately', 'ora', 'now', 'mese', 'month', 'settimana', 
+                           'week', 'esplorando', 'exploring', 'interessato', 'interested']
+        if any(keyword in message_lower for keyword in urgency_keywords):
+            lead['urgency'] = input.message.strip()
+    
+    # Check if conversation is complete
+    is_complete = all([
+        lead.get('name'),
+        lead.get('email'),
+        lead.get('english_level'),
+        lead.get('goal'),
+        lead.get('urgency')
+    ])
+    
+    if is_complete and not lead.get('completed_at'):
+        lead['completed_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Update lead in database
+    await db.leads.update_one(
+        {"session_id": input.session_id},
+        {"$set": lead}
+    )
+    
+    return ChatResponse(
+        session_id=input.session_id,
+        message=ai_response,
+        is_complete=is_complete,
+        collected_data={
+            "name": lead.get('name', ''),
+            "email": lead.get('email', ''),
+            "english_level": lead.get('english_level', ''),
+            "goal": lead.get('goal', ''),
+            "urgency": lead.get('urgency', '')
+        }
+    )
+
 # Include the router in the main app
 app.include_router(api_router)
 
