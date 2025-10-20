@@ -192,7 +192,10 @@ const SuccessStoriesSection = () => {
 
                 {/* Learn more button */}
                 <div className="mt-8 text-center">
-                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg group">
+                  <Button 
+                    onClick={() => setIsChatbotOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg group"
+                  >
                     Scopri Come Replicare Questi Risultati
                     <ArrowUpRight size={20} className="ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-200" />
                   </Button>
