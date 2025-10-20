@@ -198,12 +198,13 @@ const CTASection = () => {
                 {text.cta1.description}
               </p>
 
-              <a href="#dappersclass">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 group">
-                  {text.cta1.button}
-                  <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-                </Button>
-              </a>
+              <Button 
+                onClick={() => setIsBookingOpen(true)}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
+              >
+                {text.cta1.button}
+                <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </Button>
 
               <div className="text-xs text-slate-400 mt-3">{text.cta1.disclaimer}</div>
             </div>
