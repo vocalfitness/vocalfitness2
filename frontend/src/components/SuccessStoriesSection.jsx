@@ -3,11 +3,13 @@ import { TrendingUp, Award, Zap, ArrowUpRight, Film, Heart, Hammer, TrendingUpIc
 import { Button } from './ui/button';
 import { mockData } from '../data/mock';
 import { useLanguage } from '../context/LanguageContext';
+import AliceChatbotModal from './AliceChatbotModal';
 
 const SuccessStoriesSection = () => {
   const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState(0);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const sectionRef = useRef(null);
 
   useEffect(() => {
