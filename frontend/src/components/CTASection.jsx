@@ -3,12 +3,14 @@ import { Button } from './ui/button';
 import { ArrowRight, Calendar, Download, MessageCircle, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import AliceChatbotModal from './AliceChatbotModal';
+import BookingFormModal from './BookingFormModal';
 
 const CTASection = () => {
   const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const sectionRef = useRef(null);
 
   useEffect(() => {
