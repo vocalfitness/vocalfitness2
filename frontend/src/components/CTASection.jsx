@@ -221,15 +221,14 @@ const CTASection = () => {
                 {text.cta2.description}
               </p>
 
-              <a href="mailto:admissions@vocalfitness.org">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
-                >
-                  {text.cta2.button}
-                  <MessageCircle size={18} className="ml-2 group-hover:scale-110 transition-transform duration-200" />
-                </Button>
-              </a>
+              <Button 
+                onClick={() => setIsChatbotOpen(true)}
+                variant="outline" 
+                className="w-full border-2 border-emerald-600 bg-emerald-600/10 hover:bg-emerald-600/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 group"
+              >
+                {text.cta2.button}
+                <MessageCircle size={18} className="ml-2 group-hover:scale-110 transition-transform duration-200" />
+              </Button>
 
               <div className="text-xs text-slate-400 mt-3">{text.cta2.disclaimer}</div>
             </div>
