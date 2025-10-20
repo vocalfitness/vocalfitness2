@@ -664,8 +664,6 @@ Rules:
         or (is_hesitant and len(lead["conversation_history"]) >= 3)  # After 3 messages and hesitant
         or (can_offer_whatsapp and len(lead["conversation_history"]) >= 5)  # After 5 messages with some data
     )
-        lead.get('urgency')
-    ])
     
     if is_complete and not lead.get('completed_at'):
         lead['completed_at'] = datetime.now(timezone.utc).isoformat()
