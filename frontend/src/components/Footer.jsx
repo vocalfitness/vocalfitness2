@@ -56,7 +56,8 @@ const Footer = () => {
           { label: 'Professor Dapper', href: '#professor' },
           { label: 'Results', href: '#risultati' },
           { label: 'DappersClass', href: '#dappersclass' },
-          { label: 'Testimonials', href: '#testimonial' }
+          { label: 'Testimonials', href: '#testimonial' },
+          { label: 'Resources', href: '/risorse' }
         ]
       },
       services: {
