@@ -234,6 +234,12 @@ const SuccessStoriesSection = () => {
         </div>
 
       </div>
+      
+      {/* Alice Chatbot Modal */}
+      <AliceChatbotModal 
+        isOpen={isChatbotOpen} 
+        onClose={() => setIsChatbotOpen(false)} 
+      />
     </section>
   );
 };
