@@ -122,7 +122,7 @@ const AliceChatbotModal = ({ isOpen, onClose }) => {
       : `Hi Alice! My name is ${name}.\n\nI just completed the pre-qualification with the virtual assistant.\n\nHere are my details:\n📧 Email: ${email}\n📊 English level: ${english_level}\n🎯 Goal: ${goal}\n⏰ Urgency: ${urgency}\n\nI'd like to book a free assessment with Professor Dapper. Thank you!`;
     
     const encodedMessage = encodeURIComponent(messageText);
-    const whatsappUrl = `https://wa.me/message/WBEPHHBBTFIOE1?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/393515765749?text=${encodedMessage}`;
     
     window.open(whatsappUrl, '_blank');
   };
