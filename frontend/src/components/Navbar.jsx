@@ -23,6 +23,7 @@ const Navbar = () => {
     { label: 'Metodo', href: '#method' },
     { label: 'Professor', href: '#professor' },
     { label: 'Risultati', href: '#results' },
+    { label: 'Aziende', href: '/corporate-training', isExternal: true },
     { label: 'DappersClass', href: '#dappersclass' },
     { label: 'Testimonial', href: '#testimonials' }
   ] : [
@@ -30,6 +31,7 @@ const Navbar = () => {
     { label: 'Method', href: '#method' },
     { label: 'Professor', href: '#professor' },
     { label: 'Results', href: '#results' },
+    { label: 'Companies', href: '/corporate-training', isExternal: true },
     { label: 'DappersClass', href: '#dappersclass' },
     { label: 'Testimonials', href: '#testimonials' }
   ];
