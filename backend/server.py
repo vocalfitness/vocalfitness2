@@ -433,6 +433,166 @@ async def submit_booking_form(input: BookingFormSubmission):
     
     return booking
 
+# Corporate Quote Models
+class CorporateQuoteRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    companyName: str
+    industry: str = ""
+    numberOfEmployees: str
+    contactName: str
+    contactEmail: str
+    contactPhone: str = ""
+    levelsToTrain: List[str]
+    budget: str = ""
+    preferredMode: str
+    location: str = ""
+    notes: str = ""
+    language: str = "it"
+
+class CorporateQuoteResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str
+    companyName: str
+    contactEmail: str
+    email_sent: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Corporate Quote Endpoint
+@api_router.post("/corporate-quote", response_model=CorporateQuoteResponse, status_code=201)
+async def submit_corporate_quote(input: CorporateQuoteRequest):
+    quote_id = str(uuid.uuid4())
+    email_sent = False
+    
+    # SMTP Configuration
+    smtp_server = os.environ.get('SMTP_SERVER', 'smtp.zoho.eu')
+    smtp_port = int(os.environ.get('SMTP_PORT', 587))
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    
+    # Send email notification
+    if smtp_password:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"🏢 Nuova Richiesta Corporate: {input.companyName}" if input.language == 'it' else f"🏢 New Corporate Request: {input.companyName}"
+        msg['From'] = smtp_user
+        msg['To'] = smtp_user  # Send to admissions
+        
+        levels_labels = {
+            'entry': 'Entry-level',
+            'middle': 'Middle Management',
+            'senior': 'Senior Leadership',
+            'all': 'Tutti i livelli' if input.language == 'it' else 'All levels'
+        }
+        levels_str = ', '.join([levels_labels.get(level, level) for level in input.levelsToTrain])
+        
+        html_body = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }}
+                .content {{ background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }}
+                .section {{ margin: 20px 0; padding: 15px; background-color: #f9fafb; border-radius: 8px; }}
+                .label {{ font-weight: bold; color: #374151; }}
+                .value {{ color: #059669; font-weight: bold; }}
+                .priority {{ background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 8px; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="color: white; margin: 0; font-size: 28px;">🏢 VocalFitness Corporate</h1>
+                    <p style="color: #dbeafe; margin: 10px 0 0 0;">{"Nuova Richiesta di Preventivo" if input.language == 'it' else "New Quote Request"}</p>
+                </div>
+                
+                <div class="content">
+                    <div class="section">
+                        <h2 style="color: #2563eb; margin-top: 0;">{"Informazioni Azienda" if input.language == 'it' else "Company Information"}</h2>
+                        <p><span class="label">{"Ragione Sociale" if input.language == 'it' else "Company Name"}:</span> <span class="value">{input.companyName}</span></p>
+                        {f'<p><span class="label">{"Settore" if input.language == "it" else "Industry"}:</span> <span class="value">{input.industry}</span></p>' if input.industry else ''}
+                        <p><span class="label">{"Numero Dipendenti" if input.language == 'it' else "Number of Employees"}:</span> <span class="value">{input.numberOfEmployees}</span></p>
+                        {f'<p><span class="label">{"Sede/Location" if input.language == "it" else "Location"}:</span> <span class="value">{input.location}</span></p>' if input.location else ''}
+                    </div>
+                    
+                    <div class="section" style="background-color: #eff6ff;">
+                        <h2 style="color: #2563eb; margin-top: 0;">{"Referente" if input.language == 'it' else "Contact Person"}</h2>
+                        <p><span class="label">{"Nome" if input.language == 'it' else "Name"}:</span> <span class="value">{input.contactName}</span></p>
+                        <p><span class="label">Email:</span> <span class="value">{input.contactEmail}</span></p>
+                        {f'<p><span class="label">{"Telefono" if input.language == "it" else "Phone"}:</span> <span class="value">{input.contactPhone}</span></p>' if input.contactPhone else ''}
+                    </div>
+                    
+                    <div class="section" style="background-color: #f0fdf4;">
+                        <h2 style="color: #059669; margin-top: 0;">{"Necessità Formative" if input.language == 'it' else "Training Needs"}</h2>
+                        <p><span class="label">{"Livelli da Formare" if input.language == 'it' else "Levels to Train"}:</span> <span class="value">{levels_str}</span></p>
+                        <p><span class="label">{"Modalità Preferita" if input.language == 'it' else "Preferred Mode"}:</span> <span class="value">{input.preferredMode}</span></p>
+                        {f'<p><span class="label">{"Budget Indicativo" if input.language == "it" else "Indicative Budget"}:</span> <span class="value">{input.budget}</span></p>' if input.budget else ''}
+                    </div>
+                    
+                    {f'''<div class="section" style="background-color: #fef3c7;">
+                        <h2 style="color: #ca8a04; margin-top: 0;">{"Note Aggiuntive" if input.language == "it" else "Additional Notes"}</h2>
+                        <p>{input.notes}</p>
+                    </div>''' if input.notes else ''}
+                    
+                    <div class="priority">
+                        <p style="margin: 0; color: #991b1b; font-weight: bold;">
+                            ⚡ {"PRIORITÀ ALTA: Rispondere entro 48 ore con preventivo personalizzato" if input.language == 'it' else "HIGH PRIORITY: Respond within 48 hours with personalized quote"}
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                        <p>{"Ricevuto il" if input.language == 'it' else "Received on"}: {datetime.now(timezone.utc).strftime('%d/%m/%Y alle %H:%M' if input.language == 'it' else '%d/%m/%Y at %H:%M')} UTC</p>
+                        <p>Request ID: {quote_id}</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        part = MIMEText(html_body, 'html')
+        msg.attach(part)
+        
+        try:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+            email_sent = True
+        except Exception as e:
+            print(f"Error sending corporate quote email: {e}")
+            email_sent = False
+    
+    # Save to database
+    quote_data = {
+        'id': quote_id,
+        'companyName': input.companyName,
+        'industry': input.industry,
+        'numberOfEmployees': input.numberOfEmployees,
+        'contactName': input.contactName,
+        'contactEmail': input.contactEmail,
+        'contactPhone': input.contactPhone,
+        'levelsToTrain': input.levelsToTrain,
+        'budget': input.budget,
+        'preferredMode': input.preferredMode,
+        'location': input.location,
+        'notes': input.notes,
+        'language': input.language,
+        'email_sent': email_sent,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.corporate_quotes.insert_one(quote_data)
+    
+    return CorporateQuoteResponse(
+        id=quote_id,
+        companyName=input.companyName,
+        contactEmail=input.contactEmail,
+        email_sent=email_sent,
+        created_at=datetime.now(timezone.utc)
+    )
+
 # AI Chatbot Models
 class ChatMessage(BaseModel):
     role: str  # 'user' or 'assistant'
