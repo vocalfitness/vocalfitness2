@@ -52,13 +52,13 @@ const HomePage = () => {
         <ProfessorSection />
         <MethodSection />
         <StatsSection />
+        <CorporateSolutionsSection />
         <AudienceSection />
         <ProcessSection />
         <TestimonialsSection />
         <DappersClassSection />
         <CorporateClientsSection />
         <SuccessStoriesSection />
-        <CorporateSolutionsSection />
         <CTASection />
         <Footer />
         
