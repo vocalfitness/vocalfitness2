@@ -34,7 +34,8 @@ const AudienceSection = () => {
     'briefcase': Briefcase,
     'globe': Globe,
     'mic': Mic,
-    'graduation-cap': GraduationCap
+    'graduation-cap': GraduationCap,
+    'building': Briefcase  // Using Briefcase for building icon temporarily
   };
 
   const content = {
