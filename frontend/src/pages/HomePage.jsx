@@ -58,6 +58,7 @@ const HomePage = () => {
         <DappersClassSection />
         <CorporateClientsSection />
         <SuccessStoriesSection />
+        <CorporateSolutionsSection />
         <CTASection />
         <Footer />
         
