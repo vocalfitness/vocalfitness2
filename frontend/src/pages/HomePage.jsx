@@ -11,6 +11,7 @@ import TestimonialsSection from '../components/TestimonialsSection';
 import DappersClassSection from '../components/DappersClassSection';
 import CorporateClientsSection from '../components/CorporateClientsSection';
 import SuccessStoriesSection from '../components/SuccessStoriesSection';
+import CorporateSolutionsSection from '../components/CorporateSolutionsSection';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 import StickyCTA from '../components/StickyCTA';
