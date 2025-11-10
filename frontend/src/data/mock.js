@@ -182,6 +182,15 @@ export const mockData = {
       title: "Leader Accademici",
       description: "Professori e ricercatori che comunicano idee complesse a audience diverse.",
       icon: "graduation-cap"
+    },
+    {
+      title: "Aziende e Team",
+      titleEn: "Companies & Teams",
+      description: "Formazione aziendale completa per tutti i dipendenti con il metodo VocalFitness incluso.",
+      descriptionEn: "Complete corporate training for all employees with VocalFitness method included.",
+      icon: "building",
+      link: "/corporate-training",
+      highlight: true
     }
   ],
 
