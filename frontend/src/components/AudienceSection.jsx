@@ -197,6 +197,23 @@ const AudienceSection = () => {
                   </div>
 
                 </div>
+              </>
+            );
+            
+            return (
+              <div 
+                key={index}
+                className={`transition-all duration-1000 delay-${(index + 1) * 150} ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                {audience.link ? (
+                  <a href={audience.link} className="block">
+                    {CardContent}
+                  </a>
+                ) : (
+                  CardContent
+                )}
               </div>
             );
           })}
