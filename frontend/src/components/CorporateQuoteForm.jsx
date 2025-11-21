@@ -83,7 +83,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
       },
       error: {
         title: "Errore nell'invio",
-        message: "Si è verificato un errore. Riprova o contattaci direttamente a: corporate@vocalfitness.org"
+        message: "Si è verificato un errore. Riprova o contattaci direttamente a: admissions@vocalfitness.org"
       },
       required: "Campo obbligatorio"
     },
