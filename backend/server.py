@@ -465,6 +465,11 @@ async def submit_corporate_quote(input: CorporateQuoteRequest):
     quote_id = str(uuid.uuid4())
     email_sent = False
     
+    # Import SMTP libraries
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
     # SMTP Configuration
     smtp_server = os.environ.get('SMTP_SERVER', 'smtp.zoho.eu')
     smtp_port = int(os.environ.get('SMTP_PORT', 587))
