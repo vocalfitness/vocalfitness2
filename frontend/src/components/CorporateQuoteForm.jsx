@@ -145,7 +145,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
       },
       error: {
         title: "Submission Error",
-        message: "An error occurred. Please try again or contact us directly at: corporate@vocalfitness.org"
+        message: "An error occurred. Please try again or contact us directly at: admissions@vocalfitness.org"
       },
       required: "Required field"
     }
