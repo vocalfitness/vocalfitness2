@@ -299,6 +299,22 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
                         </div>
                       </div>
 
+                      <div>
+                        <div className="relative">
+                          <Phone size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" />
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder={text.phonePlaceholder}
+                            className="w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors duration-200"
+                            required
+                            disabled={!showForm}
+                          />
+                        </div>
+                      </div>
+
                       {submitStatus === 'error' && (
                         <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
                           <p className="text-red-400 text-sm">{text.error}</p>
