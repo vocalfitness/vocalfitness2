@@ -49,7 +49,7 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
       setShowForm(false);
       setVideoWatched(false);
       setSubmitStatus(null);
-      setFormData({ name: '', email: '' });
+      setFormData({ name: '', email: '', phone: '' });
     }
   }, [isOpen]);
 
