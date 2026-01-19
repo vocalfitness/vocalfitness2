@@ -13,7 +13,8 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
   const [videoWatched, setVideoWatched] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    email: ''
+    email: '',
+    phone: ''
   });
 
   // Track when modal is opened
