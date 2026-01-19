@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Mail, User, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Play, Mail, User, Phone, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
