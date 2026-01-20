@@ -115,7 +115,15 @@ const Footer = () => {
         terms: 'Terms of Service',
         cookies: 'Cookie Policy'
       },
-      disclaimer: "Individual success may vary based on commitment, practice, and baseline linguistic factors. Testimonials reflect authentic experiences of real clients. VocalFitness is a registered trademark."
+      disclaimer: "Individual success may vary based on commitment, practice, and baseline linguistic factors. Testimonials reflect authentic experiences of real clients. VocalFitness is a registered trademark.",
+      newsletter: {
+        title: "Newsletter",
+        subtitle: "Get free tips and resources to improve your Business English",
+        placeholder: "Your email",
+        button: "Subscribe",
+        success: "Successfully subscribed!",
+        alreadySubscribed: "Email already subscribed"
+      }
     }
   };
 
