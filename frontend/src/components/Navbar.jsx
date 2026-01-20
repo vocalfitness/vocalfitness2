@@ -71,6 +71,16 @@ const Navbar = () => {
 
           {/* Language Toggle & CTA Button */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Members Area Link */}
+            <a
+              href={isAuthenticated ? "/area-clienti" : "/login"}
+              className="text-slate-300 hover:text-white flex items-center gap-2 text-sm font-medium transition-colors duration-200"
+              data-testid="navbar-members-link"
+            >
+              <Lock size={14} />
+              <span>{isAuthenticated ? (isItalian ? 'Area Clienti' : 'Members Area') : (isItalian ? 'Accedi' : 'Login')}</span>
+            </a>
+            
             {/* Language Toggle */}
             <Button
               variant="ghost"
