@@ -954,6 +954,277 @@ Rules:
         }
     )
 
+# ==================== AUTHENTICATION ENDPOINTS ====================
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login(credentials: UserLogin):
+    """Login and get access token"""
+    user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
+    
+    if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username o password non corretti",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = create_access_token(data={"sub": user["username"]})
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user["id"],
+            username=user["username"],
+            email=user.get("email", ""),
+            full_name=user.get("full_name", ""),
+            role=user.get("role", "client"),
+            created_at=datetime.fromisoformat(user["created_at"]) if isinstance(user["created_at"], str) else user["created_at"]
+        )
+    )
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Get current user information"""
+    return UserResponse(
+        id=current_user["id"],
+        username=current_user["username"],
+        email=current_user.get("email", ""),
+        full_name=current_user.get("full_name", ""),
+        role=current_user.get("role", "client"),
+        created_at=datetime.fromisoformat(current_user["created_at"]) if isinstance(current_user["created_at"], str) else current_user["created_at"]
+    )
+
+# ==================== ADMIN USER MANAGEMENT ENDPOINTS ====================
+@api_router.post("/admin/users", response_model=UserResponse, status_code=201)
+async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
+    """Create a new user (admin only)"""
+    # Check if username already exists
+    existing = await db.users.find_one({"username": user_data.username})
+    if existing:
+        raise HTTPException(status_code=400, detail="Username già esistente")
+    
+    user_id = str(uuid.uuid4())
+    hashed_password = get_password_hash(user_data.password)
+    
+    user_doc = {
+        "id": user_id,
+        "username": user_data.username,
+        "hashed_password": hashed_password,
+        "email": user_data.email,
+        "full_name": user_data.full_name,
+        "role": user_data.role,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin["username"]
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    return UserResponse(
+        id=user_id,
+        username=user_data.username,
+        email=user_data.email,
+        full_name=user_data.full_name,
+        role=user_data.role,
+        created_at=datetime.now(timezone.utc)
+    )
+
+@api_router.get("/admin/users", response_model=List[UserResponse])
+async def list_users(admin: dict = Depends(get_admin_user)):
+    """List all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    
+    return [
+        UserResponse(
+            id=u["id"],
+            username=u["username"],
+            email=u.get("email", ""),
+            full_name=u.get("full_name", ""),
+            role=u.get("role", "client"),
+            created_at=datetime.fromisoformat(u["created_at"]) if isinstance(u["created_at"], str) else u["created_at"]
+        )
+        for u in users
+    ]
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete a user (admin only)"""
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    return {"message": "Utente eliminato con successo"}
+
+# ==================== CONTENT MANAGEMENT ENDPOINTS (Admin) ====================
+@api_router.post("/admin/content", response_model=ContentResponse, status_code=201)
+async def create_content(content: ContentCreate, admin: dict = Depends(get_admin_user)):
+    """Create new content for the members area (admin only)"""
+    content_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    content_doc = {
+        "id": content_id,
+        "title": content.title,
+        "description": content.description,
+        "content_type": content.content_type,
+        "url": content.url,
+        "thumbnail_url": content.thumbnail_url,
+        "category": content.category,
+        "order": content.order,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+        "created_by": admin["username"]
+    }
+    
+    await db.member_content.insert_one(content_doc)
+    
+    return ContentResponse(
+        id=content_id,
+        title=content.title,
+        description=content.description,
+        content_type=content.content_type,
+        url=content.url,
+        thumbnail_url=content.thumbnail_url,
+        category=content.category,
+        order=content.order,
+        created_at=now,
+        updated_at=now
+    )
+
+@api_router.get("/admin/content", response_model=List[ContentResponse])
+async def list_all_content(admin: dict = Depends(get_admin_user)):
+    """List all content (admin only)"""
+    contents = await db.member_content.find({}, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    return [
+        ContentResponse(
+            id=c["id"],
+            title=c["title"],
+            description=c.get("description", ""),
+            content_type=c["content_type"],
+            url=c["url"],
+            thumbnail_url=c.get("thumbnail_url", ""),
+            category=c.get("category", ""),
+            order=c.get("order", 0),
+            created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
+            updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
+        )
+        for c in contents
+    ]
+
+@api_router.put("/admin/content/{content_id}", response_model=ContentResponse)
+async def update_content(content_id: str, update: ContentUpdate, admin: dict = Depends(get_admin_user)):
+    """Update content (admin only)"""
+    existing = await db.member_content.find_one({"id": content_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato")
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.member_content.update_one({"id": content_id}, {"$set": update_data})
+    
+    updated = await db.member_content.find_one({"id": content_id}, {"_id": 0})
+    
+    return ContentResponse(
+        id=updated["id"],
+        title=updated["title"],
+        description=updated.get("description", ""),
+        content_type=updated["content_type"],
+        url=updated["url"],
+        thumbnail_url=updated.get("thumbnail_url", ""),
+        category=updated.get("category", ""),
+        order=updated.get("order", 0),
+        created_at=datetime.fromisoformat(updated["created_at"]) if isinstance(updated["created_at"], str) else updated["created_at"],
+        updated_at=datetime.fromisoformat(updated["updated_at"]) if isinstance(updated.get("updated_at"), str) else updated.get("updated_at")
+    )
+
+@api_router.delete("/admin/content/{content_id}")
+async def delete_content(content_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete content (admin only)"""
+    result = await db.member_content.delete_one({"id": content_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato")
+    return {"message": "Contenuto eliminato con successo"}
+
+# ==================== MEMBERS AREA ENDPOINTS (Authenticated Users) ====================
+@api_router.get("/members/content", response_model=List[ContentResponse])
+async def get_member_content(current_user: dict = Depends(get_current_user), category: str = None):
+    """Get available content for authenticated members"""
+    query = {}
+    if category:
+        query["category"] = category
+    
+    contents = await db.member_content.find(query, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    return [
+        ContentResponse(
+            id=c["id"],
+            title=c["title"],
+            description=c.get("description", ""),
+            content_type=c["content_type"],
+            url=c["url"],
+            thumbnail_url=c.get("thumbnail_url", ""),
+            category=c.get("category", ""),
+            order=c.get("order", 0),
+            created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
+            updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
+        )
+        for c in contents
+    ]
+
+@api_router.get("/members/content/{content_id}", response_model=ContentResponse)
+async def get_single_content(content_id: str, current_user: dict = Depends(get_current_user)):
+    """Get single content item for authenticated members"""
+    content = await db.member_content.find_one({"id": content_id}, {"_id": 0})
+    if not content:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato")
+    
+    return ContentResponse(
+        id=content["id"],
+        title=content["title"],
+        description=content.get("description", ""),
+        content_type=content["content_type"],
+        url=content["url"],
+        thumbnail_url=content.get("thumbnail_url", ""),
+        category=content.get("category", ""),
+        order=content.get("order", 0),
+        created_at=datetime.fromisoformat(content["created_at"]) if isinstance(content["created_at"], str) else content["created_at"],
+        updated_at=datetime.fromisoformat(content["updated_at"]) if isinstance(content.get("updated_at"), str) else content.get("updated_at")
+    )
+
+@api_router.get("/members/categories")
+async def get_content_categories(current_user: dict = Depends(get_current_user)):
+    """Get list of content categories"""
+    categories = await db.member_content.distinct("category")
+    return {"categories": [c for c in categories if c]}
+
+# ==================== SETUP/INITIALIZATION ENDPOINT ====================
+@api_router.post("/setup/admin")
+async def setup_admin():
+    """Create initial admin user if none exists (one-time setup)"""
+    existing_admin = await db.users.find_one({"role": "admin"})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Admin già configurato")
+    
+    admin_id = str(uuid.uuid4())
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'VocalFitness2024!')
+    
+    admin_doc = {
+        "id": admin_id,
+        "username": "admin",
+        "hashed_password": get_password_hash(admin_password),
+        "email": "admissions@vocalfitness.org",
+        "full_name": "Administrator",
+        "role": "admin",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(admin_doc)
+    
+    return {
+        "message": "Admin creato con successo",
+        "username": "admin",
+        "note": "Cambia la password dopo il primo accesso"
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
