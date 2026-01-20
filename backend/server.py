@@ -1284,7 +1284,45 @@ ALLOWED_EXTENSIONS = {
     'image': ['.jpg', '.jpeg', '.png', '.gif', '.webp']
 }
 
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB max
+# Storage limits (overridden from models section if defined there)
+UPLOAD_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file
+UPLOAD_MAX_TOTAL_STORAGE = 2 * 1024 * 1024 * 1024  # 2GB totale
+
+def get_total_storage_used():
+    """Calculate total storage used in uploads directory"""
+    total = 0
+    if UPLOADS_DIR.exists():
+        for f in UPLOADS_DIR.iterdir():
+            if f.is_file():
+                total += f.stat().st_size
+    return total
+
+def format_size(size_bytes):
+    """Format bytes to human readable string"""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} TB"
+
+@api_router.get("/admin/storage/stats")
+async def get_storage_stats(admin: dict = Depends(get_admin_user)):
+    """Get storage statistics (admin only)"""
+    total_used = get_total_storage_used()
+    file_count = len(list(UPLOADS_DIR.iterdir())) if UPLOADS_DIR.exists() else 0
+    
+    return {
+        "total_used_bytes": total_used,
+        "total_used_formatted": format_size(total_used),
+        "max_storage_bytes": UPLOAD_MAX_TOTAL_STORAGE,
+        "max_storage_formatted": format_size(UPLOAD_MAX_TOTAL_STORAGE),
+        "usage_percentage": round((total_used / UPLOAD_MAX_TOTAL_STORAGE) * 100, 1),
+        "remaining_bytes": UPLOAD_MAX_TOTAL_STORAGE - total_used,
+        "remaining_formatted": format_size(UPLOAD_MAX_TOTAL_STORAGE - total_used),
+        "file_count": file_count,
+        "max_file_size_bytes": UPLOAD_MAX_FILE_SIZE,
+        "max_file_size_formatted": format_size(UPLOAD_MAX_FILE_SIZE)
+    }
 
 @api_router.post("/admin/upload")
 async def upload_file(
@@ -1292,6 +1330,14 @@ async def upload_file(
     admin: dict = Depends(get_admin_user)
 ):
     """Upload a file for member content (admin only)"""
+    
+    # Check total storage before upload
+    current_storage = get_total_storage_used()
+    if current_storage >= UPLOAD_MAX_TOTAL_STORAGE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Spazio di archiviazione esaurito. Usati: {format_size(current_storage)} / {format_size(UPLOAD_MAX_TOTAL_STORAGE)}. Elimina alcuni file prima di caricarne altri."
+        )
     
     # Get file extension
     file_ext = Path(file.filename).suffix.lower()
@@ -1327,9 +1373,22 @@ async def upload_file(
     # Get file size
     file_size = file_path.stat().st_size
     
-    if file_size > MAX_FILE_SIZE:
+    # Check file size limit
+    if file_size > UPLOAD_MAX_FILE_SIZE:
         file_path.unlink()  # Delete the file
-        raise HTTPException(status_code=400, detail="File troppo grande. Massimo 500MB")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"File troppo grande ({format_size(file_size)}). Massimo consentito: {format_size(UPLOAD_MAX_FILE_SIZE)}"
+        )
+    
+    # Check if this upload exceeds total storage
+    new_total = current_storage + file_size
+    if new_total > UPLOAD_MAX_TOTAL_STORAGE:
+        file_path.unlink()  # Delete the file
+        raise HTTPException(
+            status_code=400,
+            detail=f"Upload rifiutato: supererebbe il limite di storage. Spazio rimanente: {format_size(UPLOAD_MAX_TOTAL_STORAGE - current_storage)}"
+        )
     
     # Build URL - will be served via static files
     file_url = f"/api/uploads/{safe_filename}"
@@ -1340,7 +1399,10 @@ async def upload_file(
         "original_filename": file.filename,
         "file_type": file_type,
         "file_size": file_size,
-        "url": file_url
+        "file_size_formatted": format_size(file_size),
+        "url": file_url,
+        "storage_used": format_size(new_total),
+        "storage_remaining": format_size(UPLOAD_MAX_TOTAL_STORAGE - new_total)
     }
 
 @api_router.delete("/admin/upload/{filename}")
