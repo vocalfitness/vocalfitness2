@@ -28,6 +28,105 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ==================== AUTHENTICATION CONFIG ====================
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'vocalfitness-secret-key-change-in-production-2024')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Token non valido")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token scaduto")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    
+    user = await db.users.find_one({"username": username}, {"_id": 0})
+    if user is None:
+        raise HTTPException(status_code=401, detail="Utente non trovato")
+    return user
+
+async def get_admin_user(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accesso riservato agli amministratori")
+    return current_user
+
+# ==================== USER MODELS ====================
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    email: str = ""
+    full_name: str = ""
+    role: str = "client"  # "client" or "admin"
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    username: str
+    email: str = ""
+    full_name: str = ""
+    role: str = "client"
+    created_at: datetime
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+# ==================== CONTENT MODELS ====================
+class ContentCreate(BaseModel):
+    title: str
+    description: str = ""
+    content_type: str  # "video", "pdf", "audio", "link"
+    url: str
+    thumbnail_url: str = ""
+    category: str = ""
+    order: int = 0
+
+class ContentResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    title: str
+    description: str = ""
+    content_type: str
+    url: str
+    thumbnail_url: str = ""
+    category: str = ""
+    order: int = 0
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class ContentUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content_type: Optional[str] = None
+    url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    category: Optional[str] = None
+    order: Optional[int] = None
 
 # Define Models
 class StatusCheck(BaseModel):
