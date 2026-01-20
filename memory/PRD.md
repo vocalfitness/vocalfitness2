@@ -98,6 +98,9 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - ✅ **Cambio password** - Pagina impostazioni `/impostazioni`
 - ✅ **Newsletter** - Form iscrizione nel footer + endpoint backend
 - ✅ **Limiti storage** - 2GB totale, 100MB/file, statistiche nel pannello admin
+- ✅ **Indici MongoDB** - 41 indici su 9 collezioni per query ottimizzate
+  - Tab "Database" nel pannello admin con statistiche
+  - Creazione automatica all'avvio dell'applicazione
 
 ## Backlog
 
