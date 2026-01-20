@@ -133,6 +133,30 @@ class ContentUpdate(BaseModel):
     category: Optional[str] = None
     order: Optional[int] = None
 
+# ==================== PASSWORD CHANGE MODEL ====================
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+# ==================== NEWSLETTER MODEL ====================
+class NewsletterSubscription(BaseModel):
+    email: str
+    name: str = ""
+    language: str = "it"
+
+class NewsletterResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    email: str
+    name: str = ""
+    language: str = "it"
+    subscribed_at: datetime
+    is_active: bool = True
+
+# ==================== STORAGE LIMITS CONFIG ====================
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file (ridotto da 500MB)
+MAX_TOTAL_STORAGE = 2 * 1024 * 1024 * 1024  # 2GB totale
+
 # Define Models
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
