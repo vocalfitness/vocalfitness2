@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ArrowLeft, Users, FolderOpen, Plus, Trash2, Edit,
   Loader2, Video, FileText, Music, Link as LinkIcon,
-  Save, X, Eye, EyeOff
+  Save, X, Upload, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,9 @@ const AdminPage = () => {
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
