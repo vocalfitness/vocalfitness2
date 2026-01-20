@@ -1318,6 +1318,9 @@ async def setup_admin():
 # Include the router in the main app
 app.include_router(api_router)
 
+# Mount uploads directory as static files
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
