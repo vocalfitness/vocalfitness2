@@ -95,7 +95,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Backlog
 
 ### P1 - Alta Priorità
-- [ ] Upload file diretto per contenuti (attualmente solo URL)
+- [x] Upload file diretto per contenuti (implementato 20/01/2026)
 - [ ] Cambio password utente
 
 ### P2 - Media Priorità
