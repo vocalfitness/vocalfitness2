@@ -33,6 +33,70 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ==================== DATABASE INDEXES ====================
+async def create_indexes():
+    """Create MongoDB indexes for better query performance"""
+    try:
+        # Users collection indexes
+        await db.users.create_index("username", unique=True)
+        await db.users.create_index("id", unique=True)
+        await db.users.create_index("email")
+        await db.users.create_index("role")
+        
+        # Member content indexes
+        await db.member_content.create_index("id", unique=True)
+        await db.member_content.create_index("category")
+        await db.member_content.create_index("content_type")
+        await db.member_content.create_index("order")
+        await db.member_content.create_index([("category", 1), ("order", 1)])
+        
+        # Newsletter subscribers indexes
+        await db.newsletter_subscribers.create_index("email", unique=True)
+        await db.newsletter_subscribers.create_index("is_active")
+        await db.newsletter_subscribers.create_index("subscribed_at")
+        
+        # Leads collection indexes (for chatbot)
+        await db.leads.create_index("session_id", unique=True)
+        await db.leads.create_index("created_at")
+        await db.leads.create_index("email")
+        
+        # Contacts collection indexes
+        await db.contacts.create_index("id", unique=True)
+        await db.contacts.create_index("email")
+        await db.contacts.create_index("created_at")
+        await db.contacts.create_index("status")
+        
+        # Bookings collection indexes
+        await db.bookings.create_index("id", unique=True)
+        await db.bookings.create_index("email")
+        await db.bookings.create_index("created_at")
+        await db.bookings.create_index("status")
+        
+        # Corporate quotes indexes
+        await db.corporate_quotes.create_index("id", unique=True)
+        await db.corporate_quotes.create_index("contactEmail")
+        await db.corporate_quotes.create_index("created_at")
+        
+        # Testimonials indexes
+        await db.testimonials.create_index("id", unique=True)
+        await db.testimonials.create_index("language")
+        await db.testimonials.create_index("featured")
+        await db.testimonials.create_index([("language", 1), ("featured", 1)])
+        
+        # Clients indexes
+        await db.clients.create_index("id", unique=True)
+        await db.clients.create_index("featured")
+        
+        logging.info("✅ MongoDB indexes created successfully")
+    except Exception as e:
+        logging.error(f"Error creating indexes: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database indexes on startup"""
+    await create_indexes()
+
+
 # ==================== AUTHENTICATION CONFIG ====================
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'vocalfitness-secret-key-change-in-production-2024')
 ALGORITHM = "HS256"
