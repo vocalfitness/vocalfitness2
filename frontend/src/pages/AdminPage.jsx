@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
   ArrowLeft, Users, FolderOpen, Plus, Trash2, Edit,
   Loader2, Video, FileText, Music, Link as LinkIcon,
-  Save, X, Upload, CheckCircle, AlertCircle
+  Save, X, Upload, CheckCircle, AlertCircle, HardDrive
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
