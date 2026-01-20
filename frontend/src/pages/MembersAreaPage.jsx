@@ -164,6 +164,15 @@ const MembersAreaPage = () => {
             )}
             
             <Button
+              onClick={() => navigate('/impostazioni')}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+              data-testid="settings-button"
+            >
+              <KeyRound className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">Impostazioni</span>
+            </Button>
+            
+            <Button
               onClick={() => navigate('/')}
               variant="outline"
               className="border-white/20 text-white hover:bg-white/10"
