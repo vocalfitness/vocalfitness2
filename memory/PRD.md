@@ -91,10 +91,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - ✅ Autenticazione JWT con bcrypt
 - ✅ Test automatici (20 test backend, tutti passati)
 - ✅ Link "Accedi" nella navbar
-- ✅ **Upload file diretto** (video, audio, PDF, immagini fino a 500MB)
+- ✅ **Upload file diretto** (video, audio, PDF, immagini fino a 100MB/file)
   - Drag-and-drop o selezione file
   - Barra di progresso durante upload
   - File serviti da `/api/uploads/`
+- ✅ **Cambio password** - Pagina impostazioni `/impostazioni`
+- ✅ **Newsletter** - Form iscrizione nel footer + endpoint backend
+- ✅ **Limiti storage** - 2GB totale, 100MB/file, statistiche nel pannello admin
 
 ## Backlog
 
