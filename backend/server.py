@@ -1388,6 +1388,56 @@ async def get_storage_stats(admin: dict = Depends(get_admin_user)):
         "max_file_size_formatted": format_size(UPLOAD_MAX_FILE_SIZE)
     }
 
+@api_router.get("/admin/database/stats")
+async def get_database_stats(admin: dict = Depends(get_admin_user)):
+    """Get database statistics and index information (admin only)"""
+    try:
+        stats = {}
+        
+        # Collection counts
+        collections = ['users', 'member_content', 'newsletter_subscribers', 'leads', 
+                      'contacts', 'bookings', 'corporate_quotes', 'testimonials', 'clients']
+        
+        for coll_name in collections:
+            coll = db[coll_name]
+            count = await coll.count_documents({})
+            indexes = await coll.index_information()
+            stats[coll_name] = {
+                "document_count": count,
+                "index_count": len(indexes),
+                "indexes": list(indexes.keys())
+            }
+        
+        # Get database stats
+        db_stats = await db.command("dbStats")
+        
+        return {
+            "database_name": db.name,
+            "collections": stats,
+            "total_size_bytes": db_stats.get("dataSize", 0),
+            "total_size_formatted": format_size(db_stats.get("dataSize", 0)),
+            "storage_size_bytes": db_stats.get("storageSize", 0),
+            "storage_size_formatted": format_size(db_stats.get("storageSize", 0)),
+            "index_size_bytes": db_stats.get("indexSize", 0),
+            "index_size_formatted": format_size(db_stats.get("indexSize", 0)),
+            "total_collections": db_stats.get("collections", 0),
+            "total_indexes": db_stats.get("indexes", 0)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Errore nel recupero delle statistiche database"
+        }
+
+@api_router.post("/admin/database/reindex")
+async def reindex_database(admin: dict = Depends(get_admin_user)):
+    """Recreate all database indexes (admin only)"""
+    try:
+        await create_indexes()
+        return {"success": True, "message": "Indici database ricreati con successo"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore nella reindicizzazione: {str(e)}")
+
 @api_router.post("/admin/upload")
 async def upload_file(
     file: UploadFile = File(...),
