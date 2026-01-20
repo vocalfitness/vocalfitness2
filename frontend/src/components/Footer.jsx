@@ -1,10 +1,38 @@
-import React from 'react';
-import { Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Phone, MapPin, ExternalLink, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import axios from 'axios';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const { language } = useLanguage();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState(null);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    if (!newsletterEmail || isSubscribing) return;
+    
+    setIsSubscribing(true);
+    setNewsletterStatus(null);
+    
+    try {
+      await axios.post(`${backendUrl}/api/newsletter/subscribe`, {
+        email: newsletterEmail,
+        language: language
+      });
+      setNewsletterStatus({ type: 'success', message: language === 'it' ? 'Iscrizione completata!' : 'Successfully subscribed!' });
+      setNewsletterEmail('');
+    } catch (error) {
+      const msg = error.response?.data?.detail || (language === 'it' ? 'Errore nell\'iscrizione' : 'Subscription error');
+      setNewsletterStatus({ type: 'error', message: msg });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const content = {
     it: {
