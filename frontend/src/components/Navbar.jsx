@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, Lock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import BookingFormModal from './BookingFormModal';
 
 const Navbar = () => {
@@ -9,6 +10,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const { language, toggleLanguage, isItalian } = useLanguage();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
