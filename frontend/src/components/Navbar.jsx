@@ -128,6 +128,16 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="pt-4 space-y-3">
+                {/* Mobile Members Area Link */}
+                <a
+                  href={isAuthenticated ? "/area-clienti" : "/login"}
+                  className="w-full text-slate-300 hover:text-white flex items-center justify-center gap-2 px-3 py-2 border border-slate-600 rounded-lg"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Lock size={16} />
+                  <span>{isAuthenticated ? (isItalian ? 'Area Clienti' : 'Members Area') : (isItalian ? 'Accedi' : 'Login')}</span>
+                </a>
+                
                 {/* Mobile Language Toggle */}
                 <Button
                   variant="ghost"
