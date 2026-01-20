@@ -70,7 +70,15 @@ const Footer = () => {
         terms: 'Termini di Servizio',
         cookies: 'Cookie Policy'
       },
-      disclaimer: "Il successo individuale può variare in base a impegno, pratica e fattori linguistici baseline. Le testimonianze riflettono esperienze autentiche di clienti reali. VocalFitness è un marchio registrato."
+      disclaimer: "Il successo individuale può variare in base a impegno, pratica e fattori linguistici baseline. Le testimonianze riflettono esperienze autentiche di clienti reali. VocalFitness è un marchio registrato.",
+      newsletter: {
+        title: "Newsletter",
+        subtitle: "Ricevi consigli e risorse gratuite per migliorare il tuo Business English",
+        placeholder: "La tua email",
+        button: "Iscriviti",
+        success: "Iscrizione completata!",
+        alreadySubscribed: "Email già iscritta"
+      }
     },
     en: {
       description: "The proprietary patented method that transforms global communication through the science of ESOL articulatory phonetics, prosody, and vocal muscle conditioning.",
