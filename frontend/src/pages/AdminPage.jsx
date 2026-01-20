@@ -67,6 +67,60 @@ const AdminPage = () => {
     setTimeout(() => setMessage(null), 3000);
   };
 
+  // File Upload Handler
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/upload`,
+        formDataUpload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        }
+      );
+      
+      // Auto-fill form with uploaded file info
+      setFormData(prev => ({
+        ...prev,
+        url: `${backendUrl}${response.data.url}`,
+        content_type: response.data.file_type === 'image' ? 'link' : response.data.file_type
+      }));
+      
+      showMessage('success', `File "${response.data.original_filename}" caricato con successo!`);
+    } catch (error) {
+      showMessage('error', error.response?.data?.detail || 'Errore nel caricamento del file');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  };
+
   // Content Management
   const handleCreateContent = async () => {
     setSubmitting(true);
