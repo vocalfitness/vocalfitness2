@@ -284,6 +284,35 @@ const AdminPage = () => {
           </Button>
         </div>
 
+        {/* Storage Stats */}
+        {storageStats && (
+          <div className="mb-6 bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-slate-300">
+                <HardDrive className="w-5 h-5 text-blue-400" />
+                <span className="font-medium">Spazio di Archiviazione</span>
+              </div>
+              <span className="text-sm text-slate-400">
+                {storageStats.file_count} file • Max {storageStats.max_file_size_formatted}/file
+              </span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+              <div 
+                className={`h-3 rounded-full transition-all ${
+                  storageStats.usage_percentage > 90 ? 'bg-red-500' :
+                  storageStats.usage_percentage > 70 ? 'bg-amber-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(storageStats.usage_percentage, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Usato: {storageStats.total_used_formatted}</span>
+              <span>{storageStats.usage_percentage}%</span>
+              <span>Disponibile: {storageStats.remaining_formatted}</span>
+            </div>
+          </div>
+        )}
+
         {/* Content Tab */}
         {activeTab === 'content' && (
           <div>
