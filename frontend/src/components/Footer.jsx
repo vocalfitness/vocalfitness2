@@ -197,6 +197,50 @@ const Footer = () => {
 
         </div>
 
+        {/* Newsletter Section */}
+        <div className="border-t border-slate-800/50 pt-8 mb-8">
+          <div className="max-w-xl mx-auto text-center">
+            <h4 className="text-white font-semibold mb-2">{text.newsletter.title}</h4>
+            <p className="text-slate-400 text-sm mb-4">{text.newsletter.subtitle}</p>
+            
+            <form onSubmit={handleNewsletterSubmit} className="flex gap-2 max-w-md mx-auto">
+              <input
+                type="email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                placeholder={text.newsletter.placeholder}
+                className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                required
+                data-testid="newsletter-email-input"
+              />
+              <button
+                type="submit"
+                disabled={isSubscribing}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 flex items-center gap-2 text-sm"
+                data-testid="newsletter-submit-button"
+              >
+                {isSubscribing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span className="hidden sm:inline">{text.newsletter.button}</span>
+                  </>
+                )}
+              </button>
+            </form>
+            
+            {newsletterStatus && (
+              <div className={`mt-3 text-sm flex items-center justify-center gap-2 ${
+                newsletterStatus.type === 'success' ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {newsletterStatus.type === 'success' && <CheckCircle className="w-4 h-4" />}
+                {newsletterStatus.message}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Credentials and partnerships */}
         <div className="border-t border-slate-800/50 pt-8 mb-8">
           <div className="grid md:grid-cols-2 gap-8">
