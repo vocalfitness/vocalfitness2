@@ -1149,6 +1149,91 @@ async def delete_content(content_id: str, admin: dict = Depends(get_admin_user))
         raise HTTPException(status_code=404, detail="Contenuto non trovato")
     return {"message": "Contenuto eliminato con successo"}
 
+# ==================== FILE UPLOAD ENDPOINT (Admin) ====================
+ALLOWED_EXTENSIONS = {
+    'video': ['.mp4', '.webm', '.mov', '.avi', '.mkv'],
+    'audio': ['.mp3', '.wav', '.ogg', '.m4a', '.aac'],
+    'pdf': ['.pdf'],
+    'image': ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+}
+
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB max
+
+@api_router.post("/admin/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    admin: dict = Depends(get_admin_user)
+):
+    """Upload a file for member content (admin only)"""
+    
+    # Get file extension
+    file_ext = Path(file.filename).suffix.lower()
+    
+    # Determine file type
+    file_type = None
+    for ftype, extensions in ALLOWED_EXTENSIONS.items():
+        if file_ext in extensions:
+            file_type = ftype
+            break
+    
+    if not file_type:
+        allowed = []
+        for exts in ALLOWED_EXTENSIONS.values():
+            allowed.extend(exts)
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Tipo file non supportato. Estensioni permesse: {', '.join(allowed)}"
+        )
+    
+    # Generate unique filename
+    unique_id = str(uuid.uuid4())[:8]
+    safe_filename = f"{unique_id}_{file.filename.replace(' ', '_')}"
+    file_path = UPLOADS_DIR / safe_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore nel salvataggio del file: {str(e)}")
+    
+    # Get file size
+    file_size = file_path.stat().st_size
+    
+    if file_size > MAX_FILE_SIZE:
+        file_path.unlink()  # Delete the file
+        raise HTTPException(status_code=400, detail="File troppo grande. Massimo 500MB")
+    
+    # Build URL - will be served via static files
+    file_url = f"/api/uploads/{safe_filename}"
+    
+    return {
+        "success": True,
+        "filename": safe_filename,
+        "original_filename": file.filename,
+        "file_type": file_type,
+        "file_size": file_size,
+        "url": file_url
+    }
+
+@api_router.delete("/admin/upload/{filename}")
+async def delete_uploaded_file(filename: str, admin: dict = Depends(get_admin_user)):
+    """Delete an uploaded file (admin only)"""
+    file_path = UPLOADS_DIR / filename
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File non trovato")
+    
+    # Security check - prevent path traversal
+    if not file_path.resolve().parent == UPLOADS_DIR.resolve():
+        raise HTTPException(status_code=400, detail="Percorso file non valido")
+    
+    try:
+        file_path.unlink()
+        return {"success": True, "message": "File eliminato con successo"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore nell'eliminazione: {str(e)}")
+
 # ==================== MEMBERS AREA ENDPOINTS (Authenticated Users) ====================
 @api_router.get("/members/content", response_model=List[ContentResponse])
 async def get_member_content(current_user: dict = Depends(get_current_user), category: str = None):
