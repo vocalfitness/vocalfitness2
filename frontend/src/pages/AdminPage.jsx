@@ -282,6 +282,15 @@ const AdminPage = () => {
           >
             <Users className="w-4 h-4 mr-2" /> Utenti ({users.length})
           </Button>
+          <Button
+            onClick={() => setActiveTab('database')}
+            className={activeTab === 'database' 
+              ? 'bg-blue-600' 
+              : 'bg-slate-700 hover:bg-slate-600'}
+            data-testid="tab-database"
+          >
+            <HardDrive className="w-4 h-4 mr-2" /> Database
+          </Button>
         </div>
 
         {/* Storage Stats */}
