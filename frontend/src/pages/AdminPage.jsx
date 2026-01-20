@@ -488,16 +488,92 @@ const AdminPage = () => {
                       />
                     </div>
                   </div>
+                  
+                  {/* File Upload Section */}
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-2">Carica File</label>
+                    <div
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+                        isUploading 
+                          ? 'border-blue-500 bg-blue-500/10' 
+                          : 'border-slate-600 hover:border-blue-500/50 hover:bg-slate-700/50'
+                      }`}
+                    >
+                      {isUploading ? (
+                        <div className="space-y-3">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+                          <div className="w-full bg-slate-600 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full transition-all" 
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-sm text-blue-300">Caricamento... {uploadProgress}%</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                          <p className="text-sm text-slate-400 mb-2">
+                            Trascina un file qui oppure
+                          </p>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".mp4,.webm,.mov,.avi,.mkv,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.jpg,.jpeg,.png,.gif,.webp"
+                            onChange={(e) => handleFileUpload(e.target.files[0])}
+                            className="hidden"
+                            data-testid="file-upload-input"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            variant="outline"
+                            size="sm"
+                            className="border-slate-500 text-slate-300 hover:bg-slate-600"
+                          >
+                            Seleziona File
+                          </Button>
+                          <p className="text-xs text-slate-500 mt-2">
+                            Video, Audio, PDF, Immagini (max 500MB)
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-600"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="px-2 bg-slate-800 text-slate-500">oppure inserisci URL</span>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">URL Contenuto *</label>
-                    <input
-                      type="url"
-                      value={formData.url || ''}
-                      onChange={e => setFormData({ ...formData, url: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                      placeholder="https://..."
-                      data-testid="content-url-input"
-                    />
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={formData.url || ''}
+                        onChange={e => setFormData({ ...formData, url: e.target.value })}
+                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${
+                          formData.url ? 'border-green-500' : 'border-slate-600'
+                        }`}
+                        placeholder="https://..."
+                        data-testid="content-url-input"
+                      />
+                      {formData.url && (
+                        <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                      )}
+                    </div>
+                    {formData.url && formData.url.includes('/api/uploads/') && (
+                      <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> File caricato sul server
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm text-slate-300 mb-1">URL Thumbnail (opzionale)</label>
