@@ -1022,6 +1022,109 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         created_at=datetime.fromisoformat(current_user["created_at"]) if isinstance(current_user["created_at"], str) else current_user["created_at"]
     )
 
+@api_router.post("/auth/change-password")
+async def change_password(request: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
+    """Change password for the current user"""
+    # Get user with hashed password from DB
+    user = await db.users.find_one({"id": current_user["id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    # Verify current password
+    if not verify_password(request.current_password, user.get("hashed_password", "")):
+        raise HTTPException(status_code=400, detail="Password attuale non corretta")
+    
+    # Validate new password
+    if len(request.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nuova password deve avere almeno 8 caratteri")
+    
+    if request.current_password == request.new_password:
+        raise HTTPException(status_code=400, detail="La nuova password deve essere diversa dalla precedente")
+    
+    # Update password
+    new_hashed = get_password_hash(request.new_password)
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"hashed_password": new_hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"success": True, "message": "Password aggiornata con successo"}
+
+# ==================== NEWSLETTER ENDPOINTS ====================
+@api_router.post("/newsletter/subscribe", response_model=NewsletterResponse, status_code=201)
+async def subscribe_newsletter(subscription: NewsletterSubscription):
+    """Subscribe to the newsletter"""
+    import re
+    
+    # Validate email
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, subscription.email):
+        raise HTTPException(status_code=400, detail="Email non valida")
+    
+    # Check if already subscribed
+    existing = await db.newsletter_subscribers.find_one({"email": subscription.email.lower()})
+    if existing:
+        if existing.get("is_active"):
+            raise HTTPException(status_code=400, detail="Email già iscritta alla newsletter")
+        else:
+            # Reactivate subscription
+            await db.newsletter_subscribers.update_one(
+                {"email": subscription.email.lower()},
+                {"$set": {"is_active": True, "resubscribed_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            return NewsletterResponse(
+                id=existing["id"],
+                email=existing["email"],
+                name=existing.get("name", ""),
+                language=existing.get("language", "it"),
+                subscribed_at=datetime.fromisoformat(existing["subscribed_at"]) if isinstance(existing["subscribed_at"], str) else existing["subscribed_at"],
+                is_active=True
+            )
+    
+    # Create new subscription
+    sub_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    sub_doc = {
+        "id": sub_id,
+        "email": subscription.email.lower(),
+        "name": subscription.name,
+        "language": subscription.language,
+        "subscribed_at": now.isoformat(),
+        "is_active": True
+    }
+    
+    await db.newsletter_subscribers.insert_one(sub_doc)
+    
+    return NewsletterResponse(
+        id=sub_id,
+        email=subscription.email.lower(),
+        name=subscription.name,
+        language=subscription.language,
+        subscribed_at=now,
+        is_active=True
+    )
+
+@api_router.post("/newsletter/unsubscribe")
+async def unsubscribe_newsletter(email: str):
+    """Unsubscribe from the newsletter"""
+    result = await db.newsletter_subscribers.update_one(
+        {"email": email.lower()},
+        {"$set": {"is_active": False, "unsubscribed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Email non trovata")
+    
+    return {"success": True, "message": "Disiscrizione completata"}
+
+@api_router.get("/admin/newsletter/subscribers")
+async def list_newsletter_subscribers(admin: dict = Depends(get_admin_user), active_only: bool = True):
+    """List newsletter subscribers (admin only)"""
+    query = {"is_active": True} if active_only else {}
+    subscribers = await db.newsletter_subscribers.find(query, {"_id": 0}).to_list(10000)
+    return {"subscribers": subscribers, "count": len(subscribers)}
+
 # ==================== ADMIN USER MANAGEMENT ENDPOINTS ====================
 @api_router.post("/admin/users", response_model=UserResponse, status_code=201)
 async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
