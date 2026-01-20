@@ -7,6 +7,7 @@ import CorporateTrainingPage from "./pages/CorporateTrainingPage";
 import LoginPage from "./pages/LoginPage";
 import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
+import SettingsPage from "./pages/SettingsPage";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -23,6 +24,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/area-clienti" element={<MembersAreaPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/impostazioni" element={<SettingsPage />} />
             </Routes>
           </BrowserRouter>
         </LanguageProvider>
