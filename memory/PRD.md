@@ -107,8 +107,8 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ### P2 - Media Priorità
 - [x] Newsletter backend endpoint (implementato 20/01/2026)
+- [x] Indici MongoDB per performance (implementato 20/01/2026)
 - [ ] Google Calendar integration per prenotazioni
-- [ ] Indici MongoDB per performance
 
 ### P3 - Bassa Priorità
 - [ ] Full LMS integration (corsi strutturati)
