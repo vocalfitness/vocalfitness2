@@ -1618,43 +1618,6 @@ async def setup_admin():
         "note": "Cambia la password dopo il primo accesso"
     }
 
-@api_router.post("/setup/reset-admin-password")
-async def reset_admin_password_setup():
-    """TEMPORARY: Reset admin password - REMOVE AFTER USE"""
-    new_password = "VocalFitness2026!"
-    
-    existing_admin = await db.users.find_one({"username": "admin"})
-    
-    if not existing_admin:
-        # Create new admin if doesn't exist
-        admin_id = str(uuid.uuid4())
-        admin_doc = {
-            "id": admin_id,
-            "username": "admin",
-            "hashed_password": get_password_hash(new_password),
-            "email": "admissions@vocalfitness.org",
-            "full_name": "Administrator",
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.users.insert_one(admin_doc)
-        return {
-            "message": "Admin creato con nuova password",
-            "username": "admin",
-            "password": new_password
-        }
-    else:
-        # Reset password
-        await db.users.update_one(
-            {"username": "admin"},
-            {"$set": {"hashed_password": get_password_hash(new_password)}}
-        )
-        return {
-            "message": "Password admin resettata",
-            "username": "admin", 
-            "password": new_password
-        }
-
 # Include the router in the main app
 app.include_router(api_router)
 
