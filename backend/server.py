@@ -172,7 +172,9 @@ class ContentCreate(BaseModel):
     content_type: str  # "video", "pdf", "audio", "link"
     url: str
     thumbnail_url: str = ""
-    category: str = ""
+    folder_id: Optional[str] = None  # Which folder it belongs to
+    is_public: bool = True  # Visible to all clients or only assigned
+    assigned_users: List[str] = []  # List of user IDs
     order: int = 0
 
 class ContentResponse(BaseModel):
@@ -183,7 +185,10 @@ class ContentResponse(BaseModel):
     content_type: str
     url: str
     thumbnail_url: str = ""
-    category: str = ""
+    folder_id: Optional[str] = None
+    folder_name: Optional[str] = None
+    is_public: bool = True
+    assigned_users: List[str] = []
     order: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -194,8 +199,42 @@ class ContentUpdate(BaseModel):
     content_type: Optional[str] = None
     url: Optional[str] = None
     thumbnail_url: Optional[str] = None
-    category: Optional[str] = None
+    folder_id: Optional[str] = None
+    is_public: Optional[bool] = None
+    assigned_users: Optional[List[str]] = None
     order: Optional[int] = None
+
+# ==================== FOLDER MODELS ====================
+class FolderCreate(BaseModel):
+    name: str
+    description: str = ""
+    thumbnail_url: str = ""
+    is_public: bool = True  # Visible to all clients or only assigned
+    assigned_users: List[str] = []  # List of user IDs
+    order: int = 0
+
+class FolderResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    name: str
+    description: str = ""
+    thumbnail_url: str = ""
+    is_public: bool = True
+    assigned_users: List[str] = []
+    order: int = 0
+    content_count: int = 0
+    created_at: datetime
+
+class FolderUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    is_public: Optional[bool] = None
+    assigned_users: Optional[List[str]] = None
+    order: Optional[int] = None
+
+class AssignUsersRequest(BaseModel):
+    user_ids: List[str]
 
 # ==================== PASSWORD CHANGE MODEL ====================
 class PasswordChangeRequest(BaseModel):
