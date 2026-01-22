@@ -87,6 +87,12 @@ async def create_indexes():
         await db.clients.create_index("id", unique=True)
         await db.clients.create_index("featured")
         
+        # Folders indexes
+        await db.folders.create_index("id", unique=True)
+        await db.folders.create_index("is_public")
+        await db.folders.create_index("assigned_users")
+        await db.folders.create_index("order")
+        
         logging.info("✅ MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
