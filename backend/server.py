@@ -1293,12 +1293,127 @@ async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
         raise HTTPException(status_code=404, detail="Utente non trovato")
     return {"message": "Utente eliminato con successo"}
 
+# ==================== FOLDER MANAGEMENT ENDPOINTS (Admin) ====================
+@api_router.post("/admin/folders", response_model=FolderResponse, status_code=201)
+async def create_folder(folder: FolderCreate, admin: dict = Depends(get_admin_user)):
+    """Create a new folder (admin only)"""
+    folder_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    folder_doc = {
+        "id": folder_id,
+        "name": folder.name,
+        "description": folder.description,
+        "thumbnail_url": folder.thumbnail_url,
+        "is_public": folder.is_public,
+        "assigned_users": folder.assigned_users,
+        "order": folder.order,
+        "created_at": now.isoformat(),
+        "created_by": admin["username"]
+    }
+    
+    await db.folders.insert_one(folder_doc)
+    
+    return FolderResponse(
+        id=folder_id,
+        name=folder.name,
+        description=folder.description,
+        thumbnail_url=folder.thumbnail_url,
+        is_public=folder.is_public,
+        assigned_users=folder.assigned_users,
+        order=folder.order,
+        content_count=0,
+        created_at=now
+    )
+
+@api_router.get("/admin/folders", response_model=List[FolderResponse])
+async def list_all_folders(admin: dict = Depends(get_admin_user)):
+    """List all folders (admin only)"""
+    folders = await db.folders.find({}, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    result = []
+    for f in folders:
+        # Count content in this folder
+        content_count = await db.member_content.count_documents({"folder_id": f["id"]})
+        result.append(FolderResponse(
+            id=f["id"],
+            name=f["name"],
+            description=f.get("description", ""),
+            thumbnail_url=f.get("thumbnail_url", ""),
+            is_public=f.get("is_public", True),
+            assigned_users=f.get("assigned_users", []),
+            order=f.get("order", 0),
+            content_count=content_count,
+            created_at=datetime.fromisoformat(f["created_at"]) if isinstance(f["created_at"], str) else f["created_at"]
+        ))
+    
+    return result
+
+@api_router.put("/admin/folders/{folder_id}", response_model=FolderResponse)
+async def update_folder(folder_id: str, update: FolderUpdate, admin: dict = Depends(get_admin_user)):
+    """Update a folder (admin only)"""
+    existing = await db.folders.find_one({"id": folder_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Cartella non trovata")
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    
+    await db.folders.update_one({"id": folder_id}, {"$set": update_data})
+    
+    updated = await db.folders.find_one({"id": folder_id}, {"_id": 0})
+    content_count = await db.member_content.count_documents({"folder_id": folder_id})
+    
+    return FolderResponse(
+        id=updated["id"],
+        name=updated["name"],
+        description=updated.get("description", ""),
+        thumbnail_url=updated.get("thumbnail_url", ""),
+        is_public=updated.get("is_public", True),
+        assigned_users=updated.get("assigned_users", []),
+        order=updated.get("order", 0),
+        content_count=content_count,
+        created_at=datetime.fromisoformat(updated["created_at"]) if isinstance(updated["created_at"], str) else updated["created_at"]
+    )
+
+@api_router.delete("/admin/folders/{folder_id}")
+async def delete_folder(folder_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete a folder (admin only) - contents are not deleted, just unassigned"""
+    result = await db.folders.delete_one({"id": folder_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cartella non trovata")
+    
+    # Remove folder_id from contents
+    await db.member_content.update_many({"folder_id": folder_id}, {"$set": {"folder_id": None}})
+    
+    return {"message": "Cartella eliminata con successo"}
+
+@api_router.post("/admin/folders/{folder_id}/assign")
+async def assign_users_to_folder(folder_id: str, request: AssignUsersRequest, admin: dict = Depends(get_admin_user)):
+    """Assign users to a folder (admin only)"""
+    existing = await db.folders.find_one({"id": folder_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Cartella non trovata")
+    
+    await db.folders.update_one(
+        {"id": folder_id},
+        {"$set": {"assigned_users": request.user_ids}}
+    )
+    
+    return {"message": f"Utenti assegnati alla cartella", "assigned_users": request.user_ids}
+
 # ==================== CONTENT MANAGEMENT ENDPOINTS (Admin) ====================
 @api_router.post("/admin/content", response_model=ContentResponse, status_code=201)
 async def create_content(content: ContentCreate, admin: dict = Depends(get_admin_user)):
     """Create new content for the members area (admin only)"""
     content_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
+    
+    # Get folder name if folder_id is provided
+    folder_name = None
+    if content.folder_id:
+        folder = await db.folders.find_one({"id": content.folder_id}, {"_id": 0, "name": 1})
+        if folder:
+            folder_name = folder["name"]
     
     content_doc = {
         "id": content_id,
@@ -1307,7 +1422,9 @@ async def create_content(content: ContentCreate, admin: dict = Depends(get_admin
         "content_type": content.content_type,
         "url": content.url,
         "thumbnail_url": content.thumbnail_url,
-        "category": content.category,
+        "folder_id": content.folder_id,
+        "is_public": content.is_public,
+        "assigned_users": content.assigned_users,
         "order": content.order,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
@@ -1323,7 +1440,10 @@ async def create_content(content: ContentCreate, admin: dict = Depends(get_admin
         content_type=content.content_type,
         url=content.url,
         thumbnail_url=content.thumbnail_url,
-        category=content.category,
+        folder_id=content.folder_id,
+        folder_name=folder_name,
+        is_public=content.is_public,
+        assigned_users=content.assigned_users,
         order=content.order,
         created_at=now,
         updated_at=now
@@ -1334,6 +1454,10 @@ async def list_all_content(admin: dict = Depends(get_admin_user)):
     """List all content (admin only)"""
     contents = await db.member_content.find({}, {"_id": 0}).sort("order", 1).to_list(1000)
     
+    # Get all folders for name lookup
+    folders = await db.folders.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)
+    folder_map = {f["id"]: f["name"] for f in folders}
+    
     return [
         ContentResponse(
             id=c["id"],
@@ -1342,7 +1466,10 @@ async def list_all_content(admin: dict = Depends(get_admin_user)):
             content_type=c["content_type"],
             url=c["url"],
             thumbnail_url=c.get("thumbnail_url", ""),
-            category=c.get("category", ""),
+            folder_id=c.get("folder_id"),
+            folder_name=folder_map.get(c.get("folder_id")) if c.get("folder_id") else None,
+            is_public=c.get("is_public", True),
+            assigned_users=c.get("assigned_users", []),
             order=c.get("order", 0),
             created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
             updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
@@ -1364,6 +1491,13 @@ async def update_content(content_id: str, update: ContentUpdate, admin: dict = D
     
     updated = await db.member_content.find_one({"id": content_id}, {"_id": 0})
     
+    # Get folder name
+    folder_name = None
+    if updated.get("folder_id"):
+        folder = await db.folders.find_one({"id": updated["folder_id"]}, {"_id": 0, "name": 1})
+        if folder:
+            folder_name = folder["name"]
+    
     return ContentResponse(
         id=updated["id"],
         title=updated["title"],
@@ -1371,11 +1505,28 @@ async def update_content(content_id: str, update: ContentUpdate, admin: dict = D
         content_type=updated["content_type"],
         url=updated["url"],
         thumbnail_url=updated.get("thumbnail_url", ""),
-        category=updated.get("category", ""),
+        folder_id=updated.get("folder_id"),
+        folder_name=folder_name,
+        is_public=updated.get("is_public", True),
+        assigned_users=updated.get("assigned_users", []),
         order=updated.get("order", 0),
         created_at=datetime.fromisoformat(updated["created_at"]) if isinstance(updated["created_at"], str) else updated["created_at"],
         updated_at=datetime.fromisoformat(updated["updated_at"]) if isinstance(updated.get("updated_at"), str) else updated.get("updated_at")
     )
+
+@api_router.post("/admin/content/{content_id}/assign")
+async def assign_users_to_content(content_id: str, request: AssignUsersRequest, admin: dict = Depends(get_admin_user)):
+    """Assign users to a content (admin only)"""
+    existing = await db.member_content.find_one({"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato")
+    
+    await db.member_content.update_one(
+        {"id": content_id},
+        {"$set": {"assigned_users": request.user_ids}}
+    )
+    
+    return {"message": f"Utenti assegnati al contenuto", "assigned_users": request.user_ids}
 
 @api_router.delete("/admin/content/{content_id}")
 async def delete_content(content_id: str, admin: dict = Depends(get_admin_user)):
