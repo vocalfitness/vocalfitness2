@@ -1734,14 +1734,85 @@ async def delete_uploaded_file(filename: str, admin: dict = Depends(get_admin_us
         raise HTTPException(status_code=500, detail=f"Errore nell'eliminazione: {str(e)}")
 
 # ==================== MEMBERS AREA ENDPOINTS (Authenticated Users) ====================
+@api_router.get("/members/folders")
+async def get_member_folders(current_user: dict = Depends(get_current_user)):
+    """Get folders visible to the authenticated member"""
+    user_id = current_user["id"]
+    is_admin = current_user.get("role") == "admin"
+    
+    if is_admin:
+        # Admin sees all folders
+        folders = await db.folders.find({}, {"_id": 0}).sort("order", 1).to_list(1000)
+    else:
+        # Client sees public folders OR folders assigned to them
+        folders = await db.folders.find({
+            "$or": [
+                {"is_public": True},
+                {"assigned_users": user_id}
+            ]
+        }, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    result = []
+    for f in folders:
+        # Count content visible to user in this folder
+        if is_admin:
+            content_count = await db.member_content.count_documents({"folder_id": f["id"]})
+        else:
+            content_count = await db.member_content.count_documents({
+                "folder_id": f["id"],
+                "$or": [
+                    {"is_public": True},
+                    {"assigned_users": user_id}
+                ]
+            })
+        
+        result.append({
+            "id": f["id"],
+            "name": f["name"],
+            "description": f.get("description", ""),
+            "thumbnail_url": f.get("thumbnail_url", ""),
+            "content_count": content_count,
+            "order": f.get("order", 0)
+        })
+    
+    return result
+
 @api_router.get("/members/content", response_model=List[ContentResponse])
-async def get_member_content(current_user: dict = Depends(get_current_user), category: str = None):
-    """Get available content for authenticated members"""
-    query = {}
-    if category:
-        query["category"] = category
+async def get_member_content(current_user: dict = Depends(get_current_user), folder_id: str = None):
+    """Get available content for authenticated members (filtered by visibility)"""
+    user_id = current_user["id"]
+    is_admin = current_user.get("role") == "admin"
+    
+    # Build query based on user role and folder
+    if is_admin:
+        # Admin sees all content
+        query = {}
+        if folder_id:
+            query["folder_id"] = folder_id
+    else:
+        # Client sees: public content OR content assigned to them OR content in assigned folders
+        # First get folders assigned to user
+        assigned_folders = await db.folders.find(
+            {"assigned_users": user_id},
+            {"_id": 0, "id": 1}
+        ).to_list(1000)
+        assigned_folder_ids = [f["id"] for f in assigned_folders]
+        
+        query = {
+            "$or": [
+                {"is_public": True},
+                {"assigned_users": user_id},
+                {"folder_id": {"$in": assigned_folder_ids}} if assigned_folder_ids else {"folder_id": "__none__"}
+            ]
+        }
+        if folder_id:
+            query = {"$and": [query, {"folder_id": folder_id}]}
     
     contents = await db.member_content.find(query, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    # Get folder names
+    folders = await db.folders.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)
+    folder_map = {f["id"]: f["name"] for f in folders}
     
     return [
         ContentResponse(
@@ -1751,7 +1822,10 @@ async def get_member_content(current_user: dict = Depends(get_current_user), cat
             content_type=c["content_type"],
             url=c["url"],
             thumbnail_url=c.get("thumbnail_url", ""),
-            category=c.get("category", ""),
+            folder_id=c.get("folder_id"),
+            folder_name=folder_map.get(c.get("folder_id")) if c.get("folder_id") else None,
+            is_public=c.get("is_public", True),
+            assigned_users=c.get("assigned_users", []) if is_admin else [],  # Only admin sees assignments
             order=c.get("order", 0),
             created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
             updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
@@ -1762,9 +1836,34 @@ async def get_member_content(current_user: dict = Depends(get_current_user), cat
 @api_router.get("/members/content/{content_id}", response_model=ContentResponse)
 async def get_single_content(content_id: str, current_user: dict = Depends(get_current_user)):
     """Get single content item for authenticated members"""
+    user_id = current_user["id"]
+    is_admin = current_user.get("role") == "admin"
+    
     content = await db.member_content.find_one({"id": content_id}, {"_id": 0})
     if not content:
         raise HTTPException(status_code=404, detail="Contenuto non trovato")
+    
+    # Check access permission (unless admin)
+    if not is_admin:
+        is_public = content.get("is_public", True)
+        is_assigned = user_id in content.get("assigned_users", [])
+        
+        # Check if in assigned folder
+        in_assigned_folder = False
+        if content.get("folder_id"):
+            folder = await db.folders.find_one({"id": content["folder_id"]}, {"_id": 0})
+            if folder and user_id in folder.get("assigned_users", []):
+                in_assigned_folder = True
+        
+        if not (is_public or is_assigned or in_assigned_folder):
+            raise HTTPException(status_code=403, detail="Non hai accesso a questo contenuto")
+    
+    # Get folder name
+    folder_name = None
+    if content.get("folder_id"):
+        folder = await db.folders.find_one({"id": content["folder_id"]}, {"_id": 0, "name": 1})
+        if folder:
+            folder_name = folder["name"]
     
     return ContentResponse(
         id=content["id"],
@@ -1773,17 +1872,14 @@ async def get_single_content(content_id: str, current_user: dict = Depends(get_c
         content_type=content["content_type"],
         url=content["url"],
         thumbnail_url=content.get("thumbnail_url", ""),
-        category=content.get("category", ""),
+        folder_id=content.get("folder_id"),
+        folder_name=folder_name,
+        is_public=content.get("is_public", True),
+        assigned_users=content.get("assigned_users", []) if is_admin else [],
         order=content.get("order", 0),
         created_at=datetime.fromisoformat(content["created_at"]) if isinstance(content["created_at"], str) else content["created_at"],
         updated_at=datetime.fromisoformat(content["updated_at"]) if isinstance(content.get("updated_at"), str) else content.get("updated_at")
     )
-
-@api_router.get("/members/categories")
-async def get_content_categories(current_user: dict = Depends(get_current_user)):
-    """Get list of content categories"""
-    categories = await db.member_content.distinct("category")
-    return {"categories": [c for c in categories if c]}
 
 # ==================== SETUP/INITIALIZATION ENDPOINT ====================
 @api_router.post("/setup/admin")
