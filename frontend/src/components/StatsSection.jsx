@@ -28,7 +28,7 @@ const StatsSection = () => {
   }, []);
 
   const animateNumbers = () => {
-    const targets = [96, 12, 89, 100];
+    const targets = [96, 8, 89, 100]; // Changed 12 to 8 for the "8-12" stat
     const duration = 2000;
     const steps = 60;
     
