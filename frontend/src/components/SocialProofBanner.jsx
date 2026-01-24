@@ -4,11 +4,12 @@ import { useLanguage } from '../context/LanguageContext';
 
 const SocialProofBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
   const [counters, setCounters] = useState({
-    students: 0,
-    lessons: 0,
-    successRate: 0,
-    companies: 0
+    students: 10000,  // Start with final values as fallback
+    lessons: 25000,
+    successRate: 96,
+    companies: 100
   });
   const sectionRef = useRef(null);
   const { language } = useLanguage();
@@ -16,11 +17,14 @@ const SocialProofBanner = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !hasAnimated) {
           setIsVisible(true);
+          setHasAnimated(true);
+          // Reset to 0 for animation
+          setCounters({ students: 0, lessons: 0, successRate: 0, companies: 0 });
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '50px' }
     );
 
     if (sectionRef.current) {
@@ -28,11 +32,11 @@ const SocialProofBanner = () => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [hasAnimated]);
 
   // Animated counters
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && hasAnimated) {
       const duration = 2500;
       const steps = 80;
       const interval = duration / steps;
