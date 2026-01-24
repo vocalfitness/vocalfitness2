@@ -6,26 +6,40 @@ import { useLanguage } from '../context/LanguageContext';
 const StatsSection = () => {
   const { language } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
-  const [animatedValues, setAnimatedValues] = useState([0, 0, 0, 0]);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const [animatedValues, setAnimatedValues] = useState([96, 8, 89, 100]); // Start with final values as fallback
   const sectionRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !hasAnimated) {
           setIsVisible(true);
-          animateNumbers();
+          setHasAnimated(true);
+          // Reset to 0 and animate
+          setAnimatedValues([0, 0, 0, 0]);
+          setTimeout(() => animateNumbers(), 100);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.1, rootMargin: '50px' } // Lower threshold, add margin
     );
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
     }
 
-    return () => observer.disconnect();
-  }, []);
+    // Fallback: if not animated after 3 seconds, show final values
+    const fallbackTimer = setTimeout(() => {
+      if (!hasAnimated) {
+        setAnimatedValues([96, 8, 89, 100]);
+      }
+    }, 3000);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, [hasAnimated]);
 
   const animateNumbers = () => {
     const targets = [96, 8, 89, 100]; // Changed 12 to 8 for the "8-12" stat
