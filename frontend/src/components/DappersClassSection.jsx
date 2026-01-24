@@ -4,18 +4,22 @@ import { useLanguage } from '../context/LanguageContext';
 
 const DappersClassSection = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const [counters, setCounters] = useState({ followers: 0, posts: 0, engagement: 0 });
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const [counters, setCounters] = useState({ followers: 300000, posts: 800, engagement: 2.0 }); // Start with final values
   const sectionRef = useRef(null);
   const { language } = useLanguage();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !hasAnimated) {
           setIsVisible(true);
+          setHasAnimated(true);
+          // Reset to 0 for animation
+          setCounters({ followers: 0, posts: 0, engagement: 0 });
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '50px' }
     );
 
     if (sectionRef.current) {
@@ -23,11 +27,11 @@ const DappersClassSection = () => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [hasAnimated]);
 
   // Animated counters
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && hasAnimated) {
       const duration = 2000;
       const steps = 60;
       const interval = duration / steps;
@@ -51,7 +55,7 @@ const DappersClassSection = () => {
       
       return () => clearInterval(timer);
     }
-  }, [isVisible]);
+  }, [isVisible, hasAnimated]);
 
   const content = {
     it: {
