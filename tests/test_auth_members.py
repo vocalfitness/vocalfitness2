@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vocalzone-private.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://secure-vault-104.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "VocalFitness2024!"}
