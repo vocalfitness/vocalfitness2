@@ -85,7 +85,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## What's Been Implemented
 
-### 20 Gennaio 2026
+### 20-22 Gennaio 2026
 - ✅ Area Riservata Clienti completa
 - ✅ Pannello Admin per gestione utenti/contenuti
 - ✅ Autenticazione JWT con bcrypt
@@ -101,11 +101,14 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - ✅ **Indici MongoDB** - 41 indici su 9 collezioni per query ottimizzate
   - Tab "Database" nel pannello admin con statistiche
   - Creazione automatica all'avvio dell'applicazione
-- ✅ **Sistema Cartelle e Assegnazioni** (implementato 22/01/2026)
+- ✅ **Sistema Cartelle e Assegnazioni**
   - Cartelle per organizzare i contenuti
   - Assegnazione cartelle/contenuti a clienti specifici
   - Visibilità mista: contenuti pubblici + contenuti riservati
   - Tab "Cartelle" nel pannello admin
+- ✅ **Fix Contatori Homepage** (verificato 23/01/2026)
+  - Risolto bug dei contatori animati che mostravano "0"
+  - Funzionante su Mac e Windows
 
 ## Backlog
 
