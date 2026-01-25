@@ -5,61 +5,52 @@ import { useLanguage } from '../context/LanguageContext';
 
 const StatsSection = () => {
   const { language } = useLanguage();
-  const [isVisible, setIsVisible] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(1); // 1 = show final values
   const [hasAnimated, setHasAnimated] = useState(false);
-  const [animatedValues, setAnimatedValues] = useState([96, 8, 89, 100]); // Start with final values as fallback
   const sectionRef = useRef(null);
+
+  // Final values - NEVER show 0
+  const finalValues = [96, 8, 89, 100];
+  
+  // Calculate current animated values based on progress
+  const animatedValues = finalValues.map(val => Math.max(1, Math.floor(val * animationProgress)));
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
-          setIsVisible(true);
           setHasAnimated(true);
-          // Reset to 0 and animate
-          setAnimatedValues([0, 0, 0, 0]);
-          setTimeout(() => animateNumbers(), 100);
+          setAnimationProgress(0.01);
+          
+          const duration = 2000;
+          const startTime = Date.now();
+          
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            setAnimationProgress(Math.max(0.01, easeOut));
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setAnimationProgress(1);
+            }
+          };
+          
+          requestAnimationFrame(animate);
         }
       },
-      { threshold: 0.1, rootMargin: '50px' } // Lower threshold, add margin
+      { threshold: 0.1, rootMargin: '50px' }
     );
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
     }
 
-    // Fallback: if not animated after 3 seconds, show final values
-    const fallbackTimer = setTimeout(() => {
-      if (!hasAnimated) {
-        setAnimatedValues([96, 8, 89, 100]);
-      }
-    }, 3000);
-
-    return () => {
-      observer.disconnect();
-      clearTimeout(fallbackTimer);
-    };
+    return () => observer.disconnect();
   }, [hasAnimated]);
-
-  const animateNumbers = () => {
-    const targets = [96, 8, 89, 100]; // Changed 12 to 8 for the "8-12" stat
-    const duration = 2000;
-    const steps = 60;
-    
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      if (currentStep <= steps) {
-        const progress = currentStep / steps;
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        
-        setAnimatedValues(targets.map(target => Math.floor(target * easeOut)));
-        currentStep++;
-      } else {
-        clearInterval(interval);
-        setAnimatedValues(targets);
-      }
-    }, duration / steps);
-  };
 
   const icons = [TrendingUp, Clock, Users, Award];
 
