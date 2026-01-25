@@ -3,20 +3,49 @@ import { Instagram, Youtube, Linkedin, Facebook, Play, Users, Image as ImageIcon
 import { useLanguage } from '../context/LanguageContext';
 
 const DappersClassSection = () => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(1); // 1 = 100% = show final values
   const [hasAnimated, setHasAnimated] = useState(false);
-  const [counters, setCounters] = useState({ followers: 300000, posts: 800, engagement: 2.0 }); // Start with final values
   const sectionRef = useRef(null);
   const { language } = useLanguage();
+
+  // Final values - NEVER show 0
+  const finalValues = { followers: 300000, posts: 800, engagement: 2.0 };
+  
+  // Calculate current counter values based on progress
+  const counters = {
+    followers: Math.floor(finalValues.followers * animationProgress),
+    posts: Math.floor(finalValues.posts * animationProgress),
+    engagement: Math.round(finalValues.engagement * animationProgress * 10) / 10
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
-          setIsVisible(true);
           setHasAnimated(true);
-          // Reset to 0 for animation
-          setCounters({ followers: 0, posts: 0, engagement: 0 });
+          // Start animation from current progress (which is 1 = full)
+          // Reset to near-zero and animate up
+          setAnimationProgress(0.01); // Start at 1% not 0 to avoid showing 0
+          
+          const duration = 2000;
+          const steps = 60;
+          const startTime = Date.now();
+          
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            setAnimationProgress(Math.max(0.01, easeOut)); // Never go below 0.01
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setAnimationProgress(1);
+            }
+          };
+          
+          requestAnimationFrame(animate);
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
@@ -28,34 +57,6 @@ const DappersClassSection = () => {
 
     return () => observer.disconnect();
   }, [hasAnimated]);
-
-  // Animated counters
-  useEffect(() => {
-    if (isVisible && hasAnimated) {
-      const duration = 2000;
-      const steps = 60;
-      const interval = duration / steps;
-      
-      let currentStep = 0;
-      const timer = setInterval(() => {
-        currentStep++;
-        const progress = currentStep / steps;
-        
-        setCounters({
-          followers: Math.floor(300000 * progress),
-          posts: Math.floor(800 * progress),
-          engagement: Math.floor(2 * progress * 10) / 10
-        });
-        
-        if (currentStep >= steps) {
-          clearInterval(timer);
-          setCounters({ followers: 300000, posts: 800, engagement: 2.0 });
-        }
-      }, interval);
-      
-      return () => clearInterval(timer);
-    }
-  }, [isVisible, hasAnimated]);
 
   const content = {
     it: {
