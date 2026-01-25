@@ -3,25 +3,47 @@ import { Users, BookOpen, TrendingUp, Award } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const SocialProofBanner = () => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(1); // 1 = show final values
   const [hasAnimated, setHasAnimated] = useState(false);
-  const [counters, setCounters] = useState({
-    students: 10000,  // Start with final values as fallback
-    lessons: 25000,
-    successRate: 96,
-    companies: 100
-  });
   const sectionRef = useRef(null);
   const { language } = useLanguage();
+
+  // Final values - NEVER show 0
+  const finalValues = { students: 10000, lessons: 25000, successRate: 96, companies: 100 };
+  
+  // Calculate current counter values based on progress
+  const counters = {
+    students: Math.max(1, Math.floor(finalValues.students * animationProgress)),
+    lessons: Math.max(1, Math.floor(finalValues.lessons * animationProgress)),
+    successRate: Math.max(1, Math.floor(finalValues.successRate * animationProgress)),
+    companies: Math.max(1, Math.floor(finalValues.companies * animationProgress))
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
-          setIsVisible(true);
           setHasAnimated(true);
-          // Reset to 0 for animation
-          setCounters({ students: 0, lessons: 0, successRate: 0, companies: 0 });
+          setAnimationProgress(0.01);
+          
+          const duration = 2500;
+          const startTime = Date.now();
+          
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            setAnimationProgress(Math.max(0.01, easeOut));
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setAnimationProgress(1);
+            }
+          };
+          
+          requestAnimationFrame(animate);
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
@@ -33,40 +55,6 @@ const SocialProofBanner = () => {
 
     return () => observer.disconnect();
   }, [hasAnimated]);
-
-  // Animated counters
-  useEffect(() => {
-    if (isVisible && hasAnimated) {
-      const duration = 2500;
-      const steps = 80;
-      const interval = duration / steps;
-      
-      let currentStep = 0;
-      const timer = setInterval(() => {
-        currentStep++;
-        const progress = currentStep / steps;
-        
-        setCounters({
-          students: Math.floor(10000 * progress),
-          lessons: Math.floor(25000 * progress),
-          successRate: Math.floor(96 * progress),
-          companies: Math.floor(100 * progress)
-        });
-        
-        if (currentStep >= steps) {
-          clearInterval(timer);
-          setCounters({
-            students: 10000,
-            lessons: 25000,
-            successRate: 96,
-            companies: 100
-          });
-        }
-      }, interval);
-      
-      return () => clearInterval(timer);
-    }
-  }, [isVisible]);
 
   const content = {
     it: {
