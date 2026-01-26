@@ -267,6 +267,159 @@ const AdminPage = () => {
     return user ? (user.full_name || user.username) : userId;
   };
 
+  // ===================== YOUTUBE HANDLERS =====================
+  const handleImportYoutubePlaylist = async () => {
+    if (!formData.playlist_url) {
+      showToast('error', 'Inserisci l\'URL della playlist YouTube');
+      return;
+    }
+    
+    setYoutubeImporting(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/youtube/import`,
+        {
+          playlist_url: formData.playlist_url,
+          assigned_users: formData.assigned_users || [],
+          is_public: formData.is_public || false
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Refresh data
+      const [playlistsRes, foldersRes, contentRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/folders`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setYoutubePlaylists(playlistsRes.data);
+      setFolders(foldersRes.data);
+      setContents(contentRes.data);
+      setShowModal(null);
+      setFormData({});
+      showToast('success', `Playlist "${response.data.folder_name}" importata con ${response.data.video_count} video!`);
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nell\'importazione della playlist');
+    } finally {
+      setYoutubeImporting(false);
+    }
+  };
+
+  const handleSyncPlaylist = async (playlistId) => {
+    setYoutubeSyncing(playlistId);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/youtube/sync/${playlistId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Refresh playlists and content
+      const [playlistsRes, contentRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setYoutubePlaylists(playlistsRes.data);
+      setContents(contentRes.data);
+      
+      if (response.data.new_videos_added > 0) {
+        showToast('success', `Sincronizzazione completata: ${response.data.new_videos_added} nuovi video aggiunti`);
+      } else {
+        showToast('success', 'Nessun nuovo video trovato');
+      }
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nella sincronizzazione');
+    } finally {
+      setYoutubeSyncing(null);
+    }
+  };
+
+  const handleSyncAllPlaylists = async () => {
+    setYoutubeSyncing('all');
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/youtube/sync-all`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Refresh data
+      const [playlistsRes, contentRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setYoutubePlaylists(playlistsRes.data);
+      setContents(contentRes.data);
+      showToast('success', response.data.message);
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nella sincronizzazione');
+    } finally {
+      setYoutubeSyncing(null);
+    }
+  };
+
+  const handleDeleteYoutubePlaylist = async (playlistId, deleteContent) => {
+    const confirmMsg = deleteContent 
+      ? 'Eliminare la playlist E tutti i contenuti associati?' 
+      : 'Eliminare solo il tracciamento della playlist? (cartella e video rimarranno)';
+    
+    if (!window.confirm(confirmMsg)) return;
+    
+    try {
+      await axios.delete(
+        `${backendUrl}/api/admin/youtube/playlist/${playlistId}?delete_content=${deleteContent}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Refresh data
+      const [playlistsRes, foldersRes, contentRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/folders`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setYoutubePlaylists(playlistsRes.data);
+      setFolders(foldersRes.data);
+      setContents(contentRes.data);
+      showToast('success', 'Playlist eliminata');
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nell\'eliminazione');
+    }
+  };
+
+  const handleUpdatePlaylistUsers = async (playlistId) => {
+    setSubmitting(true);
+    try {
+      await axios.put(
+        `${backendUrl}/api/admin/youtube/playlist/${playlistId}/users`,
+        { user_ids: formData.assigned_users || [] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Refresh data
+      const [playlistsRes, foldersRes, contentRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/folders`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setYoutubePlaylists(playlistsRes.data);
+      setFolders(foldersRes.data);
+      setContents(contentRes.data);
+      setShowModal(null);
+      setEditItem(null);
+      setFormData({});
+      showToast('success', 'Utenti aggiornati per tutti i video della playlist');
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nell\'aggiornamento');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const getContentIcon = (type) => {
     switch (type) {
       case 'video': return <Video className="w-4 h-4 text-blue-400" />;
