@@ -19,28 +19,31 @@ const StatsSection = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          setAnimationProgress(0.01);
-          
-          const duration = 2000;
-          const startTime = Date.now();
-          
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const easeOut = 1 - Math.pow(1 - progress, 3);
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (!hasAnimated) {
+            setHasAnimated(true);
+            setAnimationProgress(0.01);
             
-            setAnimationProgress(Math.max(0.01, easeOut));
+            const duration = 2000;
+            const startTime = Date.now();
             
-            if (progress < 1) {
-              requestAnimationFrame(animate);
-            } else {
-              setAnimationProgress(1);
-            }
-          };
-          
-          requestAnimationFrame(animate);
+            const animate = () => {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              
+              setAnimationProgress(Math.max(0.01, easeOut));
+              
+              if (progress < 1) {
+                requestAnimationFrame(animate);
+              } else {
+                setAnimationProgress(1);
+              }
+            };
+            
+            requestAnimationFrame(animate);
+          }
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
