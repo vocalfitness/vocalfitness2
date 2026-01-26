@@ -703,19 +703,19 @@ const AdminPage = () => {
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-8">
           <Button onClick={() => setActiveTab('folders')} className={activeTab === 'folders' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-folders">
-            <Folder className="w-4 h-4 mr-2" /> Cartelle ({folders.length})
+            <Folder className="w-4 h-4 mr-2" /> {t.folders} ({folders.length})
           </Button>
           <Button onClick={() => setActiveTab('content')} className={activeTab === 'content' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-content">
-            <FolderOpen className="w-4 h-4 mr-2" /> Contenuti ({contents.length})
+            <FolderOpen className="w-4 h-4 mr-2" /> {t.content} ({contents.length})
           </Button>
           <Button onClick={() => setActiveTab('youtube')} className={activeTab === 'youtube' ? 'bg-red-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-youtube">
-            <Youtube className="w-4 h-4 mr-2" /> YouTube ({youtubePlaylists.length})
+            <Youtube className="w-4 h-4 mr-2" /> {t.youtube} ({youtubePlaylists.length})
           </Button>
           <Button onClick={() => setActiveTab('users')} className={activeTab === 'users' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-users">
-            <Users className="w-4 h-4 mr-2" /> Utenti ({users.length})
+            <Users className="w-4 h-4 mr-2" /> {t.users} ({users.length})
           </Button>
           <Button onClick={() => setActiveTab('database')} className={activeTab === 'database' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-database">
-            <HardDrive className="w-4 h-4 mr-2" /> Database
+            <HardDrive className="w-4 h-4 mr-2" /> {t.database}
           </Button>
         </div>
 
@@ -725,7 +725,7 @@ const AdminPage = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-slate-300">
                 <HardDrive className="w-5 h-5 text-blue-400" />
-                <span className="font-medium">Spazio di Archiviazione</span>
+                <span className="font-medium">{t.storage}</span>
               </div>
               <span className="text-sm text-slate-400">{storageStats.file_count} file • Max {storageStats.max_file_size_formatted}/file</span>
             </div>
@@ -733,9 +733,9 @@ const AdminPage = () => {
               <div className={`h-3 rounded-full transition-all ${storageStats.usage_percentage > 90 ? 'bg-red-500' : storageStats.usage_percentage > 70 ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(storageStats.usage_percentage, 100)}%` }} />
             </div>
             <div className="flex justify-between text-xs text-slate-400">
-              <span>Usato: {storageStats.total_used_formatted}</span>
+              <span>{language === 'it' ? 'Usato' : 'Used'}: {storageStats.total_used_formatted}</span>
               <span>{storageStats.usage_percentage}%</span>
-              <span>Disponibile: {storageStats.remaining_formatted}</span>
+              <span>{language === 'it' ? 'Disponibile' : 'Available'}: {storageStats.remaining_formatted}</span>
             </div>
           </div>
         )}
@@ -744,16 +744,16 @@ const AdminPage = () => {
         {activeTab === 'folders' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Gestione Cartelle</h2>
+              <h2 className="text-lg font-semibold text-white">{language === 'it' ? 'Gestione Cartelle' : 'Folder Management'}</h2>
               <Button onClick={() => { setFormData({ is_public: true, assigned_users: [], order: 0 }); setShowModal('create-folder'); }} className="bg-green-600 hover:bg-green-700" data-testid="add-folder-button">
-                <Plus className="w-4 h-4 mr-2" /> Nuova Cartella
+                <Plus className="w-4 h-4 mr-2" /> {t.newFolder}
               </Button>
             </div>
 
             {folders.length === 0 ? (
               <div className="text-center py-12 bg-slate-800/50 rounded-xl">
                 <Folder className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">Nessuna cartella. Crea la prima per organizzare i contenuti!</p>
+                <p className="text-slate-400">{t.noFolders}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
