@@ -97,6 +97,12 @@ async def create_indexes():
         await db.folders.create_index("assigned_users")
         await db.folders.create_index("order")
         
+        # YouTube playlists indexes
+        await db.youtube_playlists.create_index("id", unique=True)
+        await db.youtube_playlists.create_index("playlist_id", unique=True)
+        await db.youtube_playlists.create_index("folder_id")
+        await db.youtube_playlists.create_index("last_sync")
+        
         logging.info("✅ MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
