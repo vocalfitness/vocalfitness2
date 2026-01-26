@@ -564,12 +564,12 @@ const AdminPage = () => {
       setContents(contentRes.data);
       
       if (response.data.new_videos_added > 0) {
-        showToast('success', `Sincronizzazione completata: ${response.data.new_videos_added} nuovi video aggiunti`);
+        showToast('success', `${t.syncComplete}: ${response.data.new_videos_added} ${t.newVideosAdded}`);
       } else {
-        showToast('success', 'Nessun nuovo video trovato');
+        showToast('success', t.noNewVideos);
       }
     } catch (error) {
-      showToast('error', error.response?.data?.detail || 'Errore nella sincronizzazione');
+      showToast('error', error.response?.data?.detail || t.errorLoading);
     } finally {
       setYoutubeSyncing(null);
     }
@@ -594,7 +594,7 @@ const AdminPage = () => {
       setContents(contentRes.data);
       showToast('success', response.data.message);
     } catch (error) {
-      showToast('error', error.response?.data?.detail || 'Errore nella sincronizzazione');
+      showToast('error', error.response?.data?.detail || t.errorLoading);
     } finally {
       setYoutubeSyncing(null);
     }
@@ -602,8 +602,8 @@ const AdminPage = () => {
 
   const handleDeleteYoutubePlaylist = async (playlistId, deleteContent) => {
     const confirmMsg = deleteContent 
-      ? 'Eliminare la playlist E tutti i contenuti associati?' 
-      : 'Eliminare solo il tracciamento della playlist? (cartella e video rimarranno)';
+      ? t.deletePlaylistContent
+      : t.deletePlaylistOnly;
     
     if (!window.confirm(confirmMsg)) return;
     
