@@ -272,6 +272,33 @@ class NewsletterResponse(BaseModel):
     subscribed_at: datetime
     is_active: bool = True
 
+# ==================== YOUTUBE PLAYLIST MODELS ====================
+class YouTubePlaylistImport(BaseModel):
+    playlist_url: str  # YouTube playlist URL
+    assigned_users: List[str] = []  # Users to assign all videos to
+    is_public: bool = False  # Whether videos are public to all clients
+
+class YouTubePlaylistResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    playlist_id: str  # YouTube playlist ID
+    playlist_title: str
+    folder_id: str  # Created folder ID
+    folder_name: str
+    video_count: int
+    assigned_users: List[str] = []
+    is_public: bool = False
+    last_sync: datetime
+    created_at: datetime
+
+class YouTubeVideoInfo(BaseModel):
+    video_id: str
+    title: str
+    description: str = ""
+    thumbnail_url: str = ""
+    duration: str = ""
+    position: int = 0
+
 # ==================== STORAGE LIMITS CONFIG ====================
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file (ridotto da 500MB)
 MAX_TOTAL_STORAGE = 2 * 1024 * 1024 * 1024  # 2GB totale
