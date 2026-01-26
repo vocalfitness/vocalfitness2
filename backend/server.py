@@ -1947,6 +1947,348 @@ async def setup_admin():
         "note": "Cambia la password dopo il primo accesso"
     }
 
+# ==================== YOUTUBE PLAYLIST ENDPOINTS ====================
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
+
+def get_youtube_service():
+    """Get YouTube Data API service"""
+    if not YOUTUBE_API_KEY:
+        raise HTTPException(status_code=500, detail="YouTube API key non configurata")
+    return build("youtube", "v3", developerKey=YOUTUBE_API_KEY, cache_discovery=False)
+
+def extract_playlist_id(url: str) -> str:
+    """Extract playlist ID from YouTube URL"""
+    patterns = [
+        r'[?&]list=([a-zA-Z0-9_-]+)',
+        r'playlist\?list=([a-zA-Z0-9_-]+)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    raise HTTPException(status_code=400, detail="URL playlist non valido. Assicurati che contenga un parametro 'list='")
+
+async def fetch_playlist_videos(playlist_id: str) -> tuple[str, List[dict]]:
+    """Fetch all videos from a YouTube playlist"""
+    youtube = get_youtube_service()
+    videos = []
+    
+    try:
+        # Get playlist info
+        playlist_response = youtube.playlists().list(
+            part="snippet",
+            id=playlist_id
+        ).execute()
+        
+        if not playlist_response.get("items"):
+            raise HTTPException(status_code=404, detail="Playlist non trovata o non accessibile")
+        
+        playlist_title = playlist_response["items"][0]["snippet"]["title"]
+        
+        # Fetch all videos in the playlist
+        next_page_token = None
+        position = 0
+        
+        while True:
+            playlist_items = youtube.playlistItems().list(
+                part="snippet,contentDetails",
+                playlistId=playlist_id,
+                maxResults=50,
+                pageToken=next_page_token
+            ).execute()
+            
+            for item in playlist_items.get("items", []):
+                snippet = item["snippet"]
+                video_id = snippet["resourceId"]["videoId"]
+                
+                # Get best thumbnail
+                thumbnails = snippet.get("thumbnails", {})
+                thumbnail_url = (
+                    thumbnails.get("maxres", {}).get("url") or
+                    thumbnails.get("high", {}).get("url") or
+                    thumbnails.get("medium", {}).get("url") or
+                    thumbnails.get("default", {}).get("url", "")
+                )
+                
+                videos.append({
+                    "video_id": video_id,
+                    "title": snippet.get("title", ""),
+                    "description": snippet.get("description", "")[:500],  # Limit description
+                    "thumbnail_url": thumbnail_url,
+                    "position": position
+                })
+                position += 1
+            
+            next_page_token = playlist_items.get("nextPageToken")
+            if not next_page_token:
+                break
+        
+        return playlist_title, videos
+        
+    except HttpError as e:
+        if "quotaExceeded" in str(e):
+            raise HTTPException(status_code=429, detail="Quota API YouTube superata. Riprova domani.")
+        elif "playlistNotFound" in str(e):
+            raise HTTPException(status_code=404, detail="Playlist non trovata")
+        else:
+            raise HTTPException(status_code=400, detail=f"Errore YouTube API: {str(e)}")
+
+@api_router.post("/admin/youtube/import")
+async def import_youtube_playlist(
+    data: YouTubePlaylistImport,
+    background_tasks: BackgroundTasks,
+    admin: dict = Depends(get_admin_user)
+):
+    """Import a YouTube playlist: creates folder and content entries for all videos"""
+    
+    # Extract playlist ID
+    playlist_id = extract_playlist_id(data.playlist_url)
+    
+    # Check if playlist already imported
+    existing = await db.youtube_playlists.find_one({"playlist_id": playlist_id})
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Playlist già importata nella cartella '{existing.get('folder_name', 'N/A')}'. Usa 'Sincronizza' per aggiornare."
+        )
+    
+    # Fetch videos from YouTube
+    playlist_title, videos = await fetch_playlist_videos(playlist_id)
+    
+    if not videos:
+        raise HTTPException(status_code=400, detail="Playlist vuota o non accessibile")
+    
+    # Create folder for the playlist
+    folder_id = str(uuid.uuid4())
+    folder_doc = {
+        "id": folder_id,
+        "name": playlist_title,
+        "description": f"Importata da YouTube - {len(videos)} video",
+        "thumbnail_url": videos[0]["thumbnail_url"] if videos else "",
+        "is_public": data.is_public,
+        "assigned_users": data.assigned_users,
+        "order": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.folders.insert_one(folder_doc)
+    
+    # Create content entries for each video
+    content_docs = []
+    for video in videos:
+        content_id = str(uuid.uuid4())
+        content_doc = {
+            "id": content_id,
+            "title": video["title"],
+            "description": video["description"],
+            "content_type": "video",
+            "url": f"https://www.youtube.com/watch?v={video['video_id']}",
+            "thumbnail_url": video["thumbnail_url"],
+            "folder_id": folder_id,
+            "is_public": data.is_public,
+            "assigned_users": data.assigned_users,
+            "order": video["position"],
+            "youtube_video_id": video["video_id"],  # Track original YouTube ID
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        content_docs.append(content_doc)
+    
+    if content_docs:
+        await db.member_content.insert_many(content_docs)
+    
+    # Save playlist tracking info
+    playlist_doc = {
+        "id": str(uuid.uuid4()),
+        "playlist_id": playlist_id,
+        "playlist_title": playlist_title,
+        "playlist_url": data.playlist_url,
+        "folder_id": folder_id,
+        "folder_name": playlist_title,
+        "video_count": len(videos),
+        "assigned_users": data.assigned_users,
+        "is_public": data.is_public,
+        "last_sync": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.youtube_playlists.insert_one(playlist_doc)
+    
+    return {
+        "success": True,
+        "message": f"Playlist '{playlist_title}' importata con successo",
+        "folder_id": folder_id,
+        "folder_name": playlist_title,
+        "video_count": len(videos),
+        "playlist_id": playlist_id
+    }
+
+@api_router.get("/admin/youtube/playlists")
+async def get_youtube_playlists(admin: dict = Depends(get_admin_user)):
+    """Get all imported YouTube playlists"""
+    playlists = await db.youtube_playlists.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    # Get current video counts
+    for p in playlists:
+        p["current_video_count"] = await db.member_content.count_documents({"folder_id": p["folder_id"]})
+        # Convert datetime strings if needed
+        if isinstance(p.get("last_sync"), str):
+            p["last_sync"] = datetime.fromisoformat(p["last_sync"])
+        if isinstance(p.get("created_at"), str):
+            p["created_at"] = datetime.fromisoformat(p["created_at"])
+    
+    return playlists
+
+@api_router.post("/admin/youtube/sync/{playlist_doc_id}")
+async def sync_youtube_playlist(playlist_doc_id: str, admin: dict = Depends(get_admin_user)):
+    """Sync a playlist - add new videos that were added to YouTube"""
+    
+    # Get playlist doc
+    playlist_doc = await db.youtube_playlists.find_one({"id": playlist_doc_id}, {"_id": 0})
+    if not playlist_doc:
+        raise HTTPException(status_code=404, detail="Playlist non trovata")
+    
+    playlist_id = playlist_doc["playlist_id"]
+    folder_id = playlist_doc["folder_id"]
+    
+    # Fetch current videos from YouTube
+    playlist_title, youtube_videos = await fetch_playlist_videos(playlist_id)
+    
+    # Get existing video IDs in our database
+    existing_content = await db.member_content.find(
+        {"folder_id": folder_id, "youtube_video_id": {"$exists": True}},
+        {"_id": 0, "youtube_video_id": 1}
+    ).to_list(1000)
+    existing_video_ids = {c["youtube_video_id"] for c in existing_content}
+    
+    # Find new videos
+    new_videos = [v for v in youtube_videos if v["video_id"] not in existing_video_ids]
+    
+    # Add new videos
+    if new_videos:
+        content_docs = []
+        max_order = await db.member_content.count_documents({"folder_id": folder_id})
+        
+        for idx, video in enumerate(new_videos):
+            content_id = str(uuid.uuid4())
+            content_doc = {
+                "id": content_id,
+                "title": video["title"],
+                "description": video["description"],
+                "content_type": "video",
+                "url": f"https://www.youtube.com/watch?v={video['video_id']}",
+                "thumbnail_url": video["thumbnail_url"],
+                "folder_id": folder_id,
+                "is_public": playlist_doc.get("is_public", False),
+                "assigned_users": playlist_doc.get("assigned_users", []),
+                "order": max_order + idx,
+                "youtube_video_id": video["video_id"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            content_docs.append(content_doc)
+        
+        await db.member_content.insert_many(content_docs)
+    
+    # Update playlist doc
+    await db.youtube_playlists.update_one(
+        {"id": playlist_doc_id},
+        {"$set": {
+            "last_sync": datetime.now(timezone.utc).isoformat(),
+            "video_count": len(youtube_videos),
+            "playlist_title": playlist_title
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Sincronizzazione completata",
+        "new_videos_added": len(new_videos),
+        "total_videos": len(youtube_videos)
+    }
+
+@api_router.post("/admin/youtube/sync-all")
+async def sync_all_youtube_playlists(admin: dict = Depends(get_admin_user)):
+    """Sync all imported YouTube playlists"""
+    playlists = await db.youtube_playlists.find({}, {"_id": 0}).to_list(1000)
+    
+    results = []
+    for playlist in playlists:
+        try:
+            result = await sync_youtube_playlist(playlist["id"], admin)
+            results.append({
+                "playlist": playlist["playlist_title"],
+                "status": "success",
+                "new_videos": result["new_videos_added"]
+            })
+        except Exception as e:
+            results.append({
+                "playlist": playlist.get("playlist_title", "Unknown"),
+                "status": "error",
+                "error": str(e)
+            })
+    
+    total_new = sum(r.get("new_videos", 0) for r in results if r["status"] == "success")
+    
+    return {
+        "success": True,
+        "message": f"Sincronizzazione completata. {total_new} nuovi video aggiunti.",
+        "results": results
+    }
+
+@api_router.delete("/admin/youtube/playlist/{playlist_doc_id}")
+async def delete_youtube_playlist(playlist_doc_id: str, delete_content: bool = False, admin: dict = Depends(get_admin_user)):
+    """Delete a YouTube playlist tracking (optionally delete folder and content too)"""
+    
+    playlist_doc = await db.youtube_playlists.find_one({"id": playlist_doc_id}, {"_id": 0})
+    if not playlist_doc:
+        raise HTTPException(status_code=404, detail="Playlist non trovata")
+    
+    folder_id = playlist_doc["folder_id"]
+    
+    if delete_content:
+        # Delete all content in the folder
+        await db.member_content.delete_many({"folder_id": folder_id})
+        # Delete the folder
+        await db.folders.delete_one({"id": folder_id})
+    
+    # Delete playlist tracking
+    await db.youtube_playlists.delete_one({"id": playlist_doc_id})
+    
+    return {
+        "success": True,
+        "message": "Playlist eliminata" + (" con tutti i contenuti" if delete_content else " (cartella e contenuti mantenuti)")
+    }
+
+@api_router.put("/admin/youtube/playlist/{playlist_doc_id}/users")
+async def update_playlist_users(playlist_doc_id: str, data: AssignUsersRequest, admin: dict = Depends(get_admin_user)):
+    """Update assigned users for a playlist (updates folder and all content)"""
+    
+    playlist_doc = await db.youtube_playlists.find_one({"id": playlist_doc_id}, {"_id": 0})
+    if not playlist_doc:
+        raise HTTPException(status_code=404, detail="Playlist non trovata")
+    
+    folder_id = playlist_doc["folder_id"]
+    
+    # Update playlist doc
+    await db.youtube_playlists.update_one(
+        {"id": playlist_doc_id},
+        {"$set": {"assigned_users": data.user_ids}}
+    )
+    
+    # Update folder
+    await db.folders.update_one(
+        {"id": folder_id},
+        {"$set": {"assigned_users": data.user_ids}}
+    )
+    
+    # Update all content in the folder
+    await db.member_content.update_many(
+        {"folder_id": folder_id},
+        {"$set": {"assigned_users": data.user_ids}}
+    )
+    
+    return {
+        "success": True,
+        "message": "Utenti aggiornati per la playlist e tutti i contenuti"
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
