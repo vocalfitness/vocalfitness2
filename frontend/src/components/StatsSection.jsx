@@ -7,6 +7,7 @@ const StatsSection = () => {
   const { language } = useLanguage();
   const [animationProgress, setAnimationProgress] = useState(1); // 1 = show final values
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
 
   // Final values - NEVER show 0
