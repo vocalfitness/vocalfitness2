@@ -999,7 +999,7 @@ const AdminPage = () => {
                           variant="ghost" 
                           size="sm" 
                           className="text-blue-400 hover:bg-blue-500/20"
-                          title="Modifica utenti"
+                          title={language === 'it' ? 'Modifica utenti' : 'Edit users'}
                         >
                           <UserCheck className="w-4 h-4" />
                         </Button>
@@ -1008,7 +1008,7 @@ const AdminPage = () => {
                           variant="ghost" 
                           size="sm" 
                           className="text-red-400 hover:bg-red-500/20"
-                          title="Elimina"
+                          title={t.delete}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1017,11 +1017,11 @@ const AdminPage = () => {
                     
                     <div className="flex items-center gap-2 flex-wrap mb-3">
                       <span className={`px-2 py-1 rounded text-xs ${playlist.is_public ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                        {playlist.is_public ? <><Eye className="w-3 h-3 inline mr-1" /> Pubblica</> : <><EyeOff className="w-3 h-3 inline mr-1" /> Riservata</>}
+                        {playlist.is_public ? <><Eye className="w-3 h-3 inline mr-1" /> {t.public}</> : <><EyeOff className="w-3 h-3 inline mr-1" /> {t.reserved}</>}
                       </span>
                       {playlist.assigned_users?.length > 0 && (
                         <span className="px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-300">
-                          <UserCheck className="w-3 h-3 inline mr-1" /> {playlist.assigned_users.length} utenti
+                          <UserCheck className="w-3 h-3 inline mr-1" /> {playlist.assigned_users.length} {t.assignedUsers}
                         </span>
                       )}
                       <span className="px-2 py-1 rounded text-xs bg-slate-600 text-slate-300">
@@ -1030,14 +1030,14 @@ const AdminPage = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>Ultima sync: {playlist.last_sync ? new Date(playlist.last_sync).toLocaleString('it-IT') : 'Mai'}</span>
+                      <span>{t.lastSync}: {playlist.last_sync ? new Date(playlist.last_sync).toLocaleString(language === 'it' ? 'it-IT' : 'en-US') : (language === 'it' ? 'Mai' : 'Never')}</span>
                       <a 
                         href={`https://www.youtube.com/playlist?list=${playlist.playlist_id}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-red-400 hover:text-red-300 flex items-center gap-1"
                       >
-                        <ExternalLink className="w-3 h-3" /> Apri su YouTube
+                        <ExternalLink className="w-3 h-3" /> {t.openOnYoutube}
                       </a>
                     </div>
                   </div>
