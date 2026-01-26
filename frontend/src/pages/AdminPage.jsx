@@ -673,6 +673,141 @@ const AdminPage = () => {
           </div>
         )}
 
+        {/* ===================== YOUTUBE TAB ===================== */}
+        {activeTab === 'youtube' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-white">Importazione Playlist YouTube</h2>
+              <div className="flex gap-2">
+                {youtubePlaylists.length > 0 && (
+                  <Button 
+                    onClick={handleSyncAllPlaylists} 
+                    disabled={youtubeSyncing === 'all'}
+                    className="bg-amber-600 hover:bg-amber-700"
+                    data-testid="sync-all-playlists"
+                  >
+                    {youtubeSyncing === 'all' ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Sincronizza Tutte
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => { setFormData({ is_public: false, assigned_users: [] }); setShowModal('import-youtube'); }} 
+                  className="bg-red-600 hover:bg-red-700"
+                  data-testid="import-youtube-button"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Importa Playlist
+                </Button>
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="mb-6 bg-blue-900/30 rounded-xl p-4 border border-blue-700/50">
+              <div className="flex items-start gap-3">
+                <Youtube className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-white font-medium mb-1">Come funziona</h3>
+                  <ul className="text-sm text-slate-300 space-y-1">
+                    <li>• Incolla l'URL di una playlist YouTube pubblica o non in elenco</li>
+                    <li>• Viene creata automaticamente una cartella con il nome della playlist</li>
+                    <li>• Tutti i video vengono importati come contenuti nell'area clienti</li>
+                    <li>• Puoi assegnare la playlist a clienti specifici</li>
+                    <li>• La sincronizzazione giornaliera aggiunge automaticamente nuovi video</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {youtubePlaylists.length === 0 ? (
+              <div className="text-center py-12 bg-slate-800/50 rounded-xl">
+                <Youtube className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-slate-400">Nessuna playlist importata. Importa la prima!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {youtubePlaylists.map(playlist => (
+                  <div key={playlist.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-red-500/50 transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                          <Youtube className="w-6 h-6 text-red-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-white">{playlist.playlist_title || playlist.folder_name}</h3>
+                          <p className="text-sm text-slate-400">{playlist.current_video_count || playlist.video_count} video</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          onClick={() => handleSyncPlaylist(playlist.id)} 
+                          disabled={youtubeSyncing === playlist.id}
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-amber-400 hover:bg-amber-500/20"
+                          title="Sincronizza"
+                        >
+                          {youtubeSyncing === playlist.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button 
+                          onClick={() => { setEditItem(playlist); setFormData({ assigned_users: playlist.assigned_users || [] }); setShowModal('edit-youtube-users'); }} 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-blue-400 hover:bg-blue-500/20"
+                          title="Modifica utenti"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          onClick={() => handleDeleteYoutubePlaylist(playlist.id, true)} 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-400 hover:bg-red-500/20"
+                          title="Elimina"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                      <span className={`px-2 py-1 rounded text-xs ${playlist.is_public ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                        {playlist.is_public ? <><Eye className="w-3 h-3 inline mr-1" /> Pubblica</> : <><EyeOff className="w-3 h-3 inline mr-1" /> Riservata</>}
+                      </span>
+                      {playlist.assigned_users?.length > 0 && (
+                        <span className="px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-300">
+                          <UserCheck className="w-3 h-3 inline mr-1" /> {playlist.assigned_users.length} utenti
+                        </span>
+                      )}
+                      <span className="px-2 py-1 rounded text-xs bg-slate-600 text-slate-300">
+                        <Folder className="w-3 h-3 inline mr-1" /> {playlist.folder_name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>Ultima sync: {playlist.last_sync ? new Date(playlist.last_sync).toLocaleString('it-IT') : 'Mai'}</span>
+                      <a 
+                        href={`https://www.youtube.com/playlist?list=${playlist.playlist_id}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-red-400 hover:text-red-300 flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Apri su YouTube
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ===================== DATABASE TAB ===================== */}
         {activeTab === 'database' && databaseStats && (
           <div>
