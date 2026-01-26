@@ -930,7 +930,7 @@ const AdminPage = () => {
                     ) : (
                       <RefreshCw className="w-4 h-4 mr-2" />
                     )}
-                    Sincronizza Tutte
+                    {t.syncAll}
                   </Button>
                 )}
                 <Button 
@@ -938,7 +938,7 @@ const AdminPage = () => {
                   className="bg-red-600 hover:bg-red-700"
                   data-testid="import-youtube-button"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> Importa Playlist
+                  <Plus className="w-4 h-4 mr-2" /> {t.importPlaylist}
                 </Button>
               </div>
             </div>
@@ -948,13 +948,13 @@ const AdminPage = () => {
               <div className="flex items-start gap-3">
                 <Youtube className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="text-white font-medium mb-1">Come funziona</h3>
+                  <h3 className="text-white font-medium mb-1">{t.youtubeHowItWorks}</h3>
                   <ul className="text-sm text-slate-300 space-y-1">
-                    <li>• Incolla l'URL di una playlist YouTube pubblica o non in elenco</li>
-                    <li>• Viene creata automaticamente una cartella con il nome della playlist</li>
-                    <li>• Tutti i video vengono importati come contenuti nell'area clienti</li>
-                    <li>• Puoi assegnare la playlist a clienti specifici</li>
-                    <li>• La sincronizzazione giornaliera aggiunge automaticamente nuovi video</li>
+                    <li>• {t.youtubeStep1}</li>
+                    <li>• {t.youtubeStep2}</li>
+                    <li>• {t.youtubeStep3}</li>
+                    <li>• {t.youtubeStep4}</li>
+                    <li>• {t.youtubeStep5}</li>
                   </ul>
                 </div>
               </div>
@@ -963,7 +963,7 @@ const AdminPage = () => {
             {youtubePlaylists.length === 0 ? (
               <div className="text-center py-12 bg-slate-800/50 rounded-xl">
                 <Youtube className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-slate-400">Nessuna playlist importata. Importa la prima!</p>
+                <p className="text-slate-400">{t.noPlaylistsYet}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -976,7 +976,7 @@ const AdminPage = () => {
                         </div>
                         <div>
                           <h3 className="font-semibold text-white">{playlist.playlist_title || playlist.folder_name}</h3>
-                          <p className="text-sm text-slate-400">{playlist.current_video_count || playlist.video_count} video</p>
+                          <p className="text-sm text-slate-400">{playlist.current_video_count || playlist.video_count} {t.videos}</p>
                         </div>
                       </div>
                       <div className="flex gap-1">
