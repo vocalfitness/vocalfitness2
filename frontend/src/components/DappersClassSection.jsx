@@ -22,31 +22,34 @@ const DappersClassSection = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          // Start animation from current progress (which is 1 = full)
-          // Reset to near-zero and animate up
-          setAnimationProgress(0.01); // Start at 1% not 0 to avoid showing 0
-          
-          const duration = 2000;
-          const steps = 60;
-          const startTime = Date.now();
-          
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const easeOut = 1 - Math.pow(1 - progress, 3);
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (!hasAnimated) {
+            setHasAnimated(true);
+            // Start animation from current progress (which is 1 = full)
+            // Reset to near-zero and animate up
+            setAnimationProgress(0.01); // Start at 1% not 0 to avoid showing 0
             
-            setAnimationProgress(Math.max(0.01, easeOut)); // Never go below 0.01
+            const duration = 2000;
+            const steps = 60;
+            const startTime = Date.now();
             
-            if (progress < 1) {
-              requestAnimationFrame(animate);
-            } else {
-              setAnimationProgress(1);
-            }
-          };
-          
-          requestAnimationFrame(animate);
+            const animate = () => {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              
+              setAnimationProgress(Math.max(0.01, easeOut)); // Never go below 0.01
+              
+              if (progress < 1) {
+                requestAnimationFrame(animate);
+              } else {
+                setAnimationProgress(1);
+              }
+            };
+            
+            requestAnimationFrame(animate);
+          }
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
