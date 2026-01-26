@@ -361,9 +361,31 @@ const MembersAreaPage = () => {
             </div>
             <div className="p-4">
               {selectedContent.content_type === 'video' && (
-                <video controls autoPlay className="w-full rounded-lg" src={selectedContent.url}>
-                  Il tuo browser non supporta la riproduzione video.
-                </video>
+                (() => {
+                  // Check if it's a YouTube video
+                  const youtubeMatch = selectedContent.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+                  if (youtubeMatch) {
+                    const videoId = youtubeMatch[1];
+                    return (
+                      <div className="aspect-video">
+                        <iframe
+                          className="w-full h-full rounded-lg"
+                          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                          title={selectedContent.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    );
+                  }
+                  // Regular video file
+                  return (
+                    <video controls autoPlay className="w-full rounded-lg" src={selectedContent.url}>
+                      Il tuo browser non supporta la riproduzione video.
+                    </video>
+                  );
+                })()
               )}
               {selectedContent.content_type === 'audio' && (
                 <div className="p-8 bg-slate-800 rounded-lg">
