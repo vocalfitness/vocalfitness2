@@ -27,6 +27,9 @@ const AdminPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [storageStats, setStorageStats] = useState(null);
   const [databaseStats, setDatabaseStats] = useState(null);
+  const [youtubePlaylists, setYoutubePlaylists] = useState([]);
+  const [youtubeImporting, setYoutubeImporting] = useState(false);
+  const [youtubeSyncing, setYoutubeSyncing] = useState(null);
   const fileInputRef = useRef(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
