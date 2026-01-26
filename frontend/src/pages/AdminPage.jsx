@@ -686,9 +686,9 @@ const AdminPage = () => {
             <button onClick={() => navigate('/area-clienti')} className="text-blue-300 hover:text-white">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-xl font-bold text-white">Pannello Admin</h1>
+            <h1 className="text-xl font-bold text-white">{t.adminPanel}</h1>
           </div>
-          <p className="text-blue-300 text-sm">Gestione Area Riservata</p>
+          <p className="text-blue-300 text-sm">{language === 'it' ? 'Gestione Area Riservata' : 'Reserved Area Management'}</p>
         </div>
       </header>
 
