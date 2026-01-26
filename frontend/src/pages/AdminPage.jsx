@@ -47,12 +47,13 @@ const AdminPage = () => {
       if (!token) return;
       
       try {
-        const [contentRes, foldersRes, usersRes, storageRes, dbRes] = await Promise.all([
+        const [contentRes, foldersRes, usersRes, storageRes, dbRes, youtubeRes] = await Promise.all([
           axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${backendUrl}/api/admin/folders`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${backendUrl}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${backendUrl}/api/admin/storage/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${backendUrl}/api/admin/database/stats`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${backendUrl}/api/admin/database/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${backendUrl}/api/admin/youtube/playlists`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
         ]);
         
         setContents(contentRes.data);
@@ -60,6 +61,7 @@ const AdminPage = () => {
         setUsers(usersRes.data);
         setStorageStats(storageRes.data);
         setDatabaseStats(dbRes.data);
+        setYoutubePlaylists(youtubeRes.data || []);
       } catch (error) {
         console.error('Error fetching admin data:', error);
         setMessage({ type: 'error', text: 'Errore nel caricamento dei dati' });
