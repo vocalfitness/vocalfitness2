@@ -1029,6 +1029,88 @@ const AdminPage = () => {
                   </div>
                 </>
               )}
+
+              {/* =================== YOUTUBE IMPORT FORM =================== */}
+              {showModal === 'import-youtube' && (
+                <>
+                  <div className="bg-red-900/20 rounded-lg p-4 border border-red-700/50 mb-4">
+                    <div className="flex items-center gap-2 text-red-300 mb-2">
+                      <Youtube className="w-5 h-5" />
+                      <span className="font-medium">Importazione Playlist</span>
+                    </div>
+                    <p className="text-sm text-slate-400">
+                      Incolla l'URL di una playlist YouTube. Verrà creata una cartella con tutti i video della playlist.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-1">URL Playlist YouTube *</label>
+                    <input 
+                      type="url" 
+                      value={formData.playlist_url || ''} 
+                      onChange={e => setFormData({ ...formData, playlist_url: e.target.value })} 
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" 
+                      placeholder="https://www.youtube.com/playlist?list=..." 
+                      data-testid="youtube-url-input" 
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Es: https://www.youtube.com/playlist?list=PLxxxxxx</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.is_public === true} 
+                        onChange={e => setFormData({ ...formData, is_public: e.target.checked })} 
+                        className="w-4 h-4 rounded" 
+                      />
+                      <span className="text-slate-300">Pubblica (visibile a tutti i clienti)</span>
+                    </label>
+                  </div>
+                  
+                  {!formData.is_public && clientUsers.length > 0 && (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-2">Assegna a clienti specifici</label>
+                      <div className="max-h-40 overflow-y-auto bg-slate-700/50 rounded-lg p-2 space-y-1">
+                        {clientUsers.map(u => (
+                          <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-slate-600/50 rounded cursor-pointer">
+                            <input type="checkbox" checked={(formData.assigned_users || []).includes(u.id)} onChange={() => toggleUserSelection(u.id)} className="w-4 h-4 rounded" />
+                            <span className="text-white">{u.full_name || u.username}</span>
+                            <span className="text-slate-400 text-sm">({u.email || u.username})</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* =================== YOUTUBE EDIT USERS FORM =================== */}
+              {showModal === 'edit-youtube-users' && editItem && (
+                <>
+                  <div className="bg-purple-900/20 rounded-lg p-4 border border-purple-700/50 mb-4">
+                    <p className="text-sm text-slate-300">
+                      Modifica gli utenti assegnati alla playlist <strong className="text-white">{editItem.playlist_title || editItem.folder_name}</strong>.
+                      Le modifiche si applicheranno alla cartella e a tutti i video.
+                    </p>
+                  </div>
+                  
+                  {clientUsers.length > 0 ? (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-2">Seleziona clienti</label>
+                      <div className="max-h-60 overflow-y-auto bg-slate-700/50 rounded-lg p-2 space-y-1">
+                        {clientUsers.map(u => (
+                          <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-slate-600/50 rounded cursor-pointer">
+                            <input type="checkbox" checked={(formData.assigned_users || []).includes(u.id)} onChange={() => toggleUserSelection(u.id)} className="w-4 h-4 rounded" />
+                            <span className="text-white">{u.full_name || u.username}</span>
+                            <span className="text-slate-400 text-sm">({u.email || u.username})</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 text-center py-4">Nessun cliente disponibile. Crea prima un utente cliente.</p>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
@@ -1039,8 +1121,11 @@ const AdminPage = () => {
                 else if (showModal === 'create-content') handleCreateContent();
                 else if (showModal === 'edit-content') handleUpdateContent();
                 else if (showModal === 'create-user') handleCreateUser();
-              }} disabled={submitting} className="bg-blue-600 hover:bg-blue-700" data-testid="save-button">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}Salva
+                else if (showModal === 'import-youtube') handleImportYoutubePlaylist();
+                else if (showModal === 'edit-youtube-users') handleUpdatePlaylistUsers(editItem?.id);
+              }} disabled={submitting || youtubeImporting} className={showModal === 'import-youtube' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} data-testid="save-button">
+                {(submitting || youtubeImporting) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                {showModal === 'import-youtube' ? 'Importa' : 'Salva'}
               </Button>
             </div>
           </div>
