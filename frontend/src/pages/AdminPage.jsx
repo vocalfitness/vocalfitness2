@@ -871,9 +871,9 @@ const AdminPage = () => {
         {activeTab === 'users' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Gestione Utenti</h2>
+              <h2 className="text-lg font-semibold text-white">{language === 'it' ? 'Gestione Utenti' : 'User Management'}</h2>
               <Button onClick={() => { setFormData({ role: 'client' }); setShowModal('create-user'); }} className="bg-green-600 hover:bg-green-700" data-testid="add-user-button">
-                <Plus className="w-4 h-4 mr-2" /> Nuovo Utente
+                <Plus className="w-4 h-4 mr-2" /> {t.newUser}
               </Button>
             </div>
 
@@ -881,11 +881,11 @@ const AdminPage = () => {
               <table className="w-full">
                 <thead className="bg-slate-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Username</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Nome</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Email</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Ruolo</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium text-slate-300">Azioni</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{t.username}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{language === 'it' ? 'Nome' : 'Name'}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{t.email}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{t.role}</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium text-slate-300">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -895,7 +895,7 @@ const AdminPage = () => {
                       <td className="px-4 py-3 text-slate-300">{u.full_name || '-'}</td>
                       <td className="px-4 py-3 text-slate-400">{u.email || '-'}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${u.role === 'admin' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}`}>{u.role}</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${u.role === 'admin' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}`}>{u.role === 'admin' ? t.admin : t.client}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         {u.username !== 'admin' && (
@@ -916,7 +916,7 @@ const AdminPage = () => {
         {activeTab === 'youtube' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Importazione Playlist YouTube</h2>
+              <h2 className="text-lg font-semibold text-white">{t.youtubeImport}</h2>
               <div className="flex gap-2">
                 {youtubePlaylists.length > 0 && (
                   <Button 
