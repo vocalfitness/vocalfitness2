@@ -109,17 +109,28 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - ✅ **Fix Contatori Homepage** (verificato 23/01/2026)
   - Risolto bug dei contatori animati che mostravano "0"
   - Funzionante su Mac e Windows
+- ✅ **Importazione Playlist YouTube** (implementato 26/01/2026)
+  - Tab "YouTube" nel pannello admin
+  - Importazione automatica di tutti i video di una playlist
+  - Creazione automatica cartella con nome della playlist
+  - Assegnazione playlist a clienti specifici
+  - Sincronizzazione manuale (pulsante "Sincronizza")
+  - Nuovi video ereditano assegnazioni esistenti
+  - Supporto playlist pubbliche e non in elenco
 
 ## Backlog
 
 ### P1 - Alta Priorità
 - [x] Upload file diretto per contenuti (implementato 20/01/2026)
 - [x] Cambio password utente (implementato 20/01/2026)
+- [x] Importazione playlist YouTube (implementato 26/01/2026)
 
 ### P2 - Media Priorità
 - [x] Newsletter backend endpoint (implementato 20/01/2026)
 - [x] Indici MongoDB per performance (implementato 20/01/2026)
 - [ ] Google Calendar integration per prenotazioni
+- [ ] Sincronizzazione automatica giornaliera playlist YouTube (cron job)
+- [ ] Supporto video privati YouTube (richiede OAuth)
 
 ### P3 - Bassa Priorità
 - [ ] Full LMS integration (corsi strutturati)
