@@ -867,6 +867,8 @@ const AdminPage = () => {
                 {showModal === 'create-content' && 'Nuovo Contenuto'}
                 {showModal === 'edit-content' && 'Modifica Contenuto'}
                 {showModal === 'create-user' && 'Nuovo Utente'}
+                {showModal === 'import-youtube' && 'Importa Playlist YouTube'}
+                {showModal === 'edit-youtube-users' && 'Modifica Utenti Playlist'}
               </h3>
               <Button onClick={() => { setShowModal(null); setEditItem(null); setFormData({}); }} variant="ghost" className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
