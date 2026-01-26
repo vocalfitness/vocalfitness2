@@ -509,7 +509,7 @@ const AdminPage = () => {
   // ===================== YOUTUBE HANDLERS =====================
   const handleImportYoutubePlaylist = async () => {
     if (!formData.playlist_url) {
-      showToast('error', 'Inserisci l\'URL della playlist YouTube');
+      showToast('error', language === 'it' ? 'Inserisci l\'URL della playlist YouTube' : 'Enter the YouTube playlist URL');
       return;
     }
     
@@ -537,9 +537,9 @@ const AdminPage = () => {
       setContents(contentRes.data);
       setShowModal(null);
       setFormData({});
-      showToast('success', `Playlist "${response.data.folder_name}" importata con ${response.data.video_count} video!`);
+      showToast('success', `${t.playlistImported}: "${response.data.folder_name}" - ${response.data.video_count} ${t.videos}!`);
     } catch (error) {
-      showToast('error', error.response?.data?.detail || 'Errore nell\'importazione della playlist');
+      showToast('error', error.response?.data?.detail || t.errorLoading);
     } finally {
       setYoutubeImporting(false);
     }
