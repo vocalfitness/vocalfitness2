@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 const DappersClassSection = () => {
   const [animationProgress, setAnimationProgress] = useState(1); // 1 = 100% = show final values
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
   const { language } = useLanguage();
 
