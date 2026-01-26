@@ -9,10 +9,249 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+
+// Translations for Admin Page
+const translations = {
+  it: {
+    // Header
+    backToSite: "Torna al sito",
+    adminPanel: "Pannello Admin",
+    welcome: "Benvenuto",
+    storage: "Storage",
+    
+    // Tabs
+    folders: "Cartelle",
+    content: "Contenuti",
+    youtube: "YouTube",
+    users: "Utenti",
+    database: "Database",
+    
+    // Actions
+    newFolder: "Nuova Cartella",
+    newContent: "Nuovo Contenuto",
+    uploadFile: "Carica File",
+    newUser: "Nuovo Utente",
+    importPlaylist: "Importa Playlist",
+    syncAll: "Sincronizza Tutte",
+    save: "Salva",
+    cancel: "Annulla",
+    delete: "Elimina",
+    edit: "Modifica",
+    watch: "Guarda",
+    download: "Scarica",
+    import: "Importa",
+    
+    // Folder form
+    folderName: "Nome Cartella",
+    folderDescription: "Descrizione",
+    folderThumbnail: "URL Thumbnail (opzionale)",
+    publicFolder: "Cartella Pubblica",
+    publicFolderDesc: "Visibile a tutti i clienti",
+    assignToClients: "Assegna a clienti specifici",
+    
+    // Content form
+    contentTitle: "Titolo",
+    contentDescription: "Descrizione",
+    contentType: "Tipo Contenuto",
+    contentUrl: "URL Contenuto",
+    selectFolder: "Seleziona cartella",
+    noFolder: "Nessuna cartella",
+    publicContent: "Contenuto Pubblico",
+    
+    // User form
+    username: "Username",
+    email: "Email",
+    password: "Password",
+    fullName: "Nome Completo",
+    role: "Ruolo",
+    client: "Cliente",
+    admin: "Admin",
+    
+    // YouTube
+    youtubeImport: "Importazione Playlist YouTube",
+    youtubeHowItWorks: "Come funziona",
+    youtubeStep1: "Incolla l'URL di una playlist YouTube pubblica o non in elenco",
+    youtubeStep2: "Viene creata automaticamente una cartella con il nome della playlist",
+    youtubeStep3: "Tutti i video vengono importati come contenuti nell'area clienti",
+    youtubeStep4: "Puoi assegnare la playlist a clienti specifici",
+    youtubeStep5: "La sincronizzazione giornaliera aggiunge automaticamente nuovi video",
+    noPlaylistsYet: "Nessuna playlist importata. Importa la prima!",
+    playlistUrl: "URL Playlist YouTube",
+    playlistUrlPlaceholder: "https://www.youtube.com/playlist?list=...",
+    publicPlaylist: "Pubblica (visibile a tutti i clienti)",
+    lastSync: "Ultima sync",
+    openOnYoutube: "Apri su YouTube",
+    videos: "video",
+    reserved: "Riservata",
+    public: "Pubblica",
+    
+    // Database
+    databaseStats: "Statistiche Database",
+    collection: "Collezione",
+    documents: "Documenti",
+    indexes: "Indici",
+    totalSize: "Dimensione Totale",
+    
+    // Messages
+    loading: "Caricamento...",
+    errorLoading: "Errore nel caricamento dei dati",
+    noFolders: "Nessuna cartella creata",
+    noContent: "Nessun contenuto",
+    noUsers: "Nessun utente",
+    confirmDelete: "Sei sicuro di voler eliminare?",
+    deletePlaylistContent: "Eliminare la playlist E tutti i contenuti associati?",
+    deletePlaylistOnly: "Eliminare solo il tracciamento della playlist? (cartella e video rimarranno)",
+    playlistDeleted: "Playlist eliminata",
+    usersUpdated: "Utenti aggiornati per tutti i video della playlist",
+    syncComplete: "Sincronizzazione completata",
+    newVideosAdded: "nuovi video aggiunti",
+    noNewVideos: "Nessun nuovo video trovato",
+    playlistImported: "Playlist importata con successo",
+    
+    // Modal titles
+    modalNewFolder: "Nuova Cartella",
+    modalEditFolder: "Modifica Cartella",
+    modalNewContent: "Nuovo Contenuto",
+    modalEditContent: "Modifica Contenuto",
+    modalNewUser: "Nuovo Utente",
+    modalImportYoutube: "Importa Playlist YouTube",
+    modalEditPlaylistUsers: "Modifica Utenti Playlist",
+    
+    // Content types
+    video: "Video",
+    audio: "Audio",
+    pdf: "PDF",
+    link: "Link",
+    
+    // Misc
+    noClientsAvailable: "Nessun cliente disponibile. Crea prima un utente cliente.",
+    selectClients: "Seleziona clienti",
+    assignedUsers: "utenti"
+  },
+  en: {
+    // Header
+    backToSite: "Back to site",
+    adminPanel: "Admin Panel",
+    welcome: "Welcome",
+    storage: "Storage",
+    
+    // Tabs
+    folders: "Folders",
+    content: "Content",
+    youtube: "YouTube",
+    users: "Users",
+    database: "Database",
+    
+    // Actions
+    newFolder: "New Folder",
+    newContent: "New Content",
+    uploadFile: "Upload File",
+    newUser: "New User",
+    importPlaylist: "Import Playlist",
+    syncAll: "Sync All",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    edit: "Edit",
+    watch: "Watch",
+    download: "Download",
+    import: "Import",
+    
+    // Folder form
+    folderName: "Folder Name",
+    folderDescription: "Description",
+    folderThumbnail: "Thumbnail URL (optional)",
+    publicFolder: "Public Folder",
+    publicFolderDesc: "Visible to all clients",
+    assignToClients: "Assign to specific clients",
+    
+    // Content form
+    contentTitle: "Title",
+    contentDescription: "Description",
+    contentType: "Content Type",
+    contentUrl: "Content URL",
+    selectFolder: "Select folder",
+    noFolder: "No folder",
+    publicContent: "Public Content",
+    
+    // User form
+    username: "Username",
+    email: "Email",
+    password: "Password",
+    fullName: "Full Name",
+    role: "Role",
+    client: "Client",
+    admin: "Admin",
+    
+    // YouTube
+    youtubeImport: "YouTube Playlist Import",
+    youtubeHowItWorks: "How it works",
+    youtubeStep1: "Paste the URL of a public or unlisted YouTube playlist",
+    youtubeStep2: "A folder is automatically created with the playlist name",
+    youtubeStep3: "All videos are imported as content in the client area",
+    youtubeStep4: "You can assign the playlist to specific clients",
+    youtubeStep5: "Daily sync automatically adds new videos",
+    noPlaylistsYet: "No playlists imported yet. Import your first one!",
+    playlistUrl: "YouTube Playlist URL",
+    playlistUrlPlaceholder: "https://www.youtube.com/playlist?list=...",
+    publicPlaylist: "Public (visible to all clients)",
+    lastSync: "Last sync",
+    openOnYoutube: "Open on YouTube",
+    videos: "videos",
+    reserved: "Reserved",
+    public: "Public",
+    
+    // Database
+    databaseStats: "Database Statistics",
+    collection: "Collection",
+    documents: "Documents",
+    indexes: "Indexes",
+    totalSize: "Total Size",
+    
+    // Messages
+    loading: "Loading...",
+    errorLoading: "Error loading data",
+    noFolders: "No folders created",
+    noContent: "No content",
+    noUsers: "No users",
+    confirmDelete: "Are you sure you want to delete?",
+    deletePlaylistContent: "Delete the playlist AND all associated content?",
+    deletePlaylistOnly: "Delete only playlist tracking? (folder and videos will remain)",
+    playlistDeleted: "Playlist deleted",
+    usersUpdated: "Users updated for all playlist videos",
+    syncComplete: "Sync complete",
+    newVideosAdded: "new videos added",
+    noNewVideos: "No new videos found",
+    playlistImported: "Playlist imported successfully",
+    
+    // Modal titles
+    modalNewFolder: "New Folder",
+    modalEditFolder: "Edit Folder",
+    modalNewContent: "New Content",
+    modalEditContent: "Edit Content",
+    modalNewUser: "New User",
+    modalImportYoutube: "Import YouTube Playlist",
+    modalEditPlaylistUsers: "Edit Playlist Users",
+    
+    // Content types
+    video: "Video",
+    audio: "Audio",
+    pdf: "PDF",
+    link: "Link",
+    
+    // Misc
+    noClientsAvailable: "No clients available. Create a client user first.",
+    selectClients: "Select clients",
+    assignedUsers: "users"
+  }
+};
 
 const AdminPage = () => {
   const navigate = useNavigate();
   const { user, token, isAdmin, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language] || translations.en;
   const [activeTab, setActiveTab] = useState('folders');
   const [contents, setContents] = useState([]);
   const [folders, setFolders] = useState([]);
