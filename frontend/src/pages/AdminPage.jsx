@@ -469,6 +469,9 @@ const AdminPage = () => {
           <Button onClick={() => setActiveTab('content')} className={activeTab === 'content' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-content">
             <FolderOpen className="w-4 h-4 mr-2" /> Contenuti ({contents.length})
           </Button>
+          <Button onClick={() => setActiveTab('youtube')} className={activeTab === 'youtube' ? 'bg-red-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-youtube">
+            <Youtube className="w-4 h-4 mr-2" /> YouTube ({youtubePlaylists.length})
+          </Button>
           <Button onClick={() => setActiveTab('users')} className={activeTab === 'users' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-users">
             <Users className="w-4 h-4 mr-2" /> Utenti ({users.length})
           </Button>
