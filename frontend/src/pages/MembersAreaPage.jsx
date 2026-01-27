@@ -266,7 +266,7 @@ const MembersAreaPage = () => {
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Folder className="w-5 h-5 text-blue-400" />
-              Le tue Cartelle
+              {language === 'it' ? 'Le tue Cartelle' : 'Your Folders'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {folders.map(folder => (
@@ -285,7 +285,7 @@ const MembersAreaPage = () => {
                         {folder.name}
                       </h4>
                       <p className="text-sm text-slate-400">
-                        {folder.content_count} {folder.content_count === 1 ? 'contenuto' : 'contenuti'}
+                        {folder.content_count} {folder.content_count === 1 ? (language === 'it' ? 'contenuto' : 'content') : t.contentInFolder}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
@@ -304,7 +304,7 @@ const MembersAreaPage = () => {
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <FolderOpen className="w-5 h-5 text-cyan-400" />
-              Altri Contenuti
+              {language === 'it' ? 'Altri Contenuti' : 'Other Content'}
             </h3>
           </div>
         )}
@@ -316,7 +316,7 @@ const MembersAreaPage = () => {
               <div className="text-center py-16">
                 <FolderOpen className="w-16 h-16 text-blue-400/50 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
-                  {selectedFolder ? 'Cartella vuota' : 'Nessun contenuto disponibile'}
+                  {selectedFolder ? (language === 'it' ? 'Cartella vuota' : 'Empty folder') : t.noContent}
                 </h3>
                 <p className="text-blue-300/70">
                   {selectedFolder ? 'Non ci sono ancora contenuti in questa cartella.' : 'I contenuti verranno aggiunti presto.'}
