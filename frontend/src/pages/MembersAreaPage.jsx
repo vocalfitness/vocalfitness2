@@ -188,7 +188,7 @@ const MembersAreaPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-blue-200">Caricamento contenuti...</p>
+          <p className="text-blue-200">{t.loading}</p>
         </div>
       </div>
     );
@@ -204,7 +204,7 @@ const MembersAreaPage = () => {
               <FolderOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-lg">Area Riservata</h1>
+              <h1 className="text-white font-bold text-lg">{t.membersArea}</h1>
               <p className="text-blue-300 text-sm">VocalFitness</p>
             </div>
           </div>
@@ -240,10 +240,12 @@ const MembersAreaPage = () => {
         {/* Welcome Section */}
         <div className="mb-8 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-2xl p-6 border border-blue-500/20">
           <h2 className="text-2xl font-bold text-white mb-2">
-            Benvenuto, {user?.full_name || user?.username}! 👋
+            {t.welcome}, {user?.full_name || user?.username}! 👋
           </h2>
           <p className="text-blue-200">
-            Accedi ai tuoi contenuti esclusivi per migliorare il tuo Business English.
+            {language === 'it' 
+              ? 'Accedi ai tuoi contenuti esclusivi per migliorare il tuo Business English.'
+              : 'Access your exclusive content to improve your Business English.'}
           </p>
         </div>
 
@@ -252,7 +254,7 @@ const MembersAreaPage = () => {
           <div className="mb-6 flex items-center gap-2 text-slate-400">
             <button onClick={() => setSelectedFolder(null)} className="hover:text-white flex items-center gap-1">
               <ArrowLeft className="w-4 h-4" />
-              Torna alle cartelle
+              {language === 'it' ? 'Torna alle cartelle' : 'Back to folders'}
             </button>
             <ChevronRight className="w-4 h-4" />
             <span className="text-white font-medium">{selectedFolder.name}</span>
