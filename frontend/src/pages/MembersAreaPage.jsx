@@ -145,28 +145,28 @@ const MembersAreaPage = () => {
       case 'video':
         return (
           <Button onClick={() => setSelectedContent(content)} className="bg-blue-600 hover:bg-blue-700" data-testid={`play-${content.id}`}>
-            <Play className="w-4 h-4 mr-2" /> Guarda
+            <Play className="w-4 h-4 mr-2" /> {t.watch}
           </Button>
         );
       case 'pdf':
         return (
           <a href={content.url} target="_blank" rel="noopener noreferrer">
             <Button className="bg-green-600 hover:bg-green-700" data-testid={`download-${content.id}`}>
-              <Download className="w-4 h-4 mr-2" /> Scarica
+              <Download className="w-4 h-4 mr-2" /> {t.download}
             </Button>
           </a>
         );
       case 'audio':
         return (
           <Button onClick={() => setSelectedContent(content)} className="bg-purple-600 hover:bg-purple-700" data-testid={`listen-${content.id}`}>
-            <Play className="w-4 h-4 mr-2" /> Ascolta
+            <Play className="w-4 h-4 mr-2" /> {language === 'it' ? 'Ascolta' : 'Listen'}
           </Button>
         );
       case 'link':
         return (
           <a href={content.url} target="_blank" rel="noopener noreferrer">
             <Button className="bg-cyan-600 hover:bg-cyan-700" data-testid={`open-${content.id}`}>
-              <ExternalLink className="w-4 h-4 mr-2" /> Apri
+              <ExternalLink className="w-4 h-4 mr-2" /> {t.open}
             </Button>
           </a>
         );
