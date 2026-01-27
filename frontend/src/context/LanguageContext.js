@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const LanguageContext = createContext();
 
@@ -11,7 +11,16 @@ export const useLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('it'); // Default to Italian
+  // Initialize from localStorage or default to Italian
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('vocalfitness-language');
+    return saved || 'it';
+  });
+
+  // Save to localStorage whenever language changes
+  useEffect(() => {
+    localStorage.setItem('vocalfitness-language', language);
+  }, [language]);
 
   const toggleLanguage = () => {
     setLanguage(prev => prev === 'it' ? 'en' : 'it');
