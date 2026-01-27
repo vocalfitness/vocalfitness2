@@ -9,10 +9,53 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+
+// Translations for Members Area
+const translations = {
+  it: {
+    membersArea: "Area Riservata",
+    welcome: "Benvenuto",
+    adminPanel: "Pannello Admin",
+    settings: "Impostazioni",
+    logout: "Esci",
+    backToSite: "Torna al Sito",
+    loading: "Caricamento...",
+    folders: "Cartelle",
+    allContent: "Tutti i Contenuti",
+    back: "Indietro",
+    watch: "Guarda",
+    download: "Scarica",
+    open: "Apri",
+    noFolders: "Nessuna cartella disponibile",
+    noContent: "Nessun contenuto disponibile",
+    contentInFolder: "contenuti"
+  },
+  en: {
+    membersArea: "Members Area",
+    welcome: "Welcome",
+    adminPanel: "Admin Panel",
+    settings: "Settings",
+    logout: "Logout",
+    backToSite: "Back to Site",
+    loading: "Loading...",
+    folders: "Folders",
+    allContent: "All Content",
+    back: "Back",
+    watch: "Watch",
+    download: "Download",
+    open: "Open",
+    noFolders: "No folders available",
+    noContent: "No content available",
+    contentInFolder: "contents"
+  }
+};
 
 const MembersAreaPage = () => {
   const navigate = useNavigate();
   const { user, token, logout, isAdmin, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language] || translations.en;
   const [contents, setContents] = useState([]);
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
