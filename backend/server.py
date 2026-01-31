@@ -1871,13 +1871,15 @@ async def get_member_content(current_user: dict = Depends(get_current_user), fol
             title=c["title"],
             description=c.get("description", ""),
             content_type=c["content_type"],
-            url=c["url"],
+            url=c["url"] if not c.get("hide_origin") else "",  # Hide URL if hide_origin is true
             thumbnail_url=c.get("thumbnail_url", ""),
             folder_id=c.get("folder_id"),
             folder_name=folder_map.get(c.get("folder_id")) if c.get("folder_id") else None,
             is_public=c.get("is_public", True),
             assigned_users=c.get("assigned_users", []) if is_admin else [],  # Only admin sees assignments
             order=c.get("order", 0),
+            hide_origin=c.get("hide_origin", False),
+            embed_code=c.get("embed_code", ""),
             created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
             updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
         )
