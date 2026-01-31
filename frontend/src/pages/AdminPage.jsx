@@ -1179,51 +1179,81 @@ const AdminPage = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-slate-300 mb-1">Tipo *</label>
+                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Tipo *' : 'Type *'}</label>
                       <select value={formData.content_type || 'video'} onChange={e => setFormData({ ...formData, content_type: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" data-testid="content-type-select">
-                        <option value="video">Video</option>
-                        <option value="pdf">PDF</option>
-                        <option value="audio">Audio</option>
-                        <option value="link">Link</option>
+                        <option value="video">🎬 Video (YouTube, Google Drive, MP4)</option>
+                        <option value="audio">🎵 Audio (MP3, Google Drive)</option>
+                        <option value="pdf">📄 PDF / Documento</option>
+                        <option value="embed">📦 Embed Code (iframe, Gamma, ecc.)</option>
+                        <option value="link">🔗 Link esterno</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-300 mb-1">Cartella</label>
+                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Cartella' : 'Folder'}</label>
                       <select value={formData.folder_id || ''} onChange={e => setFormData({ ...formData, folder_id: e.target.value || null })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
-                        <option value="">— Nessuna cartella —</option>
+                        <option value="">{language === 'it' ? '— Nessuna cartella —' : '— No folder —'}</option>
                         {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
                     </div>
                   </div>
-                  
-                  {/* File Upload */}
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-2">Carica File</label>
-                    <div className={`border-2 border-dashed rounded-lg p-4 text-center ${isUploading ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 hover:border-blue-500/50'}`}>
-                      {isUploading ? (
-                        <div className="space-y-2">
-                          <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
-                          <div className="w-full bg-slate-600 rounded-full h-2"><div className="bg-blue-500 h-2 rounded-full" style={{ width: `${uploadProgress}%` }} /></div>
-                          <p className="text-sm text-blue-300">{uploadProgress}%</p>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="w-6 h-6 text-slate-500 mx-auto mb-2" />
-                          <input ref={fileInputRef} type="file" accept=".mp4,.webm,.mov,.mp3,.wav,.ogg,.pdf,.jpg,.jpeg,.png,.gif,.webp" onChange={(e) => handleFileUpload(e.target.files[0])} className="hidden" />
-                          <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="border-slate-500 text-slate-300">Seleziona File</Button>
-                          <p className="text-xs text-slate-500 mt-1">Max 100MB</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">URL Contenuto *</label>
-                    <div className="relative">
-                      <input type="url" value={formData.url || ''} onChange={e => setFormData({ ...formData, url: e.target.value })} className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${formData.url ? 'border-green-500' : 'border-slate-600'}`} placeholder="https://..." data-testid="content-url-input" />
-                      {formData.url && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
+                  {/* Embed Code Section - shown when type is "embed" */}
+                  {formData.content_type === 'embed' && (
+                    <div className="bg-purple-900/20 rounded-lg p-4 border border-purple-700/50">
+                      <label className="block text-sm text-slate-300 mb-2">{language === 'it' ? 'Codice Embed *' : 'Embed Code *'}</label>
+                      <textarea 
+                        value={formData.embed_code || ''} 
+                        onChange={e => setFormData({ ...formData, embed_code: e.target.value, hide_origin: true })} 
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm" 
+                        rows={4}
+                        placeholder='<iframe src="https://..." ...></iframe>'
+                      />
+                      <p className="text-xs text-slate-400 mt-2">
+                        {language === 'it' 
+                          ? 'Incolla il codice embed completo (es. da Gamma, Canva, Google Slides). L\'origine sarà nascosta automaticamente.'
+                          : 'Paste the complete embed code (e.g. from Gamma, Canva, Google Slides). Origin will be hidden automatically.'}
+                      </p>
                     </div>
-                  </div>
+                  )}
+                  
+                  {/* File Upload - not shown for embed type */}
+                  {formData.content_type !== 'embed' && (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-2">{language === 'it' ? 'Carica File' : 'Upload File'}</label>
+                      <div className={`border-2 border-dashed rounded-lg p-4 text-center ${isUploading ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 hover:border-blue-500/50'}`}>
+                        {isUploading ? (
+                          <div className="space-y-2">
+                            <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+                            <div className="w-full bg-slate-600 rounded-full h-2"><div className="bg-blue-500 h-2 rounded-full" style={{ width: `${uploadProgress}%` }} /></div>
+                            <p className="text-sm text-blue-300">{uploadProgress}%</p>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-slate-500 mx-auto mb-2" />
+                            <input ref={fileInputRef} type="file" accept=".mp4,.webm,.mov,.mp3,.wav,.ogg,.pdf,.jpg,.jpeg,.png,.gif,.webp" onChange={(e) => handleFileUpload(e.target.files[0])} className="hidden" />
+                            <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="border-slate-500 text-slate-300">{language === 'it' ? 'Seleziona File' : 'Select File'}</Button>
+                            <p className="text-xs text-slate-500 mt-1">Max 100MB</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* URL field - not required for embed type */}
+                  {formData.content_type !== 'embed' && (
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">URL {language === 'it' ? 'Contenuto' : 'Content'} *</label>
+                      <div className="relative">
+                        <input type="url" value={formData.url || ''} onChange={e => setFormData({ ...formData, url: e.target.value })} className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${formData.url ? 'border-green-500' : 'border-slate-600'}`} placeholder="https://..." data-testid="content-url-input" />
+                        {formData.url && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* For embed type, add a placeholder URL */}
+                  {formData.content_type === 'embed' && !formData.url && (
+                    <input type="hidden" value="embed://content" />
+                  )}
 
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-2 cursor-pointer">
