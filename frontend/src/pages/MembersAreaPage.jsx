@@ -406,8 +406,10 @@ const MembersAreaPage = () => {
             </div>
             <div className="p-4">
               {selectedContent.content_type === 'video' && (() => {
+                const url = selectedContent.url || '';
+                
                 // Check if it's a YouTube video
-                const youtubeMatch = selectedContent.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+                const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
                 if (youtubeMatch) {
                   const videoId = youtubeMatch[1];
                   return (
@@ -423,20 +425,68 @@ const MembersAreaPage = () => {
                     </div>
                   );
                 }
+                
+                // Check if it's a Google Drive video
+                const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (driveMatch) {
+                  const fileId = driveMatch[1];
+                  return (
+                    <div className="aspect-video">
+                      <iframe
+                        className="w-full h-full rounded-lg"
+                        src={`https://drive.google.com/file/d/${fileId}/preview`}
+                        title={selectedContent.title}
+                        frameBorder="0"
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                      />
+                    </div>
+                  );
+                }
+                
                 // Regular video file
                 return (
-                  <video controls autoPlay className="w-full rounded-lg" src={selectedContent.url}>
-                    Il tuo browser non supporta la riproduzione video.
+                  <video controls autoPlay className="w-full rounded-lg" src={url}>
+                    {language === 'it' ? 'Il tuo browser non supporta la riproduzione video.' : 'Your browser does not support video playback.'}
                   </video>
                 );
               })()}
-              {selectedContent.content_type === 'audio' && (
-                <div className="p-8 bg-slate-800 rounded-lg">
-                  <audio controls autoPlay className="w-full" src={selectedContent.url}>
-                    Il tuo browser non supporta la riproduzione audio.
-                  </audio>
-                </div>
-              )}
+              
+              {selectedContent.content_type === 'audio' && (() => {
+                const url = selectedContent.url || '';
+                
+                // Check if it's a Google Drive audio
+                const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (driveMatch) {
+                  const fileId = driveMatch[1];
+                  return (
+                    <div className="p-8 bg-slate-800 rounded-lg">
+                      <div className="aspect-video max-h-[200px]">
+                        <iframe
+                          className="w-full h-full rounded-lg"
+                          src={`https://drive.google.com/file/d/${fileId}/preview`}
+                          title={selectedContent.title}
+                          frameBorder="0"
+                          allow="autoplay"
+                        />
+                      </div>
+                      <p className="text-center text-slate-400 mt-4 text-sm">
+                        {language === 'it' ? 'Usa i controlli nel player sopra' : 'Use the controls in the player above'}
+                      </p>
+                    </div>
+                  );
+                }
+                
+                // Regular audio file
+                return (
+                  <div className="p-8 bg-slate-800 rounded-lg">
+                    <audio controls autoPlay className="w-full" src={url}>
+                      {language === 'it' ? 'Il tuo browser non supporta la riproduzione audio.' : 'Your browser does not support audio playback.'}
+                    </audio>
+                  </div>
+                );
+              })()}
+              
               {selectedContent.description && (
                 <p className="mt-4 text-blue-200">{selectedContent.description}</p>
               )}
