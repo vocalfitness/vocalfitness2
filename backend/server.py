@@ -192,6 +192,8 @@ class ContentCreate(BaseModel):
     is_public: bool = True  # Visible to all clients or only assigned
     assigned_users: List[str] = []  # List of user IDs
     order: int = 0
+    hide_origin: bool = False  # Hide source URL from clients
+    embed_code: str = ""  # Custom embed code (optional)
 
 class ContentResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
