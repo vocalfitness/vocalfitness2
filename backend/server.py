@@ -1469,6 +1469,8 @@ async def create_content(content: ContentCreate, admin: dict = Depends(get_admin
         "is_public": content.is_public,
         "assigned_users": content.assigned_users,
         "order": content.order,
+        "hide_origin": content.hide_origin,
+        "embed_code": content.embed_code,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "created_by": admin["username"]
@@ -1488,6 +1490,8 @@ async def create_content(content: ContentCreate, admin: dict = Depends(get_admin
         is_public=content.is_public,
         assigned_users=content.assigned_users,
         order=content.order,
+        hide_origin=content.hide_origin,
+        embed_code=content.embed_code,
         created_at=now,
         updated_at=now
     )
