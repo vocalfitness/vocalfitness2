@@ -408,6 +408,16 @@ const MembersAreaPage = () => {
               {selectedContent.content_type === 'video' && (() => {
                 const url = selectedContent.url || '';
                 
+                // Check if there's a custom embed code
+                if (selectedContent.embed_code) {
+                  return (
+                    <div 
+                      className="aspect-video [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:rounded-lg"
+                      dangerouslySetInnerHTML={{ __html: selectedContent.embed_code }}
+                    />
+                  );
+                }
+                
                 // Check if it's a YouTube video
                 const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
                 if (youtubeMatch) {
@@ -416,7 +426,7 @@ const MembersAreaPage = () => {
                     <div className="aspect-video">
                       <iframe
                         className="w-full h-full rounded-lg"
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`}
                         title={selectedContent.title}
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -454,6 +464,16 @@ const MembersAreaPage = () => {
               
               {selectedContent.content_type === 'audio' && (() => {
                 const url = selectedContent.url || '';
+                
+                // Check if there's a custom embed code
+                if (selectedContent.embed_code) {
+                  return (
+                    <div 
+                      className="p-8 bg-slate-800 rounded-lg [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:rounded-lg"
+                      dangerouslySetInnerHTML={{ __html: selectedContent.embed_code }}
+                    />
+                  );
+                }
                 
                 // Check if it's a Google Drive audio
                 const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
