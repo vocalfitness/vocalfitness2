@@ -58,6 +58,10 @@ const translations = {
     selectFolder: "Seleziona cartella",
     noFolder: "Nessuna cartella",
     publicContent: "Contenuto Pubblico",
+    hideOrigin: "Nascondi origine",
+    hideOriginDesc: "I clienti non vedranno da dove proviene il contenuto",
+    embedCode: "Codice Embed (opzionale)",
+    embedCodePlaceholder: "Incolla qui il codice embed <iframe>...",
     
     // User form
     username: "Username",
