@@ -1518,6 +1518,8 @@ async def list_all_content(admin: dict = Depends(get_admin_user)):
             is_public=c.get("is_public", True),
             assigned_users=c.get("assigned_users", []),
             order=c.get("order", 0),
+            hide_origin=c.get("hide_origin", False),
+            embed_code=c.get("embed_code", ""),
             created_at=datetime.fromisoformat(c["created_at"]) if isinstance(c["created_at"], str) else c["created_at"],
             updated_at=datetime.fromisoformat(c["updated_at"]) if isinstance(c.get("updated_at"), str) else c.get("updated_at")
         )
