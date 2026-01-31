@@ -1923,13 +1923,15 @@ async def get_single_content(content_id: str, current_user: dict = Depends(get_c
         title=content["title"],
         description=content.get("description", ""),
         content_type=content["content_type"],
-        url=content["url"],
+        url=content["url"] if not content.get("hide_origin") else "",  # Hide URL if hide_origin
         thumbnail_url=content.get("thumbnail_url", ""),
         folder_id=content.get("folder_id"),
         folder_name=folder_name,
         is_public=content.get("is_public", True),
         assigned_users=content.get("assigned_users", []) if is_admin else [],
         order=content.get("order", 0),
+        hide_origin=content.get("hide_origin", False),
+        embed_code=content.get("embed_code", ""),
         created_at=datetime.fromisoformat(content["created_at"]) if isinstance(content["created_at"], str) else content["created_at"],
         updated_at=datetime.fromisoformat(content["updated_at"]) if isinstance(content.get("updated_at"), str) else content.get("updated_at")
     )
