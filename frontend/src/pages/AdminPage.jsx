@@ -420,17 +420,24 @@ const AdminPage = () => {
   const handleCreateContent = async () => {
     setSubmitting(true);
     try {
+      // If content type is embed, set URL to placeholder and ensure hide_origin is true
+      const contentData = { ...formData };
+      if (contentData.content_type === 'embed') {
+        contentData.url = contentData.url || 'embed://content';
+        contentData.hide_origin = true;
+      }
+      
       const response = await axios.post(
         `${backendUrl}/api/admin/content`,
-        formData,
+        contentData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setContents([...contents, response.data]);
       setShowModal(null);
       setFormData({});
-      showToast('success', 'Contenuto creato con successo');
+      showToast('success', language === 'it' ? 'Contenuto creato con successo' : 'Content created successfully');
     } catch (error) {
-      showToast('error', error.response?.data?.detail || 'Errore nella creazione');
+      showToast('error', error.response?.data?.detail || (language === 'it' ? 'Errore nella creazione' : 'Creation error'));
     } finally {
       setSubmitting(false);
     }
@@ -439,18 +446,24 @@ const AdminPage = () => {
   const handleUpdateContent = async () => {
     setSubmitting(true);
     try {
+      // If content type is embed, ensure hide_origin is true
+      const contentData = { ...formData };
+      if (contentData.content_type === 'embed') {
+        contentData.hide_origin = true;
+      }
+      
       await axios.put(
         `${backendUrl}/api/admin/content/${editItem.id}`,
-        formData,
+        contentData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setContents(contents.map(c => c.id === editItem.id ? { ...c, ...formData } : c));
+      setContents(contents.map(c => c.id === editItem.id ? { ...c, ...contentData } : c));
       setShowModal(null);
       setEditItem(null);
       setFormData({});
-      showToast('success', 'Contenuto aggiornato');
+      showToast('success', language === 'it' ? 'Contenuto aggiornato' : 'Content updated');
     } catch (error) {
-      showToast('error', error.response?.data?.detail || 'Errore nell\'aggiornamento');
+      showToast('error', error.response?.data?.detail || (language === 'it' ? 'Errore nell\'aggiornamento' : 'Update error'));
     } finally {
       setSubmitting(false);
     }
