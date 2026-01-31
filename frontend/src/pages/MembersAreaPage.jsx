@@ -136,6 +136,7 @@ const MembersAreaPage = () => {
       case 'pdf': return <FileText className="w-5 h-5" />;
       case 'audio': return <Music className="w-5 h-5" />;
       case 'link': return <LinkIcon className="w-5 h-5" />;
+      case 'embed': return <FolderOpen className="w-5 h-5" />;
       default: return <FolderOpen className="w-5 h-5" />;
     }
   };
@@ -160,6 +161,12 @@ const MembersAreaPage = () => {
         return (
           <Button onClick={() => setSelectedContent(content)} className="bg-purple-600 hover:bg-purple-700" data-testid={`listen-${content.id}`}>
             <Play className="w-4 h-4 mr-2" /> {language === 'it' ? 'Ascolta' : 'Listen'}
+          </Button>
+        );
+      case 'embed':
+        return (
+          <Button onClick={() => setSelectedContent(content)} className="bg-pink-600 hover:bg-pink-700" data-testid={`view-${content.id}`}>
+            <Play className="w-4 h-4 mr-2" /> {language === 'it' ? 'Visualizza' : 'View'}
           </Button>
         );
       case 'link':
