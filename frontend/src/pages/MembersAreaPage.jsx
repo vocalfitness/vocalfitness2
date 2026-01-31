@@ -403,15 +403,40 @@ const MembersAreaPage = () => {
         )}
       </div>
 
-      {/* Content Modal */}
+      {/* Content Modal - Different sizes based on content type */}
       {selectedContent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setSelectedContent(null)}>
-          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">{selectedContent.title}</h3>
-              <Button onClick={() => setSelectedContent(null)} variant="ghost" className="text-white hover:bg-white/10">✕</Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-2 sm:p-4" onClick={() => setSelectedContent(null)}>
+          <div 
+            className={`bg-slate-900 rounded-2xl overflow-hidden flex flex-col ${
+              selectedContent.content_type === 'embed' 
+                ? 'w-full h-full max-w-[95vw] max-h-[95vh]' 
+                : 'max-w-4xl w-full max-h-[90vh]'
+            }`} 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-3 sm:p-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+              <h3 className="text-lg sm:text-xl font-bold text-white truncate pr-4">{selectedContent.title}</h3>
+              <div className="flex items-center gap-2">
+                {selectedContent.content_type === 'embed' && (
+                  <a 
+                    href={selectedContent.embed_code?.match(/src="([^"]+)"/)?.[1] || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-white p-2"
+                    title={language === 'it' ? 'Apri in nuova finestra' : 'Open in new window'}
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                  </a>
+                )}
+                <Button onClick={() => setSelectedContent(null)} variant="ghost" className="text-white hover:bg-white/10 p-2">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
-            <div className="p-4">
+            
+            {/* Content Area */}
+            <div className={`flex-1 overflow-auto ${selectedContent.content_type === 'embed' ? 'p-0' : 'p-4'}`}>
               {selectedContent.content_type === 'video' && (() => {
                 const url = selectedContent.url || '';
                 
