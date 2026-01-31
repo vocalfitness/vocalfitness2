@@ -1557,6 +1557,8 @@ async def update_content(content_id: str, update: ContentUpdate, admin: dict = D
         is_public=updated.get("is_public", True),
         assigned_users=updated.get("assigned_users", []),
         order=updated.get("order", 0),
+        hide_origin=updated.get("hide_origin", False),
+        embed_code=updated.get("embed_code", ""),
         created_at=datetime.fromisoformat(updated["created_at"]) if isinstance(updated["created_at"], str) else updated["created_at"],
         updated_at=datetime.fromisoformat(updated["updated_at"]) if isinstance(updated.get("updated_at"), str) else updated.get("updated_at")
     )
