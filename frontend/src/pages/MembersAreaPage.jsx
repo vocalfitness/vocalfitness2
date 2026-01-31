@@ -5,7 +5,7 @@ import {
   LogOut, Video, FileText, Music, Link as LinkIcon, 
   Loader2, Home, User, FolderOpen, ChevronRight,
   Play, Download, ExternalLink, Settings, KeyRound,
-  Folder, ArrowLeft
+  Folder, ArrowLeft, X
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
