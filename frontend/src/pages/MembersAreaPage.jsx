@@ -539,10 +539,12 @@ const MembersAreaPage = () => {
                 );
               })()}
               
-              {/* Embed type content */}
+              {/* Embed type content - Full screen */}
               {selectedContent.content_type === 'embed' && selectedContent.embed_code && (
                 <div 
-                  className="[&>iframe]:w-full [&>iframe]:min-h-[400px] [&>iframe]:rounded-lg"
+                  className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
+                  style={{ minHeight: 'calc(95vh - 80px)' }}
+                  dangerouslySetInnerHTML={{ __html: selectedContent.embed_code.replace(/style="[^"]*"/, 'style="width:100%;height:100%;border:0"') }}
                   dangerouslySetInnerHTML={{ __html: selectedContent.embed_code }}
                 />
               )}
