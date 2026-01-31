@@ -178,6 +178,10 @@ const translations = {
     selectFolder: "Select folder",
     noFolder: "No folder",
     publicContent: "Public Content",
+    hideOrigin: "Hide origin",
+    hideOriginDesc: "Clients won't see where the content comes from",
+    embedCode: "Embed Code (optional)",
+    embedCodePlaceholder: "Paste the embed code <iframe>... here",
     
     // User form
     username: "Username",
