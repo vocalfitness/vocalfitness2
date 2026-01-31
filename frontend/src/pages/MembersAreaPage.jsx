@@ -507,6 +507,14 @@ const MembersAreaPage = () => {
                 );
               })()}
               
+              {/* Embed type content */}
+              {selectedContent.content_type === 'embed' && selectedContent.embed_code && (
+                <div 
+                  className="[&>iframe]:w-full [&>iframe]:min-h-[400px] [&>iframe]:rounded-lg"
+                  dangerouslySetInnerHTML={{ __html: selectedContent.embed_code }}
+                />
+              )}
+              
               {selectedContent.description && (
                 <p className="mt-4 text-blue-200">{selectedContent.description}</p>
               )}
