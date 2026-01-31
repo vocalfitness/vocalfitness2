@@ -206,6 +206,8 @@ class ContentResponse(BaseModel):
     is_public: bool = True
     assigned_users: List[str] = []
     order: int = 0
+    hide_origin: bool = False  # Hide source URL from clients
+    embed_code: str = ""  # Custom embed code (optional)
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -219,6 +221,8 @@ class ContentUpdate(BaseModel):
     is_public: Optional[bool] = None
     assigned_users: Optional[List[str]] = None
     order: Optional[int] = None
+    hide_origin: Optional[bool] = None
+    embed_code: Optional[str] = None
 
 # ==================== FOLDER MODELS ====================
 class FolderCreate(BaseModel):
