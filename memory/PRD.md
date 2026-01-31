@@ -128,6 +128,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ### P2 - Media Priorità
 - [x] Newsletter backend endpoint (implementato 20/01/2026)
 - [x] Indici MongoDB per performance (implementato 20/01/2026)
+- [ ] **Google Drive integration** - Importare contenuti da GDrive e assegnarli a clienti
 - [ ] Google Calendar integration per prenotazioni
 - [ ] Sincronizzazione automatica giornaliera playlist YouTube (cron job)
 - [ ] Supporto video privati YouTube (richiede OAuth)
