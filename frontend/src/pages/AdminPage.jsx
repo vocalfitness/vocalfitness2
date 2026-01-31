@@ -1228,8 +1228,43 @@ const AdminPage = () => {
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={formData.is_public !== false} onChange={e => setFormData({ ...formData, is_public: e.target.checked })} className="w-4 h-4 rounded" />
-                      <span className="text-slate-300">Pubblico (visibile a tutti)</span>
+                      <span className="text-slate-300">{language === 'it' ? 'Pubblico (visibile a tutti)' : 'Public (visible to all)'}</span>
                     </label>
+                  </div>
+
+                  {/* Hide Origin Option */}
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                    <div className="flex items-center gap-3 mb-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={formData.hide_origin === true} 
+                          onChange={e => setFormData({ ...formData, hide_origin: e.target.checked })} 
+                          className="w-4 h-4 rounded" 
+                        />
+                        <span className="text-slate-300 font-medium">{t.hideOrigin}</span>
+                      </label>
+                      <EyeOff className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <p className="text-xs text-slate-500 mb-3">{t.hideOriginDesc}</p>
+                    
+                    {formData.hide_origin && (
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">{t.embedCode}</label>
+                        <textarea 
+                          value={formData.embed_code || ''} 
+                          onChange={e => setFormData({ ...formData, embed_code: e.target.value })} 
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm" 
+                          rows={3}
+                          placeholder={t.embedCodePlaceholder}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          {language === 'it' 
+                            ? 'Se lasci vuoto, verrà usato l\'URL sopra con l\'origine nascosta' 
+                            : 'If left empty, the URL above will be used with hidden origin'}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {!formData.is_public && clientUsers.length > 0 && (
