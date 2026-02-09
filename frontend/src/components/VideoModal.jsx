@@ -118,7 +118,7 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email) {
+    if (!formData.name || !formData.email || !formData.phone) {
       setSubmitStatus('error');
       return;
     }
@@ -132,7 +132,7 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
       const payload = {
         name: formData.name,
         email: formData.email,
-        phone: '',
+        phone: formData.phone,
         message: `Video lead - ${language === 'it' ? 'Ha guardato il video del metodo' : 'Watched the method video'}`,
         discount: '',
         type: 'video_lead',
