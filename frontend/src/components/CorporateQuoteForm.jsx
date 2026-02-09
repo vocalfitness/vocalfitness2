@@ -346,6 +346,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
                 value={formData.contactPhone}
                 onChange={handleChange}
                 placeholder={text.placeholders.contactPhone}
+                required
                 className="w-full bg-slate-800 text-white border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500"
               />
             </div>
