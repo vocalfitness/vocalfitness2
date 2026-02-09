@@ -173,6 +173,13 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields including phone
+    if (!formData.companyName || !formData.contactName || !formData.contactEmail || !formData.contactPhone) {
+      setSubmitError(language === 'it' ? 'Compila tutti i campi obbligatori' : 'Please fill all required fields');
+      return;
+    }
+    
     setIsSubmitting(true);
     setSubmitError('');
 
