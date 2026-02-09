@@ -96,7 +96,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
         numberOfEmployees: "Number of Employees *",
         contactName: "Contact Name *",
         contactEmail: "Corporate Email *",
-        contactPhone: "Phone",
+        contactPhone: "Phone *",
         levelsToTrain: "Levels to Train *",
         budget: "Indicative Annual Budget",
         preferredMode: "Preferred Mode *",
