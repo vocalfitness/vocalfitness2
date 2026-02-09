@@ -31,6 +31,13 @@ const ContactFormModal = ({ isOpen, onClose, discount = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields including phone
+    if (!formData.name || !formData.email || !formData.phone) {
+      setSubmitStatus('error');
+      return;
+    }
+    
     setIsSubmitting(true);
     setSubmitStatus(null);
 
