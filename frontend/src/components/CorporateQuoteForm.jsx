@@ -34,7 +34,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
         numberOfEmployees: "Numero Dipendenti *",
         contactName: "Nome e Cognome Referente *",
         contactEmail: "Email Aziendale *",
-        contactPhone: "Telefono",
+        contactPhone: "Telefono *",
         levelsToTrain: "Livelli da Formare *",
         budget: "Budget Indicativo Annuale",
         preferredMode: "Modalità Preferita *",
