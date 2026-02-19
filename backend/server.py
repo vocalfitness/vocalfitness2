@@ -1883,6 +1883,9 @@ async def upload_file(
     # Build URL - will be served via static files
     file_url = f"/api/uploads/{safe_filename}"
     
+    # Auto-generate thumbnail
+    thumbnail_url = auto_generate_thumbnail(file_path, content_type=file_type)
+    
     return {
         "success": True,
         "filename": safe_filename,
@@ -1891,6 +1894,7 @@ async def upload_file(
         "file_size": file_size,
         "file_size_formatted": format_size(file_size),
         "url": file_url,
+        "thumbnail_url": thumbnail_url or "",
         "storage_used": format_size(new_total),
         "storage_remaining": format_size(UPLOAD_MAX_TOTAL_STORAGE - new_total)
     }
