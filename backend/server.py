@@ -2519,6 +2519,7 @@ async def create_popup_message(
         "is_active": popup.is_active,
         "button_text": popup.button_text,
         "button_url": popup.button_url,
+        "thumbnail_url": popup.thumbnail_url,
         "created_by": admin.get("username", "admin"),
         "created_at": datetime.now(timezone.utc),
     }
