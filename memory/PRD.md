@@ -135,6 +135,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - [x] Upload file diretto per contenuti (implementato 20/01/2026)
 - [x] Cambio password utente (implementato 20/01/2026)
 - [x] Importazione playlist YouTube (implementato 26/01/2026)
+- [x] Sistema messaggi pop-up personalizzati (implementato 19/02/2026)
 
 ### P2 - Media Priorità
 - [x] Newsletter backend endpoint (implementato 20/01/2026)
@@ -143,11 +144,26 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - [ ] Google Calendar integration per prenotazioni
 - [ ] Sincronizzazione automatica giornaliera playlist YouTube (cron job)
 - [ ] Supporto video privati YouTube (richiede OAuth)
+- [ ] Refactoring server.py in moduli con APIRouter
 
 ### P3 - Bassa Priorità
 - [ ] Full LMS integration (corsi strutturati)
 - [ ] Analytics dashboard
-- [ ] Multi-lingua per area clienti
+- [ ] Paginazione endpoint per liste lunghe
+- [ ] Backup periodici database
+
+## API Endpoints - Pop-up Messages
+- `POST /api/admin/popups` - Crea messaggio pop-up (admin)
+- `GET /api/admin/popups` - Lista messaggi pop-up (admin)
+- `PUT /api/admin/popups/{id}` - Modifica messaggio (admin)
+- `DELETE /api/admin/popups/{id}` - Elimina messaggio (admin)
+- `POST /api/admin/popups/upload-media` - Upload media per pop-up (admin)
+- `GET /api/members/popups` - Recupera pop-up attivi per il client
+- `POST /api/members/popups/{id}/dismiss` - Dismiss permanente pop-up
+
+## Database Collections - Pop-up
+- `popup_messages` - Messaggi pop-up (title, message_type, content, media_url, embed_code, target_users, is_active, button_text, button_url)
+- `popup_dismissals` - Tracciamento dismissioni (user_id, popup_id, dismissed_at)
 
 ## Notes
 - SMTP usa Zoho App-Specific Password
