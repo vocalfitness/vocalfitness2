@@ -661,20 +661,20 @@ const MembersAreaPage = () => {
               {currentPopup.message_type === 'video' && (() => {
                 if (currentPopup.embed_code) {
                   return (
-                    <div className="aspect-video rounded-lg overflow-hidden [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentPopup.embed_code }} />
+                    <div className="rounded-lg overflow-hidden [&>iframe]:w-full [&>iframe]:rounded-lg" style={{ maxHeight: '60vh' }} dangerouslySetInnerHTML={{ __html: currentPopup.embed_code }} />
                   );
                 }
                 const url = currentPopup.media_url || '';
-                const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
-                if (ytMatch) {
+                const videoId = getYouTubeVideoId(url);
+                if (videoId) {
                   return (
-                    <div className="aspect-video rounded-lg overflow-hidden">
-                      <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${ytMatch[1]}?modestbranding=1&rel=0`} title={currentPopup.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+                      <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0`} title={currentPopup.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     </div>
                   );
                 }
                 if (url) {
-                  return <video controls className="w-full rounded-lg" src={url} />;
+                  return <video controls className="w-full max-h-[60vh] rounded-lg object-contain bg-black" src={url} />;
                 }
                 return null;
               })()}
