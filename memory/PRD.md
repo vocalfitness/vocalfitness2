@@ -142,6 +142,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Cover personalizzata: upload immagine custom per sovrascrivere
   - Applicato sia a contenuti area clienti che messaggi pop-up
   - Colonna thumbnail nella tabella contenuti admin
+  - Rigenerazione singola (bottone per riga) e bulk (bottone "Rigenera anteprime")
 
 ## Backlog
 
