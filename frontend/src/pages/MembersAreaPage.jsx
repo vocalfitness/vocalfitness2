@@ -584,7 +584,6 @@ const MembersAreaPage = () => {
                 <div 
                   className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
                   style={{ minHeight: 'calc(95vh - 80px)' }}
-                  dangerouslySetInnerHTML={{ __html: selectedContent.embed_code.replace(/style="[^"]*"/, 'style="width:100%;height:100%;border:0"') }}
                   dangerouslySetInnerHTML={{ __html: selectedContent.embed_code }}
                 />
               )}
@@ -592,6 +591,100 @@ const MembersAreaPage = () => {
               {selectedContent.description && (
                 <p className="mt-4 text-blue-200">{selectedContent.description}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== POPUP MESSAGE MODAL ===================== */}
+      {currentPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" data-testid="popup-overlay">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden border border-amber-500/30 shadow-2xl shadow-amber-500/10 animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()} data-testid="popup-modal">
+            {/* Popup Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-600/20 to-orange-600/20">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white truncate" data-testid="popup-title">{currentPopup.title}</h3>
+              </div>
+              <button onClick={handleClosePopup} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" data-testid="popup-close-button">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Popup Content */}
+            <div className="p-5 overflow-y-auto max-h-[60vh] space-y-4">
+              {/* Text content */}
+              {currentPopup.content && (
+                <p className="text-slate-200 text-base leading-relaxed whitespace-pre-wrap" data-testid="popup-text-content">{currentPopup.content}</p>
+              )}
+
+              {/* Video content */}
+              {currentPopup.message_type === 'video' && (() => {
+                if (currentPopup.embed_code) {
+                  return (
+                    <div className="aspect-video rounded-lg overflow-hidden [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: currentPopup.embed_code }} />
+                  );
+                }
+                const url = currentPopup.media_url || '';
+                const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+                if (ytMatch) {
+                  return (
+                    <div className="aspect-video rounded-lg overflow-hidden">
+                      <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${ytMatch[1]}?modestbranding=1&rel=0`} title={currentPopup.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    </div>
+                  );
+                }
+                if (url) {
+                  return <video controls className="w-full rounded-lg" src={url} />;
+                }
+                return null;
+              })()}
+
+              {/* Audio content */}
+              {currentPopup.message_type === 'audio' && (() => {
+                if (currentPopup.embed_code) {
+                  return (
+                    <div className="bg-slate-800 rounded-lg p-4 [&>iframe]:w-full [&>iframe]:rounded-lg" dangerouslySetInnerHTML={{ __html: currentPopup.embed_code }} />
+                  );
+                }
+                const url = currentPopup.media_url || '';
+                if (url) {
+                  return (
+                    <div className="bg-slate-800 rounded-lg p-4 flex items-center gap-4">
+                      <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Volume2 className="w-6 h-6 text-purple-400" />
+                      </div>
+                      <audio controls className="w-full" src={url} />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* CTA Button */}
+              {currentPopup.button_text && currentPopup.button_url && (
+                <a href={currentPopup.button_url} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3" data-testid="popup-cta-button">
+                    {currentPopup.button_text}
+                  </Button>
+                </a>
+              )}
+            </div>
+
+            {/* Popup Footer */}
+            <div className="p-4 border-t border-white/10 flex items-center justify-between gap-3">
+              <button
+                onClick={() => handleDismissPopup(currentPopup.id)}
+                className="text-sm text-slate-400 hover:text-slate-200 transition-colors underline underline-offset-4"
+                data-testid="popup-dismiss-button"
+              >
+                {language === 'it' ? 'Non mostrare più' : "Don't show again"}
+              </button>
+              <Button onClick={handleClosePopup} className="bg-slate-700 hover:bg-slate-600 text-white px-6" data-testid="popup-ok-button">
+                OK
+              </Button>
             </div>
           </div>
         </div>
