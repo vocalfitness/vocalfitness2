@@ -128,6 +128,12 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Pulsante "Non mostrare più" (dismiss permanente)
   - Pulsante "OK" per chiusura temporanea
   - Supporto YouTube embed, file audio/video caricati, link esterni
+- ✅ **Statistiche Pop-up** (implementato 19/02/2026)
+  - Tracciamento visualizzazioni per ogni messaggio
+  - Tracciamento dismiss per ogni messaggio
+  - Percentuali di view/dismiss rate su audience totale
+  - Endpoint stats dedicato per admin
+  - Display statistiche su ogni card nel pannello admin
 
 ## Backlog
 
