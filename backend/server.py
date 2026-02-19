@@ -16,6 +16,9 @@ from passlib.context import CryptContext
 import shutil
 import re
 import asyncio
+import subprocess
+from pdf2image import convert_from_path
+from PIL import Image
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -23,6 +26,8 @@ from googleapiclient.errors import HttpError
 ROOT_DIR = Path(__file__).parent
 UPLOADS_DIR = ROOT_DIR / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
+THUMBNAILS_DIR = UPLOADS_DIR / 'thumbnails'
+THUMBNAILS_DIR.mkdir(exist_ok=True)
 
 load_dotenv(ROOT_DIR / '.env')
 
