@@ -134,6 +134,14 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Percentuali di view/dismiss rate su audience totale
   - Endpoint stats dedicato per admin
   - Display statistiche su ogni card nel pannello admin
+- ✅ **Thumbnail/Cover Automatiche** (implementato 19/02/2026)
+  - Video caricati: estrazione frame tramite ffmpeg
+  - Link YouTube: thumbnail automatica da img.youtube.com
+  - PDF: screenshot prima pagina tramite pdf2image
+  - Google Drive: thumbnail da drive API
+  - Cover personalizzata: upload immagine custom per sovrascrivere
+  - Applicato sia a contenuti area clienti che messaggi pop-up
+  - Colonna thumbnail nella tabella contenuti admin
 
 ## Backlog
 
