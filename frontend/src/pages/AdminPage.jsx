@@ -1336,6 +1336,24 @@ const AdminPage = () => {
                         </div>
                         <h3 className="text-white font-semibold text-lg truncate">{popup.title}</h3>
                         {popup.content && <p className="text-slate-400 text-sm mt-1 line-clamp-2">{popup.content}</p>}
+                        
+                        {/* Stats row */}
+                        {popupStats[popup.id] && (
+                          <div className="flex items-center gap-4 mt-3" data-testid={`popup-stats-${popup.id}`}>
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5 text-blue-400" />
+                              <span className="text-blue-300 font-medium">{popupStats[popup.id].views}</span>
+                              <span className="text-slate-500">/ {popupStats[popup.id].audience}</span>
+                              <span className="text-slate-600 ml-1">({popupStats[popup.id].view_rate}%)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                              <span className="text-amber-300 font-medium">{popupStats[popup.id].dismissals}</span>
+                              <span className="text-slate-600 ml-1">({popupStats[popup.id].dismiss_rate}%)</span>
+                            </div>
+                          </div>
+                        )}
+
                         <p className="text-slate-500 text-xs mt-2">
                           {new Date(popup.created_at).toLocaleString(language === 'it' ? 'it-IT' : 'en-US')}
                         </p>
