@@ -341,6 +341,7 @@ const AdminPage = () => {
   const [youtubeImporting, setYoutubeImporting] = useState(false);
   const [youtubeSyncing, setYoutubeSyncing] = useState(null);
   const [popupMessages, setPopupMessages] = useState([]);
+  const [popupStats, setPopupStats] = useState({});
   const [popupMediaUploading, setPopupMediaUploading] = useState(false);
   const [popupMediaProgress, setPopupMediaProgress] = useState(0);
   const popupFileInputRef = useRef(null);
