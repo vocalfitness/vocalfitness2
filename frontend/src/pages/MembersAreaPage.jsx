@@ -529,9 +529,8 @@ const MembersAreaPage = () => {
                 }
                 
                 // Check if it's a YouTube video
-                const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
-                if (youtubeMatch) {
-                  const videoId = youtubeMatch[1];
+                const videoId = getYouTubeVideoId(url);
+                if (videoId) {
                   return (
                     <div className="aspect-video">
                       <iframe
