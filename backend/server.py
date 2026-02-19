@@ -103,6 +103,17 @@ async def create_indexes():
         await db.youtube_playlists.create_index("folder_id")
         await db.youtube_playlists.create_index("last_sync")
         
+        # Popup messages indexes
+        await db.popup_messages.create_index("id", unique=True)
+        await db.popup_messages.create_index("is_active")
+        await db.popup_messages.create_index("target_users")
+        await db.popup_messages.create_index("created_at")
+        
+        # Popup dismissals indexes (track which users dismissed which popups)
+        await db.popup_dismissals.create_index([("user_id", 1), ("popup_id", 1)], unique=True)
+        await db.popup_dismissals.create_index("user_id")
+        await db.popup_dismissals.create_index("popup_id")
+        
         logging.info("✅ MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
