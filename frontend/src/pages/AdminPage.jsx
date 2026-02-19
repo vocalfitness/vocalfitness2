@@ -1358,6 +1358,8 @@ const AdminPage = () => {
                 {showModal === 'create-user' && 'Nuovo Utente'}
                 {showModal === 'import-youtube' && 'Importa Playlist YouTube'}
                 {showModal === 'edit-youtube-users' && 'Modifica Utenti Playlist'}
+                {showModal === 'create-popup' && (language === 'it' ? 'Nuovo Messaggio Pop-up' : 'New Pop-up Message')}
+                {showModal === 'edit-popup' && (language === 'it' ? 'Modifica Messaggio Pop-up' : 'Edit Pop-up Message')}
               </h3>
               <Button onClick={() => { setShowModal(null); setEditItem(null); setFormData({}); }} variant="ghost" className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
