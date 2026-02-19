@@ -336,6 +336,7 @@ class PopupMessageCreate(BaseModel):
     is_active: bool = True
     button_text: str = ""  # Optional CTA button text
     button_url: str = ""  # Optional CTA button URL
+    thumbnail_url: str = ""  # Optional thumbnail/cover image
 
 class PopupMessageResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -349,6 +350,7 @@ class PopupMessageResponse(BaseModel):
     is_active: bool = True
     button_text: str = ""
     button_url: str = ""
+    thumbnail_url: str = ""
     created_at: datetime
     created_by: str = ""
 
@@ -362,6 +364,7 @@ class PopupMessageUpdate(BaseModel):
     is_active: Optional[bool] = None
     button_text: Optional[str] = None
     button_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 # ==================== STORAGE LIMITS CONFIG ====================
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file (ridotto da 500MB)
