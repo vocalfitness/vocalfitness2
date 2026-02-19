@@ -834,7 +834,10 @@ const AdminPage = () => {
       setFormData(prev => ({
         ...prev,
         media_url: `${backendUrl}${response.data.url}`,
-        message_type: response.data.file_type
+        message_type: response.data.file_type,
+        thumbnail_url: response.data.thumbnail_url 
+          ? (response.data.thumbnail_url.startsWith('http') ? response.data.thumbnail_url : `${backendUrl}${response.data.thumbnail_url}`)
+          : prev.thumbnail_url || ''
       }));
       showToast('success', `File "${response.data.original_filename}" caricato!`);
     } catch (error) {
