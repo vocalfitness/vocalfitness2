@@ -340,6 +340,10 @@ const AdminPage = () => {
   const [youtubePlaylists, setYoutubePlaylists] = useState([]);
   const [youtubeImporting, setYoutubeImporting] = useState(false);
   const [youtubeSyncing, setYoutubeSyncing] = useState(null);
+  const [popupMessages, setPopupMessages] = useState([]);
+  const [popupMediaUploading, setPopupMediaUploading] = useState(false);
+  const [popupMediaProgress, setPopupMediaProgress] = useState(0);
+  const popupFileInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
