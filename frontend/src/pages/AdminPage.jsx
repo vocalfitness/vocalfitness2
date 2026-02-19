@@ -132,7 +132,38 @@ const translations = {
     // Misc
     noClientsAvailable: "Nessun cliente disponibile. Crea prima un utente cliente.",
     selectClients: "Seleziona clienti",
-    assignedUsers: "utenti"
+    assignedUsers: "utenti",
+    
+    // Popup Messages
+    popupMessages: "Messaggi Pop-up",
+    newPopup: "Nuovo Messaggio",
+    popupTitle: "Titolo Messaggio",
+    popupContent: "Contenuto Messaggio",
+    popupType: "Tipo Messaggio",
+    popupTypeText: "Testo",
+    popupTypeAudio: "Audio",
+    popupTypeVideo: "Video",
+    popupTarget: "Destinatari",
+    popupTargetAll: "Tutti i clienti",
+    popupTargetSpecific: "Clienti specifici",
+    popupActive: "Attivo",
+    popupInactive: "Disattivato",
+    popupMediaUrl: "URL Media (link esterno)",
+    popupMediaUrlPlaceholder: "https://youtube.com/... o link audio/video",
+    popupUploadMedia: "Carica File Media",
+    popupButtonText: "Testo Pulsante CTA (opzionale)",
+    popupButtonUrl: "URL Pulsante CTA (opzionale)",
+    popupNoMessages: "Nessun messaggio pop-up creato",
+    popupCreated: "Messaggio pop-up creato",
+    popupUpdated: "Messaggio pop-up aggiornato",
+    popupDeleted: "Messaggio pop-up eliminato",
+    popupConfirmDelete: "Sei sicuro di voler eliminare questo messaggio?",
+    popupEmbedCode: "Codice Embed (opzionale)",
+    popupEmbedPlaceholder: "Incolla codice embed <iframe>...",
+    popupMediaOption: "Opzione Media",
+    popupMediaUpload: "Carica file",
+    popupMediaLink: "Link esterno",
+    popupAllClients: "Tutti i clienti"
   },
   en: {
     // Header
