@@ -1561,7 +1561,7 @@ const AdminPage = () => {
                     <div>
                       <label className="block text-sm text-slate-300 mb-1">URL {language === 'it' ? 'Contenuto' : 'Content'} *</label>
                       <div className="relative">
-                        <input type="url" value={formData.url || ''} onChange={e => setFormData({ ...formData, url: e.target.value })} className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${formData.url ? 'border-green-500' : 'border-slate-600'}`} placeholder="https://..." data-testid="content-url-input" />
+                        <input type="url" value={formData.url || ''} onChange={e => setFormData({ ...formData, url: e.target.value })} onBlur={e => { if (e.target.value && !formData.thumbnail_url) autoGenerateThumbnailFromUrl(e.target.value); }} className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${formData.url ? 'border-green-500' : 'border-slate-600'}`} placeholder="https://..." data-testid="content-url-input" />
                         {formData.url && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
                       </div>
                     </div>
