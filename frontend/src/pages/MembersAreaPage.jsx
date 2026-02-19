@@ -138,6 +138,10 @@ const MembersAreaPage = () => {
         if (res.data && res.data.length > 0) {
           setPopupMessages(res.data);
           setCurrentPopup(res.data[0]);
+          // Record view for the first popup
+          axios.post(`${backendUrl}/api/members/popups/${res.data[0].id}/view`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(() => {});
         }
       } catch (error) {
         console.error('Error fetching popups:', error);
@@ -156,13 +160,29 @@ const MembersAreaPage = () => {
     }
     const remaining = popupMessages.filter(p => p.id !== popupId);
     setPopupMessages(remaining);
-    setCurrentPopup(remaining.length > 0 ? remaining[0] : null);
+    if (remaining.length > 0) {
+      setCurrentPopup(remaining[0]);
+      // Record view for next popup
+      axios.post(`${backendUrl}/api/members/popups/${remaining[0].id}/view`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    } else {
+      setCurrentPopup(null);
+    }
   };
 
   const handleClosePopup = () => {
     const remaining = popupMessages.slice(1);
     setPopupMessages(remaining);
-    setCurrentPopup(remaining.length > 0 ? remaining[0] : null);
+    if (remaining.length > 0) {
+      setCurrentPopup(remaining[0]);
+      // Record view for next popup
+      axios.post(`${backendUrl}/api/members/popups/${remaining[0].id}/view`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    } else {
+      setCurrentPopup(null);
+    }
   };
 
   const handleLogout = () => {
