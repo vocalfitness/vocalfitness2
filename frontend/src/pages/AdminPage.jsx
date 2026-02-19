@@ -817,6 +817,7 @@ const AdminPage = () => {
       setShowModal(null);
       setFormData({});
       showToast('success', t.popupCreated);
+      refreshPopupStats();
     } catch (error) {
       showToast('error', error.response?.data?.detail || 'Errore');
     } finally {
