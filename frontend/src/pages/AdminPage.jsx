@@ -1065,6 +1065,7 @@ const AdminPage = () => {
                 <table className="w-full">
                   <thead className="bg-slate-700">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-slate-300 w-16"></th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Tipo</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Titolo</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Cartella</th>
@@ -1075,6 +1076,15 @@ const AdminPage = () => {
                   <tbody>
                     {contents.map(content => (
                       <tr key={content.id} className="border-t border-slate-700 hover:bg-slate-700/50">
+                        <td className="px-4 py-2">
+                          <div className="w-12 h-8 rounded overflow-hidden bg-slate-700 flex items-center justify-center">
+                            {content.thumbnail_url ? (
+                              <img src={content.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              getContentIcon(content.content_type)
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {getContentIcon(content.content_type)}
