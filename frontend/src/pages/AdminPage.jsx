@@ -1084,9 +1084,15 @@ const AdminPage = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-white">Gestione Contenuti</h2>
-              <Button onClick={() => { setFormData({ content_type: 'video', is_public: true, assigned_users: [], order: 0 }); setShowModal('create-content'); }} className="bg-green-600 hover:bg-green-700" data-testid="add-content-button">
-                <Plus className="w-4 h-4 mr-2" /> Aggiungi Contenuto
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleRegenerateAllThumbnails} disabled={regeneratingThumbs} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700" data-testid="regenerate-all-thumbnails">
+                  {regeneratingThumbs ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                  {language === 'it' ? 'Rigenera anteprime' : 'Regenerate thumbnails'}
+                </Button>
+                <Button onClick={() => { setFormData({ content_type: 'video', is_public: true, assigned_users: [], order: 0 }); setShowModal('create-content'); }} className="bg-green-600 hover:bg-green-700" data-testid="add-content-button">
+                  <Plus className="w-4 h-4 mr-2" /> Aggiungi Contenuto
+                </Button>
+              </div>
             </div>
 
             {contents.length === 0 ? (
