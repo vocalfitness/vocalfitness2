@@ -305,6 +305,44 @@ class YouTubeVideoInfo(BaseModel):
     duration: str = ""
     position: int = 0
 
+# ==================== POPUP MESSAGES MODELS ====================
+class PopupMessageCreate(BaseModel):
+    title: str
+    message_type: str  # "text", "audio", "video"
+    content: str = ""  # Text content or description
+    media_url: str = ""  # URL for audio/video
+    embed_code: str = ""  # For video embeds (YouTube, etc.)
+    target_users: List[str] = []  # Empty = all users
+    is_active: bool = True
+    button_text: str = ""  # Optional CTA button text
+    button_url: str = ""  # Optional CTA button URL
+
+class PopupMessageResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    title: str
+    message_type: str
+    content: str = ""
+    media_url: str = ""
+    embed_code: str = ""
+    target_users: List[str] = []
+    is_active: bool = True
+    button_text: str = ""
+    button_url: str = ""
+    created_at: datetime
+    created_by: str = ""
+
+class PopupMessageUpdate(BaseModel):
+    title: Optional[str] = None
+    message_type: Optional[str] = None
+    content: Optional[str] = None
+    media_url: Optional[str] = None
+    embed_code: Optional[str] = None
+    target_users: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+    button_text: Optional[str] = None
+    button_url: Optional[str] = None
+
 # ==================== STORAGE LIMITS CONFIG ====================
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file (ridotto da 500MB)
 MAX_TOTAL_STORAGE = 2 * 1024 * 1024 * 1024  # 2GB totale
