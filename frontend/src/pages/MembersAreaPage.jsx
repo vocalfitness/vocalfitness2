@@ -563,9 +563,9 @@ const MembersAreaPage = () => {
                   );
                 }
                 
-                // Regular video file
+                // Regular video file - adaptive for both 16:9 and 9:16
                 return (
-                  <video controls autoPlay className="w-full rounded-lg" src={url}>
+                  <video controls autoPlay className="w-full max-h-[75vh] rounded-lg object-contain bg-black" src={url}>
                     {language === 'it' ? 'Il tuo browser non supporta la riproduzione video.' : 'Your browser does not support video playback.'}
                   </video>
                 );
