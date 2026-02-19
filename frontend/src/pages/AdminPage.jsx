@@ -1808,6 +1808,37 @@ const AdminPage = () => {
                     </div>
                   )}
 
+                  {/* Popup Thumbnail / Cover */}
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
+                    <label className="block text-sm text-slate-300 mb-2 font-medium">{language === 'it' ? 'Anteprima / Cover Pop-up' : 'Popup Thumbnail / Cover'}</label>
+                    <div className="flex items-start gap-4">
+                      <div className="w-32 h-20 rounded-lg overflow-hidden bg-slate-800 border border-slate-600 flex items-center justify-center flex-shrink-0">
+                        {formData.thumbnail_url ? (
+                          <img src={formData.thumbnail_url} alt="preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <MessageSquare className="w-6 h-6 text-slate-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        {formData.thumbnail_url && (
+                          <p className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {language === 'it' ? 'Cover impostata' : 'Cover set'}</p>
+                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          <input ref={thumbnailFileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif" onChange={(e) => handleCustomThumbnailUpload(e.target.files[0])} className="hidden" />
+                          <Button type="button" onClick={() => thumbnailFileInputRef.current?.click()} variant="outline" size="sm" className="border-slate-500 text-slate-300 text-xs" disabled={thumbnailUploading} data-testid="popup-custom-thumbnail-upload">
+                            {thumbnailUploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                            {language === 'it' ? 'Cover personalizzata' : 'Custom cover'}
+                          </Button>
+                          {formData.thumbnail_url && (
+                            <Button type="button" onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))} variant="ghost" size="sm" className="text-red-400 hover:text-red-300 text-xs">
+                              <X className="w-3 h-3 mr-1" /> {language === 'it' ? 'Rimuovi' : 'Remove'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* CTA Button */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
