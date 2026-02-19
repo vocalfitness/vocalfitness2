@@ -283,7 +283,38 @@ const translations = {
     // Misc
     noClientsAvailable: "No clients available. Create a client user first.",
     selectClients: "Select clients",
-    assignedUsers: "users"
+    assignedUsers: "users",
+    
+    // Popup Messages
+    popupMessages: "Pop-up Messages",
+    newPopup: "New Message",
+    popupTitle: "Message Title",
+    popupContent: "Message Content",
+    popupType: "Message Type",
+    popupTypeText: "Text",
+    popupTypeAudio: "Audio",
+    popupTypeVideo: "Video",
+    popupTarget: "Recipients",
+    popupTargetAll: "All clients",
+    popupTargetSpecific: "Specific clients",
+    popupActive: "Active",
+    popupInactive: "Disabled",
+    popupMediaUrl: "Media URL (external link)",
+    popupMediaUrlPlaceholder: "https://youtube.com/... or audio/video link",
+    popupUploadMedia: "Upload Media File",
+    popupButtonText: "CTA Button Text (optional)",
+    popupButtonUrl: "CTA Button URL (optional)",
+    popupNoMessages: "No pop-up messages created",
+    popupCreated: "Pop-up message created",
+    popupUpdated: "Pop-up message updated",
+    popupDeleted: "Pop-up message deleted",
+    popupConfirmDelete: "Are you sure you want to delete this message?",
+    popupEmbedCode: "Embed Code (optional)",
+    popupEmbedPlaceholder: "Paste embed code <iframe>...",
+    popupMediaOption: "Media Option",
+    popupMediaUpload: "Upload file",
+    popupMediaLink: "External link",
+    popupAllClients: "All clients"
   }
 };
 
