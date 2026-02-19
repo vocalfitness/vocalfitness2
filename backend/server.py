@@ -2395,6 +2395,31 @@ async def list_popup_messages(admin: dict = Depends(get_admin_user)):
     return popups
 
 
+@api_router.get("/admin/popups/stats")
+async def get_popup_stats(admin: dict = Depends(get_admin_user)):
+    """Get view/dismiss stats for all popup messages (admin only)"""
+    popups = await db.popup_messages.find({}, {"_id": 0, "id": 1, "title": 1, "target_users": 1}).to_list(500)
+
+    # Count total clients for percentage calculation
+    total_clients = await db.users.count_documents({"role": "client"})
+
+    stats = {}
+    for p in popups:
+        pid = p["id"]
+        views = await db.popup_views.count_documents({"popup_id": pid})
+        dismissals = await db.popup_dismissals.count_documents({"popup_id": pid})
+        target_count = len(p.get("target_users", []))
+        audience = target_count if target_count > 0 else total_clients
+        stats[pid] = {
+            "views": views,
+            "dismissals": dismissals,
+            "audience": audience,
+            "view_rate": round((views / audience * 100), 1) if audience > 0 else 0,
+            "dismiss_rate": round((dismissals / audience * 100), 1) if audience > 0 else 0,
+        }
+    return stats
+
+
 @api_router.get("/admin/popups/{popup_id}")
 async def get_popup_message(popup_id: str, admin: dict = Depends(get_admin_user)):
     """Get a single popup message (admin only)"""
