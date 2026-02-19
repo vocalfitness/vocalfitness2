@@ -379,6 +379,12 @@ const AdminPage = () => {
         setDatabaseStats(dbRes.data);
         setYoutubePlaylists(youtubeRes.data || []);
         setPopupMessages(popupsRes.data || []);
+
+        // Fetch popup stats separately
+        try {
+          const statsRes = await axios.get(`${backendUrl}/api/admin/popups/stats`, { headers: { Authorization: `Bearer ${token}` } });
+          setPopupStats(statsRes.data || {});
+        } catch {}
       } catch (error) {
         console.error('Error fetching admin data:', error);
         setMessage({ type: 'error', text: 'Errore nel caricamento dei dati' });
