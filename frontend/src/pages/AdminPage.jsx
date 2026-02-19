@@ -1146,7 +1146,10 @@ const AdminPage = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1 justify-end">
+                            <Button onClick={() => handleRegenerateThumbnail(content.id)} variant="ghost" size="sm" className="text-emerald-400 hover:bg-emerald-500/20" disabled={regeneratingThumbId === content.id} data-testid={`regen-thumb-${content.id}`} title={language === 'it' ? 'Rigenera anteprima' : 'Regenerate thumbnail'}>
+                              {regeneratingThumbId === content.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                            </Button>
                             <Button onClick={() => { setEditItem(content); setFormData(content); setShowModal('edit-content'); }} variant="ghost" size="sm" className="text-blue-400 hover:bg-blue-500/20">
                               <Edit className="w-4 h-4" />
                             </Button>
