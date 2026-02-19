@@ -349,6 +349,8 @@ const AdminPage = () => {
   const [popupMediaUploading, setPopupMediaUploading] = useState(false);
   const [popupMediaProgress, setPopupMediaProgress] = useState(0);
   const popupFileInputRef = useRef(null);
+  const thumbnailFileInputRef = useRef(null);
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
