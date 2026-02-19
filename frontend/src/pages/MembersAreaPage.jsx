@@ -61,6 +61,8 @@ const MembersAreaPage = () => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedContent, setSelectedContent] = useState(null);
+  const [popupMessages, setPopupMessages] = useState([]);
+  const [currentPopup, setCurrentPopup] = useState(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
