@@ -1674,6 +1674,77 @@ def format_size(size_bytes):
         size_bytes /= 1024
     return f"{size_bytes:.1f} TB"
 
+# ==================== THUMBNAIL GENERATION UTILITIES ====================
+THUMB_MAX_SIZE = (480, 360)
+
+def generate_video_thumbnail(video_path: Path) -> Optional[str]:
+    """Extract a frame from video at 1 second using ffmpeg"""
+    try:
+        thumb_name = f"thumb_{video_path.stem}.jpg"
+        thumb_path = THUMBNAILS_DIR / thumb_name
+        result = subprocess.run(
+            ["ffmpeg", "-i", str(video_path), "-ss", "00:00:01", "-vframes", "1",
+             "-vf", f"scale={THUMB_MAX_SIZE[0]}:-1", "-q:v", "3", "-y", str(thumb_path)],
+            capture_output=True, timeout=15
+        )
+        if result.returncode == 0 and thumb_path.exists() and thumb_path.stat().st_size > 0:
+            return f"/api/uploads/thumbnails/{thumb_name}"
+    except Exception as e:
+        logging.warning(f"Video thumbnail generation failed: {e}")
+    return None
+
+def generate_pdf_thumbnail(pdf_path: Path) -> Optional[str]:
+    """Generate thumbnail from the first page of a PDF"""
+    try:
+        images = convert_from_path(str(pdf_path), first_page=1, last_page=1, size=THUMB_MAX_SIZE)
+        if images:
+            thumb_name = f"thumb_{pdf_path.stem}.jpg"
+            thumb_path = THUMBNAILS_DIR / thumb_name
+            images[0].save(str(thumb_path), "JPEG", quality=80)
+            return f"/api/uploads/thumbnails/{thumb_name}"
+    except Exception as e:
+        logging.warning(f"PDF thumbnail generation failed: {e}")
+    return None
+
+def get_youtube_thumbnail(url: str) -> Optional[str]:
+    """Get YouTube video thumbnail URL from any YouTube link format"""
+    patterns = [
+        r'(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)',
+        r'(?:youtu\.be\/)([a-zA-Z0-9_-]+)',
+        r'(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]+)',
+        r'(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]+)',
+        r'(?:youtube\.com\/live\/)([a-zA-Z0-9_-]+)',
+        r'(?:youtube\.com\/v\/)([a-zA-Z0-9_-]+)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            video_id = match.group(1)
+            return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+    return None
+
+def auto_generate_thumbnail(file_path: Path, content_url: str = "", content_type: str = "") -> Optional[str]:
+    """Auto-generate thumbnail based on file or URL"""
+    # Try YouTube thumbnail from URL
+    if content_url:
+        yt_thumb = get_youtube_thumbnail(content_url)
+        if yt_thumb:
+            return yt_thumb
+
+    if not file_path or not file_path.exists():
+        return None
+
+    ext = file_path.suffix.lower()
+    video_exts = ['.mp4', '.webm', '.mov', '.avi', '.mkv']
+    pdf_exts = ['.pdf']
+
+    if ext in video_exts or content_type == 'video':
+        return generate_video_thumbnail(file_path)
+    elif ext in pdf_exts or content_type == 'pdf':
+        return generate_pdf_thumbnail(file_path)
+
+    return None
+
 @api_router.get("/admin/storage/stats")
 async def get_storage_stats(admin: dict = Depends(get_admin_user)):
     """Get storage statistics (admin only)"""
