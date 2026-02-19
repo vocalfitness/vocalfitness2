@@ -316,7 +316,9 @@ const translations = {
     popupMediaOption: "Media Option",
     popupMediaUpload: "Upload file",
     popupMediaLink: "External link",
-    popupAllClients: "All clients"
+    popupAllClients: "All clients",
+    popupViews: "Views",
+    popupDismissals: "Dismissed"
   }
 };
 
