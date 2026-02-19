@@ -1760,6 +1760,8 @@ const AdminPage = () => {
                 else if (showModal === 'create-user') handleCreateUser();
                 else if (showModal === 'import-youtube') handleImportYoutubePlaylist();
                 else if (showModal === 'edit-youtube-users') handleUpdatePlaylistUsers(editItem?.id);
+                else if (showModal === 'create-popup') handleCreatePopup();
+                else if (showModal === 'edit-popup') handleUpdatePopup();
               }} disabled={submitting || youtubeImporting} className={showModal === 'import-youtube' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} data-testid="save-button">
                 {(submitting || youtubeImporting) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                 {showModal === 'import-youtube' ? 'Importa' : 'Salva'}
