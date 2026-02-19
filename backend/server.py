@@ -1917,6 +1917,62 @@ async def delete_uploaded_file(filename: str, admin: dict = Depends(get_admin_us
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore nell'eliminazione: {str(e)}")
 
+
+@api_router.post("/admin/thumbnail/upload")
+async def upload_custom_thumbnail(
+    file: UploadFile = File(...),
+    admin: dict = Depends(get_admin_user)
+):
+    """Upload a custom thumbnail image (admin only)"""
+    file_ext = Path(file.filename).suffix.lower()
+    allowed_img = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+    if file_ext not in allowed_img:
+        raise HTTPException(status_code=400, detail=f"Solo immagini: {', '.join(allowed_img)}")
+
+    unique_id = str(uuid.uuid4())[:8]
+    safe_name = f"thumb_custom_{unique_id}{file_ext}"
+    thumb_path = THUMBNAILS_DIR / safe_name
+
+    try:
+        with open(thumb_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        # Resize to standard thumbnail size
+        img = Image.open(thumb_path)
+        img.thumbnail((480, 480), Image.LANCZOS)
+        img.save(str(thumb_path), quality=85)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore: {str(e)}")
+
+    return {
+        "success": True,
+        "thumbnail_url": f"/api/uploads/thumbnails/{safe_name}",
+    }
+
+
+class ThumbnailFromURLRequest(BaseModel):
+    url: str
+    content_type: str = ""
+
+
+@api_router.post("/admin/thumbnail/generate-from-url")
+async def generate_thumbnail_from_url(
+    request: ThumbnailFromURLRequest,
+    admin: dict = Depends(get_admin_user)
+):
+    """Auto-generate a thumbnail from a URL (YouTube, Google Drive, etc.)"""
+    url = request.url
+    # YouTube thumbnail
+    yt_thumb = get_youtube_thumbnail(url)
+    if yt_thumb:
+        return {"success": True, "thumbnail_url": yt_thumb}
+    # Google Drive thumbnail
+    drive_match = re.search(r'drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)', url)
+    if drive_match:
+        file_id = drive_match.group(1)
+        return {"success": True, "thumbnail_url": f"https://drive.google.com/thumbnail?id={file_id}&sz=w480"}
+    return {"success": False, "thumbnail_url": "", "message": "Nessuna anteprima disponibile per questo URL"}
+
+
 # ==================== MEMBERS AREA ENDPOINTS (Authenticated Users) ====================
 @api_router.get("/members/folders")
 async def get_member_folders(current_user: dict = Depends(get_current_user)):
