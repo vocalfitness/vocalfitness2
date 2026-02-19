@@ -501,6 +501,37 @@ const AdminPage = () => {
     }
   };
 
+  // ===================== THUMBNAIL HANDLERS =====================
+  const handleCustomThumbnailUpload = async (file) => {
+    if (!file) return;
+    setThumbnailUploading(true);
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/thumbnail/upload`, uploadData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      setFormData(prev => ({ ...prev, thumbnail_url: `${backendUrl}${response.data.thumbnail_url}` }));
+      showToast('success', language === 'it' ? 'Anteprima caricata!' : 'Thumbnail uploaded!');
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore');
+    } finally {
+      setThumbnailUploading(false);
+    }
+  };
+
+  const autoGenerateThumbnailFromUrl = async (url) => {
+    if (!url) return;
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/thumbnail/generate-from-url`, 
+        { url }, { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success && response.data.thumbnail_url) {
+        setFormData(prev => ({ ...prev, thumbnail_url: response.data.thumbnail_url }));
+      }
+    } catch {}
+  };
+
   // ===================== CONTENT HANDLERS =====================
   const handleCreateContent = async () => {
     setSubmitting(true);
