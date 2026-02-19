@@ -767,6 +767,13 @@ const AdminPage = () => {
   };
 
   // ===================== POPUP MESSAGE HANDLERS =====================
+  const refreshPopupStats = async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/admin/popups/stats`, { headers: { Authorization: `Bearer ${token}` } });
+      setPopupStats(res.data || {});
+    } catch {}
+  };
+
   const handlePopupMediaUpload = async (file) => {
     if (!file) return;
     setPopupMediaUploading(true);
