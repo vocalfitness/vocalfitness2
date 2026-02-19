@@ -190,6 +190,24 @@ const MembersAreaPage = () => {
     navigate('/');
   };
 
+  // Helper: extract YouTube video ID from any YouTube URL format
+  const getYouTubeVideoId = (url) => {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]+)/,
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/,
+      /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]+)/,
+      /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]+)/,
+      /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
   const getContentIcon = (type) => {
     switch (type) {
       case 'video': return <Video className="w-5 h-5" />;
