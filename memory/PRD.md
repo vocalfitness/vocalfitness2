@@ -80,8 +80,8 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - `corporate_quotes` - Preventivi corporate
 
 ## Credenziali di Test
-- **Admin:** username=`admin`, password=`VocalFitness2024!`
-- **Client test:** username=`mario.rossi`, password=`TestClient123!`
+- **Admin:** username=`admin`, password=`VocalFitness2026!`
+- **Client test:** username=`test.client`, password=`Test1234!`
 
 ## What's Been Implemented
 
