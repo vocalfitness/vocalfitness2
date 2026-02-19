@@ -163,7 +163,9 @@ const translations = {
     popupMediaOption: "Opzione Media",
     popupMediaUpload: "Carica file",
     popupMediaLink: "Link esterno",
-    popupAllClients: "Tutti i clienti"
+    popupAllClients: "Tutti i clienti",
+    popupViews: "Visualizzazioni",
+    popupDismissals: "Dismiss"
   },
   en: {
     // Header
