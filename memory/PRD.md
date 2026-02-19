@@ -117,6 +117,17 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Sincronizzazione manuale (pulsante "Sincronizza")
   - Nuovi video ereditano assegnazioni esistenti
   - Supporto playlist pubbliche e non in elenco
+- ✅ **Sistema Messaggi Pop-up Personalizzati** (implementato 19/02/2026)
+  - Tab "Messaggi Pop-up" nel pannello admin
+  - Creazione messaggi di tipo testo, audio o video
+  - Audio/video: upload diretto file O link esterno/embed
+  - Pulsante CTA opzionale (testo + URL)
+  - Destinatari: tutti i clienti o clienti specifici
+  - Attivazione/disattivazione rapida dei messaggi
+  - Pop-up modale nell'area clienti al login
+  - Pulsante "Non mostrare più" (dismiss permanente)
+  - Pulsante "OK" per chiusura temporanea
+  - Supporto YouTube embed, file audio/video caricati, link esterni
 
 ## Backlog
 
