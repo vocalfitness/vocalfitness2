@@ -534,6 +534,38 @@ const AdminPage = () => {
     } catch {}
   };
 
+  const handleRegenerateThumbnail = async (contentId) => {
+    setRegeneratingThumbId(contentId);
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/content/${contentId}/regenerate-thumbnail`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      if (response.data.success) {
+        setContents(prev => prev.map(c => c.id === contentId ? { ...c, thumbnail_url: response.data.thumbnail_url } : c));
+        showToast('success', language === 'it' ? 'Anteprima rigenerata!' : 'Thumbnail regenerated!');
+      } else {
+        showToast('error', response.data.message || (language === 'it' ? 'Nessuna anteprima disponibile' : 'No thumbnail available'));
+      }
+    } catch {
+      showToast('error', 'Errore');
+    } finally {
+      setRegeneratingThumbId(null);
+    }
+  };
+
+  const handleRegenerateAllThumbnails = async () => {
+    setRegeneratingThumbs(true);
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/content/regenerate-all-thumbnails`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      showToast('success', language === 'it' ? `${response.data.updated} anteprime rigenerate su ${response.data.total} contenuti` : `${response.data.updated} thumbnails regenerated out of ${response.data.total} items`);
+      // Refresh content list
+      const res = await axios.get(`${backendUrl}/api/admin/content`, { headers: { Authorization: `Bearer ${token}` } });
+      setContents(res.data);
+    } catch {
+      showToast('error', 'Errore');
+    } finally {
+      setRegeneratingThumbs(false);
+    }
+  };
+
   // ===================== CONTENT HANDLERS =====================
   const handleCreateContent = async () => {
     setSubmitting(true);
