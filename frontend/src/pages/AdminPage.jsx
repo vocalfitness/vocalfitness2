@@ -903,6 +903,9 @@ const AdminPage = () => {
           <Button onClick={() => setActiveTab('database')} className={activeTab === 'database' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-database">
             <HardDrive className="w-4 h-4 mr-2" /> {t.database}
           </Button>
+          <Button onClick={() => setActiveTab('popups')} className={activeTab === 'popups' ? 'bg-amber-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-popups">
+            <MessageSquare className="w-4 h-4 mr-2" /> {t.popupMessages} ({popupMessages.length})
+          </Button>
         </div>
 
         {/* Storage Stats */}
