@@ -1632,6 +1632,122 @@ const AdminPage = () => {
                   )}
                 </>
               )}
+
+              {/* =================== POPUP MESSAGE FORM =================== */}
+              {(showModal === 'create-popup' || showModal === 'edit-popup') && (
+                <>
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-1">{t.popupTitle} *</label>
+                    <input type="text" value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={language === 'it' ? 'Es: Offerta Speciale!' : 'E.g.: Special Offer!'} data-testid="popup-title-input" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-1">{t.popupType} *</label>
+                    <select value={formData.message_type || 'text'} onChange={e => setFormData({ ...formData, message_type: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" data-testid="popup-type-select">
+                      <option value="text">{t.popupTypeText}</option>
+                      <option value="audio">{t.popupTypeAudio}</option>
+                      <option value="video">{t.popupTypeVideo}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-1">{t.popupContent}</label>
+                    <textarea value={formData.content || ''} onChange={e => setFormData({ ...formData, content: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" rows={3} placeholder={language === 'it' ? 'Testo del messaggio...' : 'Message text...'} data-testid="popup-content-input" />
+                  </div>
+
+                  {/* Media section for audio/video */}
+                  {(formData.message_type === 'audio' || formData.message_type === 'video') && (
+                    <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50 space-y-3">
+                      <label className="block text-sm text-slate-300 font-medium">{t.popupMediaOption}</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="mediaOption" checked={formData.popupMediaOption === 'upload'} onChange={() => setFormData({ ...formData, popupMediaOption: 'upload' })} className="w-4 h-4" />
+                          <span className="text-slate-300 text-sm">{t.popupMediaUpload}</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="mediaOption" checked={formData.popupMediaOption !== 'upload'} onChange={() => setFormData({ ...formData, popupMediaOption: 'link' })} className="w-4 h-4" />
+                          <span className="text-slate-300 text-sm">{t.popupMediaLink}</span>
+                        </label>
+                      </div>
+
+                      {formData.popupMediaOption === 'upload' ? (
+                        <div className={`border-2 border-dashed rounded-lg p-4 text-center ${popupMediaUploading ? 'border-amber-500 bg-amber-500/10' : 'border-slate-600 hover:border-amber-500/50'}`}>
+                          {popupMediaUploading ? (
+                            <div className="space-y-2">
+                              <Loader2 className="w-6 h-6 animate-spin text-amber-400 mx-auto" />
+                              <div className="w-full bg-slate-600 rounded-full h-2"><div className="bg-amber-500 h-2 rounded-full" style={{ width: `${popupMediaProgress}%` }} /></div>
+                              <p className="text-sm text-amber-300">{popupMediaProgress}%</p>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-slate-500 mx-auto mb-2" />
+                              <input ref={popupFileInputRef} type="file" accept={formData.message_type === 'audio' ? '.mp3,.wav,.ogg,.m4a,.aac' : '.mp4,.webm,.mov,.avi,.mkv'} onChange={(e) => handlePopupMediaUpload(e.target.files[0])} className="hidden" />
+                              <Button type="button" onClick={() => popupFileInputRef.current?.click()} variant="outline" size="sm" className="border-slate-500 text-slate-300">{t.popupUploadMedia}</Button>
+                              <p className="text-xs text-slate-500 mt-1">Max 100MB</p>
+                              {formData.media_url && <p className="text-xs text-green-400 mt-2 flex items-center justify-center gap-1"><CheckCircle className="w-3 h-3" /> File caricato</p>}
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="block text-sm text-slate-300 mb-1">{t.popupMediaUrl}</label>
+                            <input type="url" value={formData.media_url || ''} onChange={e => setFormData({ ...formData, media_url: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={t.popupMediaUrlPlaceholder} data-testid="popup-media-url-input" />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-slate-300 mb-1">{t.popupEmbedCode}</label>
+                            <textarea value={formData.embed_code || ''} onChange={e => setFormData({ ...formData, embed_code: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-xs" rows={3} placeholder={t.popupEmbedPlaceholder} data-testid="popup-embed-input" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CTA Button */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">{t.popupButtonText}</label>
+                      <input type="text" value={formData.button_text || ''} onChange={e => setFormData({ ...formData, button_text: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={language === 'it' ? 'Es: Scopri di più' : 'E.g.: Learn More'} />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">{t.popupButtonUrl}</label>
+                      <input type="url" value={formData.button_url || ''} onChange={e => setFormData({ ...formData, button_url: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="https://..." />
+                    </div>
+                  </div>
+
+                  {/* Target users */}
+                  <div>
+                    <label className="block text-sm text-slate-300 mb-2">{t.popupTarget}</label>
+                    <div className="flex gap-4 mb-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="targetOption" checked={!formData.target_users || formData.target_users.length === 0} onChange={() => setFormData({ ...formData, target_users: [] })} className="w-4 h-4" />
+                        <span className="text-slate-300 text-sm">{t.popupTargetAll}</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="targetOption" checked={formData.target_users && formData.target_users.length > 0} onChange={() => setFormData({ ...formData, target_users: formData.target_users?.length > 0 ? formData.target_users : ['_select'] })} className="w-4 h-4" />
+                        <span className="text-slate-300 text-sm">{t.popupTargetSpecific}</span>
+                      </label>
+                    </div>
+                    {formData.target_users && formData.target_users.length > 0 && clientUsers.length > 0 && (
+                      <div className="max-h-40 overflow-y-auto bg-slate-700/50 rounded-lg p-2 space-y-1">
+                        {clientUsers.map(u => (
+                          <label key={u.id} className="flex items-center gap-2 p-2 hover:bg-slate-600/50 rounded cursor-pointer">
+                            <input type="checkbox" checked={formData.target_users.includes(u.id)} onChange={() => {
+                              const current = formData.target_users.filter(id => id !== '_select');
+                              if (current.includes(u.id)) {
+                                const next = current.filter(id => id !== u.id);
+                                setFormData({ ...formData, target_users: next.length > 0 ? next : [] });
+                              } else {
+                                setFormData({ ...formData, target_users: [...current, u.id] });
+                              }
+                            }} className="w-4 h-4 rounded" />
+                            <span className="text-white">{u.full_name || u.username}</span>
+                            <span className="text-slate-400 text-sm">({u.email || u.username})</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
