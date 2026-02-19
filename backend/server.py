@@ -2633,12 +2633,16 @@ async def upload_popup_media(
     audio_exts = ['.mp3', '.wav', '.ogg', '.m4a', '.aac']
     file_type = "audio" if file_ext in audio_exts else "video"
 
+    # Auto-generate thumbnail for video uploads
+    thumbnail_url = auto_generate_thumbnail(file_path, content_type=file_type) or ""
+
     return {
         "success": True,
         "filename": safe_filename,
         "original_filename": file.filename,
         "file_type": file_type,
         "url": file_url,
+        "thumbnail_url": thumbnail_url,
         "file_size_formatted": format_size(file_size),
     }
 
