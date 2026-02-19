@@ -1648,6 +1648,76 @@ async def delete_content(content_id: str, admin: dict = Depends(get_admin_user))
         raise HTTPException(status_code=404, detail="Contenuto non trovato")
     return {"message": "Contenuto eliminato con successo"}
 
+
+@api_router.post("/admin/content/{content_id}/regenerate-thumbnail")
+async def regenerate_content_thumbnail(content_id: str, admin: dict = Depends(get_admin_user)):
+    """Regenerate thumbnail for a single content item"""
+    content = await db.member_content.find_one({"id": content_id}, {"_id": 0})
+    if not content:
+        raise HTTPException(status_code=404, detail="Contenuto non trovato")
+
+    url = content.get("url", "")
+    content_type = content.get("content_type", "")
+    thumbnail_url = None
+
+    # Try URL-based thumbnail (YouTube, Google Drive)
+    yt_thumb = get_youtube_thumbnail(url)
+    if yt_thumb:
+        thumbnail_url = yt_thumb
+    else:
+        drive_match = re.search(r'drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)', url)
+        if drive_match:
+            thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_match.group(1)}&sz=w480"
+
+    # Try file-based thumbnail (uploaded video/PDF)
+    if not thumbnail_url and url:
+        filename = url.split("/api/uploads/")[-1] if "/api/uploads/" in url else ""
+        if filename:
+            file_path = UPLOADS_DIR / filename
+            if file_path.exists():
+                thumbnail_url = auto_generate_thumbnail(file_path, content_type=content_type)
+
+    if thumbnail_url:
+        await db.member_content.update_one({"id": content_id}, {"$set": {"thumbnail_url": thumbnail_url}})
+        return {"success": True, "thumbnail_url": thumbnail_url}
+
+    return {"success": False, "thumbnail_url": "", "message": "Impossibile generare anteprima per questo contenuto"}
+
+
+@api_router.post("/admin/content/regenerate-all-thumbnails")
+async def regenerate_all_thumbnails(admin: dict = Depends(get_admin_user)):
+    """Regenerate thumbnails for all content items without one"""
+    contents = await db.member_content.find({}, {"_id": 0}).to_list(1000)
+    updated = 0
+    for c in contents:
+        if c.get("thumbnail_url"):
+            continue
+        url = c.get("url", "")
+        content_type = c.get("content_type", "")
+        thumbnail_url = None
+
+        yt_thumb = get_youtube_thumbnail(url)
+        if yt_thumb:
+            thumbnail_url = yt_thumb
+        else:
+            drive_match = re.search(r'drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)', url)
+            if drive_match:
+                thumbnail_url = f"https://drive.google.com/thumbnail?id={drive_match.group(1)}&sz=w480"
+
+        if not thumbnail_url and url:
+            filename = url.split("/api/uploads/")[-1] if "/api/uploads/" in url else ""
+            if filename:
+                file_path = UPLOADS_DIR / filename
+                if file_path.exists():
+                    thumbnail_url = auto_generate_thumbnail(file_path, content_type=content_type)
+
+        if thumbnail_url:
+            await db.member_content.update_one({"id": c["id"]}, {"$set": {"thumbnail_url": thumbnail_url}})
+            updated += 1
+
+    return {"success": True, "updated": updated, "total": len(contents)}
+
+
 # ==================== FILE UPLOAD ENDPOINT (Admin) ====================
 ALLOWED_EXTENSIONS = {
     'video': ['.mp4', '.webm', '.mov', '.avi', '.mkv'],
