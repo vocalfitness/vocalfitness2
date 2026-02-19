@@ -114,6 +114,10 @@ async def create_indexes():
         await db.popup_dismissals.create_index("user_id")
         await db.popup_dismissals.create_index("popup_id")
         
+        # Popup views indexes (track which users viewed which popups)
+        await db.popup_views.create_index([("user_id", 1), ("popup_id", 1)], unique=True)
+        await db.popup_views.create_index("popup_id")
+        
         logging.info("✅ MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
@@ -2426,6 +2430,7 @@ async def delete_popup_message(popup_id: str, admin: dict = Depends(get_admin_us
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Messaggio popup non trovato")
     await db.popup_dismissals.delete_many({"popup_id": popup_id})
+    await db.popup_views.delete_many({"popup_id": popup_id})
     return {"message": "Messaggio popup eliminato con successo"}
 
 
@@ -2496,6 +2501,20 @@ async def get_member_popups(current_user: dict = Depends(get_current_user)):
             result.append(p)
 
     return result
+
+
+@api_router.post("/members/popups/{popup_id}/view")
+async def record_popup_view(popup_id: str, current_user: dict = Depends(get_current_user)):
+    """Record that a user has viewed a popup"""
+    user_id = current_user["id"]
+    existing = await db.popup_views.find_one({"user_id": user_id, "popup_id": popup_id})
+    if not existing:
+        await db.popup_views.insert_one({
+            "user_id": user_id,
+            "popup_id": popup_id,
+            "viewed_at": datetime.now(timezone.utc),
+        })
+    return {"message": "View registrata"}
 
 
 @api_router.post("/members/popups/{popup_id}/dismiss")
