@@ -759,6 +759,102 @@ const AdminPage = () => {
     }
   };
 
+  // ===================== POPUP MESSAGE HANDLERS =====================
+  const handlePopupMediaUpload = async (file) => {
+    if (!file) return;
+    setPopupMediaUploading(true);
+    setPopupMediaProgress(0);
+    
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/popups/upload-media`,
+        uploadData,
+        {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (e) => setPopupMediaProgress(Math.round((e.loaded * 100) / e.total))
+        }
+      );
+      setFormData(prev => ({
+        ...prev,
+        media_url: `${backendUrl}${response.data.url}`,
+        message_type: response.data.file_type
+      }));
+      showToast('success', `File "${response.data.original_filename}" caricato!`);
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore nel caricamento');
+    } finally {
+      setPopupMediaUploading(false);
+      setPopupMediaProgress(0);
+    }
+  };
+
+  const handleCreatePopup = async () => {
+    setSubmitting(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/admin/popups`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPopupMessages([response.data, ...popupMessages]);
+      setShowModal(null);
+      setFormData({});
+      showToast('success', t.popupCreated);
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdatePopup = async () => {
+    setSubmitting(true);
+    try {
+      const response = await axios.put(
+        `${backendUrl}/api/admin/popups/${editItem.id}`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPopupMessages(popupMessages.map(p => p.id === editItem.id ? response.data : p));
+      setShowModal(null);
+      setEditItem(null);
+      setFormData({});
+      showToast('success', t.popupUpdated);
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeletePopup = async (id) => {
+    if (!window.confirm(t.popupConfirmDelete)) return;
+    try {
+      await axios.delete(`${backendUrl}/api/admin/popups/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setPopupMessages(popupMessages.filter(p => p.id !== id));
+      showToast('success', t.popupDeleted);
+    } catch (error) {
+      showToast('error', 'Errore nell\'eliminazione');
+    }
+  };
+
+  const handleTogglePopupActive = async (popup) => {
+    try {
+      const response = await axios.put(
+        `${backendUrl}/api/admin/popups/${popup.id}`,
+        { is_active: !popup.is_active },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPopupMessages(popupMessages.map(p => p.id === popup.id ? response.data : p));
+      showToast('success', response.data.is_active ? t.popupActive : t.popupInactive);
+    } catch (error) {
+      showToast('error', 'Errore');
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
