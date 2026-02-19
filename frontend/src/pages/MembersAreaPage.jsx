@@ -127,6 +127,44 @@ const MembersAreaPage = () => {
     fetchFolderContent();
   }, [selectedFolder, token, backendUrl]);
 
+  // Fetch popup messages
+  useEffect(() => {
+    const fetchPopups = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${backendUrl}/api/members/popups`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.length > 0) {
+          setPopupMessages(res.data);
+          setCurrentPopup(res.data[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching popups:', error);
+      }
+    };
+    fetchPopups();
+  }, [token, backendUrl]);
+
+  const handleDismissPopup = async (popupId) => {
+    try {
+      await axios.post(`${backendUrl}/api/members/popups/${popupId}/dismiss`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Error dismissing popup:', error);
+    }
+    const remaining = popupMessages.filter(p => p.id !== popupId);
+    setPopupMessages(remaining);
+    setCurrentPopup(remaining.length > 0 ? remaining[0] : null);
+  };
+
+  const handleClosePopup = () => {
+    const remaining = popupMessages.slice(1);
+    setPopupMessages(remaining);
+    setCurrentPopup(remaining.length > 0 ? remaining[0] : null);
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
