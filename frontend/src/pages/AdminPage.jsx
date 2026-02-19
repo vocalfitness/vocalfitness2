@@ -1800,7 +1800,7 @@ const AdminPage = () => {
                         <>
                           <div>
                             <label className="block text-sm text-slate-300 mb-1">{t.popupMediaUrl}</label>
-                            <input type="url" value={formData.media_url || ''} onChange={e => setFormData({ ...formData, media_url: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={t.popupMediaUrlPlaceholder} data-testid="popup-media-url-input" />
+                            <input type="url" value={formData.media_url || ''} onChange={e => setFormData({ ...formData, media_url: e.target.value })} onBlur={e => { if (e.target.value && !formData.thumbnail_url) autoGenerateThumbnailFromUrl(e.target.value); }} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={t.popupMediaUrlPlaceholder} data-testid="popup-media-url-input" />
                           </div>
                           <div>
                             <label className="block text-sm text-slate-300 mb-1">{t.popupEmbedCode}</label>
