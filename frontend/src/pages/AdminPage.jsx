@@ -349,6 +349,15 @@ const AdminPage = () => {
   const [popupStats, setPopupStats] = useState({});
   const [popupMediaUploading, setPopupMediaUploading] = useState(false);
   const [popupMediaProgress, setPopupMediaProgress] = useState(0);
+  const [conversations, setConversations] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatUser, setChatUser] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [msgType, setMsgType] = useState('text');
+  const [msgMediaUrl, setMsgMediaUrl] = useState('');
+  const [msgTaskDesc, setMsgTaskDesc] = useState('');
+  const [msgTaskDue, setMsgTaskDue] = useState('');
+  const chatEndRef = useRef(null);
   const popupFileInputRef = useRef(null);
   const thumbnailFileInputRef = useRef(null);
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
