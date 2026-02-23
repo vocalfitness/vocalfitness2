@@ -689,6 +689,74 @@ const MembersAreaPage = () => {
         </div>
       )}
 
+      {/* ===================== MESSAGES PANEL ===================== */}
+      {showMessages && (
+        <div className="fixed inset-0 z-[55] flex justify-end" data-testid="messages-panel">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowMessages(false)} />
+          <div className="relative w-full max-w-md bg-slate-900 border-l border-white/10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-600/20 to-cyan-600/20">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-white">{language === 'it' ? 'Messaggi' : 'Messages'}</h3>
+              </div>
+              <button onClick={() => setShowMessages(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="client-messages">
+              {chatMessages.length === 0 && (
+                <p className="text-slate-500 text-center py-8">{language === 'it' ? 'Nessun messaggio' : 'No messages'}</p>
+              )}
+              {chatMessages.map(m => {
+                const isMe = m.sender_id !== m.recipient_id && m.sender_name !== 'VocalFitness Admin' && m.recipient_id !== user?.id;
+                const isAdmin = m.sender_id !== user?.id;
+                return (
+                  <div key={m.id} className={`flex ${isAdmin ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isAdmin ? 'bg-slate-700 text-white' : 'bg-emerald-600 text-white'}`}>
+                      {m.message_type === 'task' && (
+                        <div className="flex items-center gap-2 text-xs font-medium mb-1.5 opacity-80">
+                          <ClipboardList className="w-3 h-3" /> {language === 'it' ? 'Compito' : 'Task'}
+                          {m.task_due_date && <span className="opacity-70">- {language === 'it' ? 'Scadenza' : 'Due'}: {m.task_due_date}</span>}
+                        </div>
+                      )}
+                      {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
+                      {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
+                      {m.media_url && m.message_type === 'video' && (
+                        <video controls className="mt-2 rounded-lg max-w-full max-h-40" src={m.media_url} />
+                      )}
+                      {m.media_url && m.message_type === 'audio' && (
+                        <audio controls className="mt-2 w-full" src={m.media_url} />
+                      )}
+                      {m.message_type === 'task' && isAdmin && !m.task_completed && (
+                        <button onClick={() => handleCompleteTask(m.id)} className="mt-2 flex items-center gap-1.5 text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors">
+                          <Check className="w-3 h-3" /> {language === 'it' ? 'Segna come completato' : 'Mark as completed'}
+                        </button>
+                      )}
+                      {m.message_type === 'task' && m.task_completed && (
+                        <p className="mt-1 text-xs text-green-300 flex items-center gap-1"><Check className="w-3 h-3" /> {language === 'it' ? 'Completato' : 'Completed'}</p>
+                      )}
+                      <p className="text-[10px] mt-1 opacity-40">{new Date(m.created_at).toLocaleString(language === 'it' ? 'it-IT' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-3 border-t border-white/10 flex gap-2">
+              <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendClientMessage()} className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white" placeholder={language === 'it' ? 'Scrivi un messaggio...' : 'Write a message...'} data-testid="client-message-input" />
+              <Button onClick={handleSendClientMessage} className="bg-emerald-600 hover:bg-emerald-700 px-4" data-testid="client-send-btn">
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===================== POPUP MESSAGE MODAL ===================== */}
       {currentPopup && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" data-testid="popup-overlay">
