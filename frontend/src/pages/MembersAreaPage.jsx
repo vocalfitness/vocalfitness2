@@ -191,6 +191,49 @@ const MembersAreaPage = () => {
     }
   };
 
+  // Fetch unread count
+  useEffect(() => {
+    const fetchUnread = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${backendUrl}/api/members/messages/unread-count`, { headers: { Authorization: `Bearer ${token}` } });
+        setUnreadCount(res.data.unread_count || 0);
+      } catch {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, [token, backendUrl]);
+
+  const openMessages = async () => {
+    setShowMessages(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/members/messages`, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(res.data || []);
+      setUnreadCount(0);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch {}
+  };
+
+  const handleSendClientMessage = async () => {
+    if (!newMessage.trim()) return;
+    try {
+      const res = await axios.post(`${backendUrl}/api/members/messages`, {
+        recipient_id: 'admin', content: newMessage, message_type: 'text'
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(prev => [...prev, res.data]);
+      setNewMessage('');
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch {}
+  };
+
+  const handleCompleteTask = async (messageId) => {
+    try {
+      await axios.post(`${backendUrl}/api/members/messages/${messageId}/complete-task`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(prev => prev.map(m => m.id === messageId ? { ...m, task_completed: true } : m));
+    } catch {}
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
