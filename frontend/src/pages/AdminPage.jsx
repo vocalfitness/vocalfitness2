@@ -6,7 +6,8 @@ import {
   Loader2, Video, FileText, Music, Link as LinkIcon,
   Save, X, Upload, CheckCircle, AlertCircle, HardDrive,
   Folder, Eye, EyeOff, UserCheck, Youtube, RefreshCw, ExternalLink,
-  MessageSquare, Bell, Power, PowerOff
+  MessageSquare, Bell, Power, PowerOff, Send, Building2, User,
+  ClipboardList, Calendar
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
