@@ -1562,6 +1562,118 @@ const AdminPage = () => {
             )}
           </div>
         )}
+
+        {/* ===================== MESSAGING TAB ===================== */}
+        {activeTab === 'messaging' && (
+          <div className="flex gap-4 h-[calc(100vh-220px)]">
+            {/* Conversations sidebar */}
+            <div className="w-72 bg-slate-800 rounded-xl overflow-hidden flex flex-col flex-shrink-0">
+              <div className="p-3 border-b border-slate-700">
+                <h3 className="text-sm font-semibold text-white">{language === 'it' ? 'Conversazioni' : 'Conversations'}</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {/* Show all clients for starting new conversations */}
+                {clientUsers.map(u => {
+                  const conv = conversations.find(c => c.partner?.id === u.id);
+                  return (
+                    <div key={u.id} onClick={() => openChat(u.id)} className={`p-3 border-b border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors ${chatUser?.id === u.id ? 'bg-emerald-600/20 border-l-2 border-l-emerald-500' : ''}`} data-testid={`conv-${u.id}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm font-medium truncate">{u.full_name || u.username}</span>
+                        {conv?.unread_count > 0 && (
+                          <span className="bg-emerald-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{conv.unread_count}</span>
+                        )}
+                      </div>
+                      {conv?.last_message && (
+                        <p className="text-slate-400 text-xs mt-1 truncate">{conv.last_message.content || `[${conv.last_message.message_type}]`}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Chat area */}
+            <div className="flex-1 bg-slate-800 rounded-xl overflow-hidden flex flex-col">
+              {chatUser ? (
+                <>
+                  {/* Chat header */}
+                  <div className="p-3 border-b border-slate-700 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium text-sm">{chatUser.full_name || chatUser.username}</h3>
+                      <p className="text-slate-400 text-xs">{chatUser.email || chatUser.username}</p>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="chat-messages">
+                    {chatMessages.length === 0 && (
+                      <p className="text-slate-500 text-center py-8">{language === 'it' ? 'Nessun messaggio. Inizia la conversazione!' : 'No messages. Start the conversation!'}</p>
+                    )}
+                    {chatMessages.map(m => (
+                      <div key={m.id} className={`flex ${m.sender_id === chatUser.id ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${m.sender_id === chatUser.id ? 'bg-slate-700 text-white' : 'bg-emerald-600 text-white'}`}>
+                          {m.message_type === 'task' && (
+                            <div className="flex items-center gap-2 text-xs font-medium mb-1 opacity-80">
+                              <ClipboardList className="w-3 h-3" /> {language === 'it' ? 'Compito' : 'Task'}
+                              {m.task_completed && <span className="text-green-300">({language === 'it' ? 'completato' : 'completed'})</span>}
+                            </div>
+                          )}
+                          {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
+                          {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
+                          {m.task_due_date && <p className="text-xs mt-1 opacity-70">Scadenza: {m.task_due_date}</p>}
+                          {m.media_url && m.message_type === 'video' && (
+                            <video controls className="mt-2 rounded-lg max-w-full max-h-48" src={m.media_url} />
+                          )}
+                          {m.media_url && m.message_type === 'audio' && (
+                            <audio controls className="mt-2 w-full" src={m.media_url} />
+                          )}
+                          <p className="text-[10px] mt-1 opacity-50">{new Date(m.created_at).toLocaleString(language === 'it' ? 'it-IT' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Message input */}
+                  <div className="p-3 border-t border-slate-700 space-y-2">
+                    <div className="flex gap-2">
+                      {['text', 'audio', 'video', 'task'].map(t => (
+                        <button key={t} onClick={() => setMsgType(t)} className={`px-2 py-1 rounded text-xs font-medium transition-colors ${msgType === t ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}>
+                          {t === 'text' ? (language === 'it' ? 'Testo' : 'Text') : t === 'audio' ? 'Audio' : t === 'video' ? 'Video' : (language === 'it' ? 'Compito' : 'Task')}
+                        </button>
+                      ))}
+                    </div>
+                    {(msgType === 'audio' || msgType === 'video') && (
+                      <input type="url" value={msgMediaUrl} onChange={e => setMsgMediaUrl(e.target.value)} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'URL media (YouTube, link diretto...)' : 'Media URL (YouTube, direct link...)'} />
+                    )}
+                    {msgType === 'task' && (
+                      <div className="flex gap-2">
+                        <input type="text" value={msgTaskDesc} onChange={e => setMsgTaskDesc(e.target.value)} className="flex-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'Descrizione compito...' : 'Task description...'} />
+                        <input type="date" value={msgTaskDue} onChange={e => setMsgTaskDue(e.target.value)} className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={language === 'it' ? 'Scrivi un messaggio...' : 'Write a message...'} data-testid="message-input" />
+                      <Button onClick={handleSendMessage} className="bg-emerald-600 hover:bg-emerald-700 px-4" data-testid="send-message-btn">
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <Send className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                    <p className="text-slate-400">{language === 'it' ? 'Seleziona un cliente per iniziare' : 'Select a client to start'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===================== MODAL ===================== */}
