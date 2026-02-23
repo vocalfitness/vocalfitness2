@@ -2790,7 +2790,7 @@ def send_notification_email(recipient_email: str, sender_name: str, message_prev
                 <div style="background:#f8fafc;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;">
                     <p style="margin:0;color:#1e293b;">{preview}</p>
                 </div>
-                <a href="{os.environ.get('FRONTEND_URL', 'https://admin-notifications-2.preview.emergentagent.com')}/area-clienti" 
+                <a href="{os.environ.get('FRONTEND_URL', 'https://vocal-members-pro.preview.emergentagent.com')}/area-clienti" 
                    style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">
                     Vai all'Area Riservata
                 </a>
