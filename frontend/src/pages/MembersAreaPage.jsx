@@ -355,6 +355,13 @@ const MembersAreaPage = () => {
               </Button>
             )}
             
+            <Button onClick={openMessages} variant="outline" className="border-emerald-400/50 text-emerald-400 hover:bg-emerald-500/20 relative" data-testid="messages-button">
+              <MessageCircle className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{unreadCount}</span>
+              )}
+            </Button>
+            
             <Button onClick={() => navigate('/impostazioni')} variant="outline" className="border-white/20 text-white hover:bg-white/10" data-testid="settings-button">
               <KeyRound className="w-4 h-4" />
             </Button>
