@@ -155,6 +155,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Pannello messaggi nell'area clienti con badge contatore non letti
   - Compiti assegnabili con scadenza e pulsante "completato"
   - Notifica email automatica via Zoho SMTP ad ogni nuovo messaggio
+- ✅ **CRM Form con Sezioni Collassabili** (implementato 23/02/2026)
+  - Form utente completamente riprogettato con sezioni collassabili (click per espandere/comprimere)
+  - 5 sezioni: ANAGRAFICA (aperta di default), DATI AZIENDALI (condizionale), SOCIAL & WEB, MARKETING & CRM, NOTE & STORICO
+  - Nuovi ruoli utente: Lead, Cliente, Collaboratore, Editor, Manager, Admin
+  - Badge colorati per ogni ruolo nella tabella utenti
+  - Spiegazione permessi sotto il selettore ruolo
+  - Ogni sezione ha icona, titolo e chevron per indicare stato espanso/compresso
 
 ## Backlog
 
@@ -163,6 +170,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - [x] Cambio password utente (implementato 20/01/2026)
 - [x] Importazione playlist YouTube (implementato 26/01/2026)
 - [x] Sistema messaggi pop-up personalizzati (implementato 19/02/2026)
+- [ ] **Browser Push Notifications** - Notifiche push browser per messaggi nuovi
 
 ### P2 - Media Priorità
 - [x] Newsletter backend endpoint (implementato 20/01/2026)
@@ -187,6 +195,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - `POST /api/admin/popups/upload-media` - Upload media per pop-up (admin)
 - `GET /api/members/popups` - Recupera pop-up attivi per il client
 - `POST /api/members/popups/{id}/dismiss` - Dismiss permanente pop-up
+
+## User Roles (Ruoli Utente)
+| Ruolo | Badge | Emoji | Accesso |
+|-------|-------|-------|---------|
+| Lead | Giallo | 📝 | Area clienti |
+| Cliente | Blu | 👤 | Area clienti |
+| Collaboratore | Ciano | 🤝 | Admin limitato |
+| Editor | Viola | ✏️ | Admin limitato |
+| Manager | Arancione | 📊 | Accesso completo |
+| Admin | Rosso | 🔐 | Accesso completo |
 
 ## Database Collections - Pop-up
 - `popup_messages` - Messaggi pop-up (title, message_type, content, media_url, embed_code, target_users, is_active, button_text, button_url)
