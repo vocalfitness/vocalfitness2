@@ -2024,12 +2024,17 @@ const AdminPage = () => {
                           <input type="url" value={formData.website || ''} onChange={e => setFormData({ ...formData, website: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="https://..." />
                         </div>
                       </div>
+                      </div>}
                     </div>
                   )}
 
                   {/* ── SOCIAL & DIGITAL ── */}
-                  <div className="bg-purple-500/5 rounded-lg p-4 border border-purple-500/20 space-y-3">
-                    <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> Social & Web</p>
+                  <div className="bg-purple-500/5 rounded-lg border border-purple-500/20 overflow-hidden">
+                    <button type="button" onClick={() => toggleCrmSection('social')} className="w-full p-4 flex items-center justify-between hover:bg-purple-500/10 transition-colors">
+                      <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> Social & Web</p>
+                      {crmSections.social ? <ChevronUp className="w-4 h-4 text-purple-400" /> : <ChevronDown className="w-4 h-4 text-purple-400" />}
+                    </button>
+                    {crmSections.social && <div className="px-4 pb-4 space-y-3">
                     <div>
                       <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Sito Web Personale' : 'Personal Website'}</label>
                       <input type="url" value={formData.website || ''} onChange={e => setFormData({ ...formData, website: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="https://miosito.com" />
