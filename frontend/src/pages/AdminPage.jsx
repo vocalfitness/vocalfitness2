@@ -2265,6 +2265,7 @@ const AdminPage = () => {
                 else if (showModal === 'create-content') handleCreateContent();
                 else if (showModal === 'edit-content') handleUpdateContent();
                 else if (showModal === 'create-user') handleCreateUser();
+                else if (showModal === 'edit-user') handleUpdateUser();
                 else if (showModal === 'import-youtube') handleImportYoutubePlaylist();
                 else if (showModal === 'edit-youtube-users') handleUpdatePlaylistUsers(editItem?.id);
                 else if (showModal === 'create-popup') handleCreatePopup();
