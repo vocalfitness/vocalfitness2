@@ -1413,7 +1413,6 @@ async def list_newsletter_subscribers(admin: dict = Depends(get_admin_user), act
 @api_router.post("/admin/users", response_model=UserResponse, status_code=201)
 async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
     """Create a new user (admin only)"""
-    # Check if username already exists
     existing = await db.users.find_one({"username": user_data.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username già esistente")
@@ -1428,37 +1427,58 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         "email": user_data.email,
         "full_name": user_data.full_name,
         "role": user_data.role,
+        "phone": user_data.phone,
+        "date_of_birth": user_data.date_of_birth,
+        "address": user_data.address,
+        "city": user_data.city,
+        "province": user_data.province,
+        "postal_code": user_data.postal_code,
+        "country": user_data.country,
+        "fiscal_code": user_data.fiscal_code,
+        "client_type": user_data.client_type,
+        "company_name": user_data.company_name,
+        "vat_number": user_data.vat_number,
+        "sdi_code": user_data.sdi_code,
+        "pec": user_data.pec,
+        "website": user_data.website,
+        "notes": user_data.notes,
+        "purchase_history": user_data.purchase_history,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": admin["username"]
     }
     
     await db.users.insert_one(user_doc)
-    
-    return UserResponse(
-        id=user_id,
-        username=user_data.username,
-        email=user_data.email,
-        full_name=user_data.full_name,
-        role=user_data.role,
-        created_at=datetime.now(timezone.utc)
-    )
+    user_doc.pop("_id", None)
+    user_doc.pop("hashed_password", None)
+    user_doc["created_at"] = datetime.now(timezone.utc)
+    return UserResponse(**user_doc)
 
-@api_router.get("/admin/users", response_model=List[UserResponse])
+@api_router.get("/admin/users")
 async def list_users(admin: dict = Depends(get_admin_user)):
     """List all users (admin only)"""
     users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    return users
+
+@api_router.put("/admin/users/{user_id}")
+async def update_user(user_id: str, update: UserUpdate, admin: dict = Depends(get_admin_user)):
+    """Update a user (admin only)"""
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
     
-    return [
-        UserResponse(
-            id=u["id"],
-            username=u["username"],
-            email=u.get("email", ""),
-            full_name=u.get("full_name", ""),
-            role=u.get("role", "client"),
-            created_at=datetime.fromisoformat(u["created_at"]) if isinstance(u["created_at"], str) else u["created_at"]
-        )
-        for u in users
-    ]
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    
+    # Hash password if being updated
+    if "password" in update_data and update_data["password"]:
+        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+    else:
+        update_data.pop("password", None)
+    
+    if update_data:
+        await db.users.update_one({"id": user_id}, {"$set": update_data})
+    
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "hashed_password": 0})
+    return updated
 
 @api_router.delete("/admin/users/{user_id}")
 async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
