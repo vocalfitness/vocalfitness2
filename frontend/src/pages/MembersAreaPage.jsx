@@ -713,6 +713,20 @@ const MembersAreaPage = () => {
               {chatMessages.map(m => {
                 const isMe = m.sender_id !== m.recipient_id && m.sender_name !== 'VocalFitness Admin' && m.recipient_id !== user?.id;
                 const isAdmin = m.sender_id !== user?.id;
+                // YouTube detection
+                const getYouTubeId = (url) => {
+                  if (!url) return null;
+                  const patterns = [
+                    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+                    /youtube\.com\/shorts\/([^"&?\/\s]{11})/i
+                  ];
+                  for (const p of patterns) {
+                    const match = url.match(p);
+                    if (match) return match[1];
+                  }
+                  return null;
+                };
+                const ytId = getYouTubeId(m.media_url);
                 return (
                   <div key={m.id} className={`flex ${isAdmin ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isAdmin ? 'bg-slate-700 text-white' : 'bg-emerald-600 text-white'}`}>
@@ -724,12 +738,32 @@ const MembersAreaPage = () => {
                       )}
                       {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
                       {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
+                      
+                      {/* Video - YouTube or direct */}
                       {m.media_url && m.message_type === 'video' && (
-                        <video controls className="mt-2 rounded-lg max-w-full max-h-40" src={m.media_url} />
+                        ytId ? (
+                          <div className="mt-2 rounded-lg overflow-hidden aspect-video">
+                            <iframe src={`https://www.youtube.com/embed/${ytId}`} className="w-full h-full min-h-[150px]" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Video" />
+                          </div>
+                        ) : (
+                          <video controls className="mt-2 rounded-lg max-w-full max-h-40" src={m.media_url} />
+                        )
                       )}
+                      
+                      {/* Audio */}
                       {m.media_url && m.message_type === 'audio' && (
                         <audio controls className="mt-2 w-full" src={m.media_url} />
                       )}
+                      
+                      {/* File/Document link */}
+                      {m.media_url && m.message_type === 'file' && (
+                        <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                          <FileText className="w-4 h-4" />
+                          <span className="text-sm underline">{m.file_name || m.media_url.split('/').pop() || (language === 'it' ? 'Apri documento' : 'Open document')}</span>
+                          <ExternalLink className="w-3 h-3 ml-auto" />
+                        </a>
+                      )}
+                      
                       {m.message_type === 'task' && isAdmin && !m.task_completed && (
                         <button onClick={() => handleCompleteTask(m.id)} className="mt-2 flex items-center gap-1.5 text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors">
                           <Check className="w-3 h-3" /> {language === 'it' ? 'Segna come completato' : 'Mark as completed'}
