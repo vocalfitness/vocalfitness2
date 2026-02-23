@@ -1729,15 +1729,25 @@ const AdminPage = () => {
 
                   {/* Message input */}
                   <div className="p-3 border-t border-slate-700 space-y-2">
-                    <div className="flex gap-2">
-                      {['text', 'audio', 'video', 'task'].map(t => (
+                    <div className="flex flex-wrap gap-2">
+                      {['text', 'video', 'audio', 'file', 'task'].map(t => (
                         <button key={t} onClick={() => setMsgType(t)} className={`px-2 py-1 rounded text-xs font-medium transition-colors ${msgType === t ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}>
-                          {t === 'text' ? (language === 'it' ? 'Testo' : 'Text') : t === 'audio' ? 'Audio' : t === 'video' ? 'Video' : (language === 'it' ? 'Compito' : 'Task')}
+                          {t === 'text' ? (language === 'it' ? 'Testo' : 'Text') : 
+                           t === 'audio' ? 'Audio' : 
+                           t === 'video' ? 'Video' : 
+                           t === 'file' ? (language === 'it' ? 'File/Link' : 'File/Link') :
+                           (language === 'it' ? 'Compito' : 'Task')}
                         </button>
                       ))}
                     </div>
                     {(msgType === 'audio' || msgType === 'video') && (
-                      <input type="url" value={msgMediaUrl} onChange={e => setMsgMediaUrl(e.target.value)} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'URL media (YouTube, link diretto...)' : 'Media URL (YouTube, direct link...)'} />
+                      <input type="url" value={msgMediaUrl} onChange={e => setMsgMediaUrl(e.target.value)} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'URL media (YouTube, Google Drive, link diretto...)' : 'Media URL (YouTube, Google Drive, direct link...)'} />
+                    )}
+                    {msgType === 'file' && (
+                      <div className="space-y-2">
+                        <input type="url" value={msgMediaUrl} onChange={e => setMsgMediaUrl(e.target.value)} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'URL documento (PDF, Google Docs, Dropbox...)' : 'Document URL (PDF, Google Docs, Dropbox...)'} />
+                        <input type="text" value={msgFileName} onChange={e => setMsgFileName(e.target.value)} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'Nome da visualizzare (opzionale)' : 'Display name (optional)'} />
+                      </div>
                     )}
                     {msgType === 'task' && (
                       <div className="flex gap-2">
