@@ -123,7 +123,13 @@ async def create_indexes():
         await db.popup_views.create_index([("user_id", 1), ("popup_id", 1)], unique=True)
         await db.popup_views.create_index("popup_id")
         
-        logging.info("✅ MongoDB indexes created successfully")
+        # Messages indexes
+        await db.messages.create_index("id", unique=True)
+        await db.messages.create_index([("conversation_id", 1), ("created_at", 1)])
+        await db.messages.create_index("sender_id")
+        await db.messages.create_index("recipient_id")
+        
+        logging.info("MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
 
