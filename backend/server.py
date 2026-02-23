@@ -182,6 +182,46 @@ class UserCreate(BaseModel):
     email: str = ""
     full_name: str = ""
     role: str = "client"  # "client" or "admin"
+    # Personal
+    phone: str = ""
+    date_of_birth: str = ""
+    address: str = ""
+    city: str = ""
+    province: str = ""
+    postal_code: str = ""
+    country: str = "Italia"
+    fiscal_code: str = ""  # Codice Fiscale
+    # Business
+    client_type: str = "private"  # "private", "business", "foreign"
+    company_name: str = ""  # Ragione Sociale
+    vat_number: str = ""  # Partita IVA / VAT
+    sdi_code: str = ""  # Codice Univoco SDI
+    pec: str = ""
+    website: str = ""
+    # Admin notes
+    notes: str = ""
+    purchase_history: str = ""  # Storico acquisti
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    fiscal_code: Optional[str] = None
+    client_type: Optional[str] = None
+    company_name: Optional[str] = None
+    vat_number: Optional[str] = None
+    sdi_code: Optional[str] = None
+    pec: Optional[str] = None
+    website: Optional[str] = None
+    notes: Optional[str] = None
+    purchase_history: Optional[str] = None
+    password: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
@@ -194,6 +234,22 @@ class UserResponse(BaseModel):
     email: str = ""
     full_name: str = ""
     role: str = "client"
+    phone: str = ""
+    date_of_birth: str = ""
+    address: str = ""
+    city: str = ""
+    province: str = ""
+    postal_code: str = ""
+    country: str = "Italia"
+    fiscal_code: str = ""
+    client_type: str = "private"
+    company_name: str = ""
+    vat_number: str = ""
+    sdi_code: str = ""
+    pec: str = ""
+    website: str = ""
+    notes: str = ""
+    purchase_history: str = ""
     created_at: datetime
 
 class TokenResponse(BaseModel):
