@@ -274,6 +274,7 @@ class UserUpdate(BaseModel):
     notes: Optional[str] = None
     purchase_history: Optional[str] = None
     password: Optional[str] = None
+    role: Optional[str] = None  # lead, client, collaborator, editor, manager, admin
 
 class UserLogin(BaseModel):
     username: str
