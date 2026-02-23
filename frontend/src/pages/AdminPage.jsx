@@ -364,6 +364,18 @@ const AdminPage = () => {
   const [regeneratingThumbs, setRegeneratingThumbs] = useState(false);
   const [regeneratingThumbId, setRegeneratingThumbId] = useState(null);
   const fileInputRef = useRef(null);
+  // State for collapsible CRM sections
+  const [crmSections, setCrmSections] = useState({
+    anagrafica: true,
+    azienda: false,
+    social: false,
+    marketing: false,
+    notes: false
+  });
+
+  const toggleCrmSection = (section) => {
+    setCrmSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
