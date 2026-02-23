@@ -287,6 +287,7 @@ class UserResponse(BaseModel):
     full_name: str = ""
     role: str = "client"
     phone: str = ""
+    whatsapp: str = ""
     date_of_birth: str = ""
     address: str = ""
     city: str = ""
@@ -300,6 +301,27 @@ class UserResponse(BaseModel):
     sdi_code: str = ""
     pec: str = ""
     website: str = ""
+    instagram: str = ""
+    facebook: str = ""
+    linkedin: str = ""
+    tiktok: str = ""
+    youtube: str = ""
+    twitter: str = ""
+    telegram: str = ""
+    lead_source: str = ""
+    referral: str = ""
+    client_status: str = "active"
+    preferred_contact: str = ""
+    interests: str = ""
+    tags: str = ""
+    marketing_email_consent: bool = False
+    marketing_sms_consent: bool = False
+    follows_instagram: bool = False
+    follows_facebook: bool = False
+    follows_youtube: bool = False
+    follows_tiktok: bool = False
+    engagement_level: str = ""
+    last_contact_date: str = ""
     notes: str = ""
     purchase_history: str = ""
     created_at: datetime
