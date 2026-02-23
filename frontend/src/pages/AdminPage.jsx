@@ -732,6 +732,7 @@ const AdminPage = () => {
         media_url: msgMediaUrl,
         task_description: msgTaskDesc,
         task_due_date: msgTaskDue,
+        file_name: msgFileName,
       };
       const res = await axios.post(`${backendUrl}/api/admin/messages`, payload, { headers: { Authorization: `Bearer ${token}` } });
       setChatMessages(prev => [...prev, res.data]);
@@ -739,12 +740,39 @@ const AdminPage = () => {
       setMsgMediaUrl('');
       setMsgTaskDesc('');
       setMsgTaskDue('');
+      setMsgFileName('');
       setMsgType('text');
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       fetchConversations();
     } catch (error) {
       showToast('error', 'Errore invio messaggio');
     }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm(language === 'it' ? 'Eliminare questo messaggio?' : 'Delete this message?')) return;
+    try {
+      await axios.delete(`${backendUrl}/api/admin/messages/${messageId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(prev => prev.filter(m => m.id !== messageId));
+      showToast('success', language === 'it' ? 'Messaggio eliminato' : 'Message deleted');
+      fetchConversations();
+    } catch {
+      showToast('error', language === 'it' ? 'Errore eliminazione' : 'Delete error');
+    }
+  };
+
+  // Helper to detect YouTube URL and extract video ID
+  const getYouTubeVideoId = (url) => {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+      /youtube\.com\/shorts\/([^"&?\/\s]{11})/i
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
   };
 
   // Toggle user in selection
