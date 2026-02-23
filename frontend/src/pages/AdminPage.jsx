@@ -671,6 +671,69 @@ const AdminPage = () => {
     }
   };
 
+  const handleUpdateUser = async () => {
+    setSubmitting(true);
+    try {
+      const response = await axios.put(
+        `${backendUrl}/api/admin/users/${editItem.id}`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers(users.map(u => u.id === editItem.id ? response.data : u));
+      setShowModal(null);
+      setEditItem(null);
+      setFormData({});
+      showToast('success', language === 'it' ? 'Utente aggiornato' : 'User updated');
+    } catch (error) {
+      showToast('error', error.response?.data?.detail || 'Errore');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ===================== MESSAGING HANDLERS =====================
+  const fetchConversations = async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/admin/messages/conversations`, { headers: { Authorization: `Bearer ${token}` } });
+      setConversations(res.data || []);
+    } catch {}
+  };
+
+  const openChat = async (userId) => {
+    const user = users.find(u => u.id === userId);
+    setChatUser(user || { id: userId, full_name: 'Utente', username: 'user' });
+    try {
+      const res = await axios.get(`${backendUrl}/api/admin/messages/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(res.data || []);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch {}
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatUser || (!newMessage.trim() && !msgMediaUrl && !msgTaskDesc)) return;
+    try {
+      const payload = {
+        recipient_id: chatUser.id,
+        content: newMessage,
+        message_type: msgType,
+        media_url: msgMediaUrl,
+        task_description: msgTaskDesc,
+        task_due_date: msgTaskDue,
+      };
+      const res = await axios.post(`${backendUrl}/api/admin/messages`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      setChatMessages(prev => [...prev, res.data]);
+      setNewMessage('');
+      setMsgMediaUrl('');
+      setMsgTaskDesc('');
+      setMsgTaskDue('');
+      setMsgType('text');
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      fetchConversations();
+    } catch (error) {
+      showToast('error', 'Errore invio messaggio');
+    }
+  };
+
   // Toggle user in selection
   const toggleUserSelection = (userId) => {
     const currentUsers = formData.assigned_users || [];
