@@ -155,6 +155,9 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Pannello messaggi nell'area clienti con badge contatore non letti
   - Compiti assegnabili con scadenza e pulsante "completato"
   - Notifica email automatica via Zoho SMTP ad ogni nuovo messaggio
+  - **Video YouTube embedded** - Link YouTube vengono mostrati come iframe cliccabile
+  - **Tipo File/Link** - Supporto per link a documenti (PDF, Google Docs, Dropbox)
+  - **Eliminazione messaggi** - Pulsante elimina (hover) per messaggi inviati dall'admin
 - ✅ **CRM Form con Sezioni Collassabili** (implementato 23/02/2026)
   - Form utente completamente riprogettato con sezioni collassabili (click per espandere/comprimere)
   - 5 sezioni: ANAGRAFICA (aperta di default), DATI AZIENDALI (condizionale), SOCIAL & WEB, MARKETING & CRM, NOTE & STORICO
