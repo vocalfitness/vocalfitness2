@@ -428,11 +428,20 @@ MAX_TOTAL_STORAGE = 2 * 1024 * 1024 * 1024  # 2GB totale
 
 # Define Models
 class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# ==================== MESSAGING MODELS ====================
+class MessageCreate(BaseModel):
+    recipient_id: str  # User ID of the recipient
+    content: str = ""
+    message_type: str = "text"  # "text", "audio", "video", "task"
+    media_url: str = ""
+    embed_code: str = ""
+    task_description: str = ""
+    task_due_date: str = ""
 
 # Testimonials Models
 class TestimonialCreate(BaseModel):
