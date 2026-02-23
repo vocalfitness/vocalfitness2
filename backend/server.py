@@ -2951,6 +2951,7 @@ async def send_member_message(msg: MessageCreate, current_user: dict = Depends(g
         "task_description": msg.task_description,
         "task_due_date": msg.task_due_date,
         "task_completed": False,
+        "file_name": msg.file_name,
         "read": False,
         "created_at": datetime.now(timezone.utc),
     }
