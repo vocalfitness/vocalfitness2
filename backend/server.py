@@ -512,11 +512,12 @@ class StatusCheck(BaseModel):
 class MessageCreate(BaseModel):
     recipient_id: str  # User ID of the recipient
     content: str = ""
-    message_type: str = "text"  # "text", "audio", "video", "task"
+    message_type: str = "text"  # "text", "audio", "video", "task", "file"
     media_url: str = ""
     embed_code: str = ""
     task_description: str = ""
     task_due_date: str = ""
+    file_name: str = ""  # Name to display for file links
 
 # Testimonials Models
 class TestimonialCreate(BaseModel):
