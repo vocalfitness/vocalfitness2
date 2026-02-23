@@ -2988,6 +2988,24 @@ async def complete_task(message_id: str, current_user: dict = Depends(get_curren
     return {"message": "Compito completato"}
 
 
+@api_router.delete("/admin/messages/{message_id}")
+async def delete_admin_message(message_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete a message sent by admin"""
+    result = await db.messages.delete_one({"id": message_id, "sender_id": admin["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Messaggio non trovato o non autorizzato")
+    return {"message": "Messaggio eliminato"}
+
+
+@api_router.delete("/messages/{message_id}")
+async def delete_member_message(message_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a message sent by member"""
+    result = await db.messages.delete_one({"id": message_id, "sender_id": current_user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Messaggio non trovato o non autorizzato")
+    return {"message": "Messaggio eliminato"}
+
+
 # ==================== POPUP MESSAGES ENDPOINTS ====================
 
 @api_router.post("/admin/popups")
