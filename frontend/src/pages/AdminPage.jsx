@@ -2090,11 +2090,16 @@ const AdminPage = () => {
                         ))}
                       </div>
                     </div>
+                    </div>}
                   </div>
 
                   {/* ── MARKETING & CRM ── */}
-                  <div className="bg-emerald-500/5 rounded-lg p-4 border border-emerald-500/20 space-y-3">
-                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Marketing & CRM</p>
+                  <div className="bg-emerald-500/5 rounded-lg border border-emerald-500/20 overflow-hidden">
+                    <button type="button" onClick={() => toggleCrmSection('marketing')} className="w-full p-4 flex items-center justify-between hover:bg-emerald-500/10 transition-colors">
+                      <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Marketing & CRM</p>
+                      {crmSections.marketing ? <ChevronUp className="w-4 h-4 text-emerald-400" /> : <ChevronDown className="w-4 h-4 text-emerald-400" />}
+                    </button>
+                    {crmSections.marketing && <div className="px-4 pb-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Stato Cliente' : 'Client Status'}</label>
