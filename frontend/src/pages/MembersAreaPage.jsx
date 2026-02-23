@@ -64,6 +64,11 @@ const MembersAreaPage = () => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [popupMessages, setPopupMessages] = useState([]);
   const [currentPopup, setCurrentPopup] = useState(null);
+  const [showMessages, setShowMessages] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatEndRef = useRef(null);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
