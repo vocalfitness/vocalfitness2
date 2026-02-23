@@ -1261,6 +1261,7 @@ const AdminPage = () => {
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{language === 'it' ? 'Nome' : 'Name'}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{t.email}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{t.role}</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">{language === 'it' ? 'Tipo' : 'Type'}</th>
                     <th className="px-4 py-3 text-right text-sm font-medium text-slate-300">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                   </tr>
                 </thead>
