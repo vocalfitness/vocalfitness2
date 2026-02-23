@@ -1892,16 +1892,16 @@ const AdminPage = () => {
               {(showModal === 'create-user' || showModal === 'edit-user') && (
                 <>
                   {showModal === 'create-user' && (
-                    <>
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm text-slate-300 mb-1">Username *</label>
-                        <input type="text" value={formData.username || ''} onChange={e => setFormData({ ...formData, username: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="Es: mario.rossi" data-testid="user-username-input" />
+                        <input type="text" value={formData.username || ''} onChange={e => setFormData({ ...formData, username: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="es: mario.rossi" data-testid="user-username-input" />
                       </div>
                       <div>
                         <label className="block text-sm text-slate-300 mb-1">Password *</label>
-                        <input type="password" value={formData.password || ''} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="Password sicura" data-testid="user-password-input" />
+                        <input type="password" value={formData.password || ''} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" data-testid="user-password-input" />
                       </div>
-                    </>
+                    </div>
                   )}
                   {showModal === 'edit-user' && (
                     <div>
@@ -1910,115 +1910,262 @@ const AdminPage = () => {
                     </div>
                   )}
 
-                  {/* Personal info */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Nome Completo' : 'Full Name'}</label>
-                      <input type="text" value={formData.full_name || ''} onChange={e => setFormData({ ...formData, full_name: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="Mario Rossi" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">Email</label>
-                      <input type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="mario@email.com" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Telefono' : 'Phone'}</label>
-                      <input type="tel" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="+39 333 1234567" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Data di Nascita' : 'Date of Birth'}</label>
-                      <input type="date" value={formData.date_of_birth || ''} onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" />
-                    </div>
-                  </div>
-
-                  {/* Client type */}
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Tipo Cliente' : 'Client Type'}</label>
-                    <select value={formData.client_type || 'private'} onChange={e => setFormData({ ...formData, client_type: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
-                      <option value="private">{language === 'it' ? 'Privato' : 'Private'}</option>
-                      <option value="business">{language === 'it' ? 'Business / Azienda' : 'Business / Company'}</option>
-                      <option value="foreign">{language === 'it' ? 'Estero' : 'Foreign'}</option>
-                    </select>
-                  </div>
-
-                  {/* Address */}
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Indirizzo' : 'Address'}</label>
-                    <input type="text" value={formData.address || ''} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="Via Roma 1" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Città' : 'City'}</label>
-                      <input type="text" value={formData.city || ''} onChange={e => setFormData({ ...formData, city: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="Roma" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Provincia' : 'Province'}</label>
-                      <input type="text" value={formData.province || ''} onChange={e => setFormData({ ...formData, province: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="RM" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">CAP</label>
-                      <input type="text" value={formData.postal_code || ''} onChange={e => setFormData({ ...formData, postal_code: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="00100" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Paese' : 'Country'}</label>
-                      <input type="text" value={formData.country || 'Italia'} onChange={e => setFormData({ ...formData, country: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Codice Fiscale' : 'Tax Code'}</label>
-                      <input type="text" value={formData.fiscal_code || ''} onChange={e => setFormData({ ...formData, fiscal_code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono" placeholder="RSSMRA80A01H501Q" />
-                    </div>
-                  </div>
-
-                  {/* Business fields */}
-                  {(formData.client_type === 'business' || formData.client_type === 'foreign') && (
-                    <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50 space-y-3">
-                      <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-1">
-                        <Building2 className="w-4 h-4" /> {language === 'it' ? 'Dati Aziendali' : 'Business Data'}
+                  {/* ── ANAGRAFICA ── */}
+                  <div className="bg-slate-700/20 rounded-lg p-4 border border-slate-600/30 space-y-3">
+                    <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {language === 'it' ? 'Anagrafica' : 'Personal Info'}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Nome Completo' : 'Full Name'}</label>
+                        <input type="text" value={formData.full_name || ''} onChange={e => setFormData({ ...formData, full_name: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="Mario Rossi" />
                       </div>
                       <div>
-                        <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Ragione Sociale' : 'Company Name'}</label>
-                        <input type="text" value={formData.company_name || ''} onChange={e => setFormData({ ...formData, company_name: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" />
+                        <label className="block text-xs text-slate-400 mb-1">Email</label>
+                        <input type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="mario@email.com" data-testid="user-email-input" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Telefono' : 'Phone'}</label>
+                        <input type="tel" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="+39 333 123 4567" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">WhatsApp</label>
+                        <input type="tel" value={formData.whatsapp || ''} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="+39 333 123 4567" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Data Nascita' : 'DOB'}</label>
+                        <input type="date" value={formData.date_of_birth || ''} onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Indirizzo' : 'Address'}</label>
+                      <input type="text" value={formData.address || ''} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="Via Roma 1" />
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Città' : 'City'}</label>
+                        <input type="text" value={formData.city || ''} onChange={e => setFormData({ ...formData, city: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="Roma" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Prov.' : 'Prov.'}</label>
+                        <input type="text" value={formData.province || ''} onChange={e => setFormData({ ...formData, province: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="RM" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">CAP</label>
+                        <input type="text" value={formData.postal_code || ''} onChange={e => setFormData({ ...formData, postal_code: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="00100" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Paese' : 'Country'}</label>
+                        <input type="text" value={formData.country || 'Italia'} onChange={e => setFormData({ ...formData, country: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Codice Fiscale' : 'Tax Code'}</label>
+                        <input type="text" value={formData.fiscal_code || ''} onChange={e => setFormData({ ...formData, fiscal_code: e.target.value.toUpperCase() })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono" placeholder="RSSMRA80A01H501Q" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Tipo Cliente' : 'Client Type'}</label>
+                        <select value={formData.client_type || 'private'} onChange={e => setFormData({ ...formData, client_type: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+                          <option value="private">{language === 'it' ? 'Privato' : 'Private'}</option>
+                          <option value="business">{language === 'it' ? 'Business / Azienda' : 'Business'}</option>
+                          <option value="foreign">{language === 'it' ? 'Estero' : 'Foreign'}</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── DATI AZIENDALI ── */}
+                  {(formData.client_type === 'business' || formData.client_type === 'foreign') && (
+                    <div className="bg-amber-500/5 rounded-lg p-4 border border-amber-500/20 space-y-3">
+                      <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> {language === 'it' ? 'Dati Aziendali' : 'Business Data'}</p>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Ragione Sociale' : 'Company Name'}</label>
+                        <input type="text" value={formData.company_name || ''} onChange={e => setFormData({ ...formData, company_name: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm text-slate-300 mb-1">P.IVA / VAT</label>
-                          <input type="text" value={formData.vat_number || ''} onChange={e => setFormData({ ...formData, vat_number: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono" placeholder="IT12345678901" />
+                          <label className="block text-xs text-slate-400 mb-1">P.IVA / VAT</label>
+                          <input type="text" value={formData.vat_number || ''} onChange={e => setFormData({ ...formData, vat_number: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono" placeholder="IT12345678901" />
                         </div>
                         <div>
-                          <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Codice Univoco SDI' : 'SDI Code'}</label>
-                          <input type="text" value={formData.sdi_code || ''} onChange={e => setFormData({ ...formData, sdi_code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono" placeholder="0000000" />
+                          <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Codice Univoco SDI' : 'SDI Code'}</label>
+                          <input type="text" value={formData.sdi_code || ''} onChange={e => setFormData({ ...formData, sdi_code: e.target.value.toUpperCase() })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono" placeholder="0000000" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm text-slate-300 mb-1">PEC</label>
-                          <input type="email" value={formData.pec || ''} onChange={e => setFormData({ ...formData, pec: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="azienda@pec.it" />
+                          <label className="block text-xs text-slate-400 mb-1">PEC</label>
+                          <input type="email" value={formData.pec || ''} onChange={e => setFormData({ ...formData, pec: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="azienda@pec.it" />
                         </div>
                         <div>
-                          <label className="block text-sm text-slate-300 mb-1">Website</label>
-                          <input type="url" value={formData.website || ''} onChange={e => setFormData({ ...formData, website: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder="https://..." />
+                          <label className="block text-xs text-slate-400 mb-1">Website</label>
+                          <input type="url" value={formData.website || ''} onChange={e => setFormData({ ...formData, website: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="https://..." />
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Notes & Purchase History */}
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Note Admin' : 'Admin Notes'}</label>
-                    <textarea value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" rows={2} placeholder={language === 'it' ? 'Note interne...' : 'Internal notes...'} />
+                  {/* ── SOCIAL & DIGITAL ── */}
+                  <div className="bg-purple-500/5 rounded-lg p-4 border border-purple-500/20 space-y-3">
+                    <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> Social & Web</p>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Sito Web Personale' : 'Personal Website'}</label>
+                      <input type="url" value={formData.website || ''} onChange={e => setFormData({ ...formData, website: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="https://miosito.com" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Instagram</label>
+                        <input type="text" value={formData.instagram || ''} onChange={e => setFormData({ ...formData, instagram: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="@username" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Facebook</label>
+                        <input type="text" value={formData.facebook || ''} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="facebook.com/..." />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">LinkedIn</label>
+                        <input type="text" value={formData.linkedin || ''} onChange={e => setFormData({ ...formData, linkedin: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="linkedin.com/in/..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">TikTok</label>
+                        <input type="text" value={formData.tiktok || ''} onChange={e => setFormData({ ...formData, tiktok: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="@username" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">YouTube</label>
+                        <input type="text" value={formData.youtube || ''} onChange={e => setFormData({ ...formData, youtube: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="@channel" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">X (Twitter)</label>
+                        <input type="text" value={formData.twitter || ''} onChange={e => setFormData({ ...formData, twitter: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="@username" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Telegram</label>
+                        <input type="text" value={formData.telegram || ''} onChange={e => setFormData({ ...formData, telegram: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder="@username" />
+                      </div>
+                    </div>
+                    {/* Social follow tracking */}
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-2">{language === 'it' ? 'Ci segue su:' : 'Follows us on:'}</label>
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { key: 'follows_instagram', label: 'Instagram' },
+                          { key: 'follows_facebook', label: 'Facebook' },
+                          { key: 'follows_youtube', label: 'YouTube' },
+                          { key: 'follows_tiktok', label: 'TikTok' },
+                        ].map(s => (
+                          <label key={s.key} className="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" checked={formData[s.key] || false} onChange={e => setFormData({ ...formData, [s.key]: e.target.checked })} className="w-3.5 h-3.5 rounded" />
+                            <span className="text-xs text-slate-300">{s.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Storico Acquisti' : 'Purchase History'}</label>
-                    <textarea value={formData.purchase_history || ''} onChange={e => setFormData({ ...formData, purchase_history: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" rows={2} placeholder={language === 'it' ? 'Es: Corso Base - 01/2026 - €500\nCorso Avanzato - 03/2026 - €800' : 'E.g.: Basic Course - 01/2026 - €500'} />
+
+                  {/* ── MARKETING & CRM ── */}
+                  <div className="bg-emerald-500/5 rounded-lg p-4 border border-emerald-500/20 space-y-3">
+                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Marketing & CRM</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Stato Cliente' : 'Client Status'}</label>
+                        <select value={formData.client_status || 'active'} onChange={e => setFormData({ ...formData, client_status: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+                          <option value="lead">Lead</option>
+                          <option value="prospect">Prospect</option>
+                          <option value="active">{language === 'it' ? 'Attivo' : 'Active'}</option>
+                          <option value="inactive">{language === 'it' ? 'Inattivo' : 'Inactive'}</option>
+                          <option value="vip">VIP</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Livello Engagement' : 'Engagement Level'}</label>
+                        <select value={formData.engagement_level || ''} onChange={e => setFormData({ ...formData, engagement_level: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+                          <option value="">-</option>
+                          <option value="cold">{language === 'it' ? 'Freddo' : 'Cold'}</option>
+                          <option value="warm">{language === 'it' ? 'Tiepido' : 'Warm'}</option>
+                          <option value="hot">{language === 'it' ? 'Caldo' : 'Hot'}</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Come ci ha trovato' : 'Lead Source'}</label>
+                        <select value={formData.lead_source || ''} onChange={e => setFormData({ ...formData, lead_source: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+                          <option value="">-</option>
+                          <option value="google">Google</option>
+                          <option value="instagram">Instagram</option>
+                          <option value="facebook">Facebook</option>
+                          <option value="youtube">YouTube</option>
+                          <option value="tiktok">TikTok</option>
+                          <option value="referral">{language === 'it' ? 'Passaparola' : 'Referral'}</option>
+                          <option value="event">{language === 'it' ? 'Evento' : 'Event'}</option>
+                          <option value="website">Website</option>
+                          <option value="other">{language === 'it' ? 'Altro' : 'Other'}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Referente / Segnalato da' : 'Referred by'}</label>
+                        <input type="text" value={formData.referral || ''} onChange={e => setFormData({ ...formData, referral: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'Nome referente' : 'Referrer name'} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Contatto Preferito' : 'Preferred Contact'}</label>
+                        <select value={formData.preferred_contact || ''} onChange={e => setFormData({ ...formData, preferred_contact: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
+                          <option value="">-</option>
+                          <option value="email">Email</option>
+                          <option value="phone">{language === 'it' ? 'Telefono' : 'Phone'}</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="instagram">Instagram DM</option>
+                          <option value="telegram">Telegram</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Ultimo Contatto' : 'Last Contact'}</label>
+                        <input type="date" value={formData.last_contact_date || ''} onChange={e => setFormData({ ...formData, last_contact_date: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Interessi / Obiettivi' : 'Interests / Goals'}</label>
+                      <input type="text" value={formData.interests || ''} onChange={e => setFormData({ ...formData, interests: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'es: canto, dizione, public speaking' : 'e.g.: singing, diction, public speaking'} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Tag (separati da virgola)' : 'Tags (comma-separated)'}</label>
+                      <input type="text" value={formData.tags || ''} onChange={e => setFormData({ ...formData, tags: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" placeholder={language === 'it' ? 'es: principiante, cantante, corso-base' : 'e.g.: beginner, singer, basic-course'} />
+                    </div>
+                    {/* Consent checkboxes */}
+                    <div className="flex flex-wrap gap-4 pt-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={formData.marketing_email_consent || false} onChange={e => setFormData({ ...formData, marketing_email_consent: e.target.checked })} className="w-3.5 h-3.5 rounded" />
+                        <span className="text-xs text-slate-300">{language === 'it' ? 'Consenso email marketing' : 'Email marketing consent'}</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={formData.marketing_sms_consent || false} onChange={e => setFormData({ ...formData, marketing_sms_consent: e.target.checked })} className="w-3.5 h-3.5 rounded" />
+                        <span className="text-xs text-slate-300">{language === 'it' ? 'Consenso SMS marketing' : 'SMS marketing consent'}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* ── NOTE & ACQUISTI ── */}
+                  <div className="bg-slate-700/20 rounded-lg p-4 border border-slate-600/30 space-y-3">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> {language === 'it' ? 'Note & Storico' : 'Notes & History'}</p>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Note Admin' : 'Admin Notes'}</label>
+                      <textarea value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" rows={2} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Storico Acquisti' : 'Purchase History'}</label>
+                      <textarea value={formData.purchase_history || ''} onChange={e => setFormData({ ...formData, purchase_history: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" rows={2} placeholder={language === 'it' ? 'Es: Corso Base - 01/2026 - 500EUR' : 'E.g.: Basic Course - 01/2026 - 500EUR'} />
+                    </div>
                   </div>
 
                   {showModal === 'create-user' && (
                     <div>
-                      <label className="block text-sm text-slate-300 mb-1">{language === 'it' ? 'Ruolo' : 'Role'}</label>
-                      <select value={formData.role || 'client'} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
+                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Ruolo' : 'Role'}</label>
+                      <select value={formData.role || 'client'} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
                         <option value="client">{language === 'it' ? 'Cliente' : 'Client'}</option>
                         <option value="admin">Admin</option>
                       </select>
