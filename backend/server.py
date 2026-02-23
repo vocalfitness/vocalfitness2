@@ -2889,6 +2889,7 @@ async def send_admin_message(msg: MessageCreate, admin: dict = Depends(get_admin
         "task_description": msg.task_description,
         "task_due_date": msg.task_due_date,
         "task_completed": False,
+        "file_name": msg.file_name,
         "read": False,
         "created_at": datetime.now(timezone.utc),
     }
