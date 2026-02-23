@@ -2178,11 +2178,16 @@ const AdminPage = () => {
                         <span className="text-xs text-slate-300">{language === 'it' ? 'Consenso SMS marketing' : 'SMS marketing consent'}</span>
                       </label>
                     </div>
+                    </div>}
                   </div>
 
                   {/* ── NOTE & ACQUISTI ── */}
-                  <div className="bg-slate-700/20 rounded-lg p-4 border border-slate-600/30 space-y-3">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> {language === 'it' ? 'Note & Storico' : 'Notes & History'}</p>
+                  <div className="bg-slate-700/20 rounded-lg border border-slate-600/30 overflow-hidden">
+                    <button type="button" onClick={() => toggleCrmSection('notes')} className="w-full p-4 flex items-center justify-between hover:bg-slate-700/30 transition-colors">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> {language === 'it' ? 'Note & Storico' : 'Notes & History'}</p>
+                      {crmSections.notes ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </button>
+                    {crmSections.notes && <div className="px-4 pb-4 space-y-3">
                     <div>
                       <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Note Admin' : 'Admin Notes'}</label>
                       <textarea value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" rows={2} />
@@ -2191,17 +2196,26 @@ const AdminPage = () => {
                       <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Storico Acquisti' : 'Purchase History'}</label>
                       <textarea value={formData.purchase_history || ''} onChange={e => setFormData({ ...formData, purchase_history: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" rows={2} placeholder={language === 'it' ? 'Es: Corso Base - 01/2026 - 500EUR' : 'E.g.: Basic Course - 01/2026 - 500EUR'} />
                     </div>
+                    </div>}
                   </div>
 
-                  {showModal === 'create-user' && (
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">{language === 'it' ? 'Ruolo' : 'Role'}</label>
-                      <select value={formData.role || 'client'} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm">
-                        <option value="client">{language === 'it' ? 'Cliente' : 'Client'}</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                  )}
+                  {/* ── RUOLO UTENTE ── */}
+                  <div className="bg-cyan-500/5 rounded-lg p-4 border border-cyan-500/20">
+                    <label className="block text-xs font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 mb-3"><Briefcase className="w-3.5 h-3.5" /> {language === 'it' ? 'Ruolo Sistema' : 'System Role'}</label>
+                    <select value={formData.role || 'client'} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" data-testid="user-role-select">
+                      <option value="lead">📝 Lead</option>
+                      <option value="client">👤 {language === 'it' ? 'Cliente' : 'Client'}</option>
+                      <option value="collaborator">🤝 {language === 'it' ? 'Collaboratore' : 'Collaborator'}</option>
+                      <option value="editor">✏️ Editor</option>
+                      <option value="manager">📊 Manager</option>
+                      <option value="admin">🔐 Admin</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {language === 'it' 
+                        ? '• Lead/Cliente: accesso area clienti • Collaboratore/Editor: accesso limitato admin • Manager/Admin: accesso completo'
+                        : '• Lead/Client: client area access • Collaborator/Editor: limited admin • Manager/Admin: full access'}
+                    </p>
+                  </div>
                 </>
               )}
 
