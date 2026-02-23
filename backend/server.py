@@ -187,31 +187,56 @@ class UserCreate(BaseModel):
     password: str
     email: str = ""
     full_name: str = ""
-    role: str = "client"  # "client" or "admin"
+    role: str = "client"
     # Personal
     phone: str = ""
+    whatsapp: str = ""
     date_of_birth: str = ""
     address: str = ""
     city: str = ""
     province: str = ""
     postal_code: str = ""
     country: str = "Italia"
-    fiscal_code: str = ""  # Codice Fiscale
+    fiscal_code: str = ""
     # Business
     client_type: str = "private"  # "private", "business", "foreign"
-    company_name: str = ""  # Ragione Sociale
-    vat_number: str = ""  # Partita IVA / VAT
-    sdi_code: str = ""  # Codice Univoco SDI
+    company_name: str = ""
+    vat_number: str = ""
+    sdi_code: str = ""
     pec: str = ""
     website: str = ""
-    # Admin notes
+    # Social & Digital
+    instagram: str = ""
+    facebook: str = ""
+    linkedin: str = ""
+    tiktok: str = ""
+    youtube: str = ""
+    twitter: str = ""
+    telegram: str = ""
+    # Marketing & CRM
+    lead_source: str = ""  # come ci ha trovato
+    referral: str = ""  # chi lo ha referenziato
+    client_status: str = "active"  # lead, prospect, active, inactive, vip
+    preferred_contact: str = ""  # email, phone, whatsapp, instagram, etc
+    interests: str = ""  # interessi/obiettivi
+    tags: str = ""  # tag per segmentazione (comma-separated)
+    marketing_email_consent: bool = False
+    marketing_sms_consent: bool = False
+    follows_instagram: bool = False
+    follows_facebook: bool = False
+    follows_youtube: bool = False
+    follows_tiktok: bool = False
+    engagement_level: str = ""  # cold, warm, hot
+    last_contact_date: str = ""
+    # Admin
     notes: str = ""
-    purchase_history: str = ""  # Storico acquisti
+    purchase_history: str = ""
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    whatsapp: Optional[str] = None
     date_of_birth: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
@@ -225,6 +250,27 @@ class UserUpdate(BaseModel):
     sdi_code: Optional[str] = None
     pec: Optional[str] = None
     website: Optional[str] = None
+    instagram: Optional[str] = None
+    facebook: Optional[str] = None
+    linkedin: Optional[str] = None
+    tiktok: Optional[str] = None
+    youtube: Optional[str] = None
+    twitter: Optional[str] = None
+    telegram: Optional[str] = None
+    lead_source: Optional[str] = None
+    referral: Optional[str] = None
+    client_status: Optional[str] = None
+    preferred_contact: Optional[str] = None
+    interests: Optional[str] = None
+    tags: Optional[str] = None
+    marketing_email_consent: Optional[bool] = None
+    marketing_sms_consent: Optional[bool] = None
+    follows_instagram: Optional[bool] = None
+    follows_facebook: Optional[bool] = None
+    follows_youtube: Optional[bool] = None
+    follows_tiktok: Optional[bool] = None
+    engagement_level: Optional[str] = None
+    last_contact_date: Optional[str] = None
     notes: Optional[str] = None
     purchase_history: Optional[str] = None
     password: Optional[str] = None
