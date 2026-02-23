@@ -7,7 +7,7 @@ import {
   Save, X, Upload, CheckCircle, AlertCircle, HardDrive,
   Folder, Eye, EyeOff, UserCheck, Youtube, RefreshCw, ExternalLink,
   MessageSquare, Bell, Power, PowerOff, Send, Building2, User,
-  ClipboardList, Calendar
+  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
