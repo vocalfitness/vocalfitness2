@@ -1667,9 +1667,18 @@ const AdminPage = () => {
                     {chatMessages.length === 0 && (
                       <p className="text-slate-500 text-center py-8">{language === 'it' ? 'Nessun messaggio. Inizia la conversazione!' : 'No messages. Start the conversation!'}</p>
                     )}
-                    {chatMessages.map(m => (
-                      <div key={m.id} className={`flex ${m.sender_id === chatUser.id ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${m.sender_id === chatUser.id ? 'bg-slate-700 text-white' : 'bg-emerald-600 text-white'}`}>
+                    {chatMessages.map(m => {
+                      const youtubeId = getYouTubeVideoId(m.media_url);
+                      const isAdminMessage = m.sender_id !== chatUser.id;
+                      return (
+                      <div key={m.id} className={`flex ${m.sender_id === chatUser.id ? 'justify-start' : 'justify-end'} group`}>
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 relative ${m.sender_id === chatUser.id ? 'bg-slate-700 text-white' : 'bg-emerald-600 text-white'}`}>
+                          {/* Delete button for admin's own messages */}
+                          {isAdminMessage && (
+                            <button onClick={() => handleDeleteMessage(m.id)} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title={language === 'it' ? 'Elimina' : 'Delete'}>
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          )}
                           {m.message_type === 'task' && (
                             <div className="flex items-center gap-2 text-xs font-medium mb-1 opacity-80">
                               <ClipboardList className="w-3 h-3" /> {language === 'it' ? 'Compito' : 'Task'}
@@ -1679,16 +1688,42 @@ const AdminPage = () => {
                           {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
                           {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
                           {m.task_due_date && <p className="text-xs mt-1 opacity-70">Scadenza: {m.task_due_date}</p>}
+                          
+                          {/* Video rendering - YouTube or direct */}
                           {m.media_url && m.message_type === 'video' && (
-                            <video controls className="mt-2 rounded-lg max-w-full max-h-48" src={m.media_url} />
+                            youtubeId ? (
+                              <div className="mt-2 rounded-lg overflow-hidden aspect-video">
+                                <iframe 
+                                  src={`https://www.youtube.com/embed/${youtubeId}`}
+                                  className="w-full h-full min-h-[180px]"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  title="Video"
+                                />
+                              </div>
+                            ) : (
+                              <video controls className="mt-2 rounded-lg max-w-full max-h-48" src={m.media_url} />
+                            )
                           )}
+                          
+                          {/* Audio rendering */}
                           {m.media_url && m.message_type === 'audio' && (
                             <audio controls className="mt-2 w-full" src={m.media_url} />
                           )}
+                          
+                          {/* File/Document link */}
+                          {m.media_url && m.message_type === 'file' && (
+                            <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                              <FileText className="w-4 h-4" />
+                              <span className="text-sm underline">{m.file_name || m.media_url.split('/').pop() || 'Apri documento'}</span>
+                              <ExternalLink className="w-3 h-3 ml-auto" />
+                            </a>
+                          )}
+                          
                           <p className="text-[10px] mt-1 opacity-50">{new Date(m.created_at).toLocaleString(language === 'it' ? 'it-IT' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>
                         </div>
                       </div>
-                    ))}
+                    )})}
                     <div ref={chatEndRef} />
                   </div>
 
