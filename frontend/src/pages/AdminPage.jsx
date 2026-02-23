@@ -1687,6 +1687,7 @@ const AdminPage = () => {
                 {showModal === 'create-content' && 'Nuovo Contenuto'}
                 {showModal === 'edit-content' && 'Modifica Contenuto'}
                 {showModal === 'create-user' && 'Nuovo Utente'}
+                {showModal === 'edit-user' && (language === 'it' ? 'Modifica Utente' : 'Edit User')}
                 {showModal === 'import-youtube' && 'Importa Playlist YouTube'}
                 {showModal === 'edit-youtube-users' && 'Modifica Utenti Playlist'}
                 {showModal === 'create-popup' && (language === 'it' ? 'Nuovo Messaggio Pop-up' : 'New Pop-up Message')}
