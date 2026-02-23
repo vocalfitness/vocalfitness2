@@ -143,6 +143,18 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Applicato sia a contenuti area clienti che messaggi pop-up
   - Colonna thumbnail nella tabella contenuti admin
   - Rigenerazione singola (bottone per riga) e bulk (bottone "Rigenera anteprime")
+- ✅ **Anagrafica Clienti Completa** (implementato 23/02/2026)
+  - Campi personali: nome, cognome, email, telefono, data nascita, indirizzo completo, codice fiscale
+  - Tipo cliente: Privato / Business / Estero
+  - Campi business: ragione sociale, P.IVA/VAT, codice univoco SDI, PEC, website
+  - Storico acquisti e note admin
+  - Pulsante Edit e form completo con tutti i campi
+- ✅ **Messaggistica Bidirezionale** (implementato 23/02/2026)
+  - Chat admin ↔ cliente con supporto testo, video, audio, compiti
+  - Tab "Messaggi" nel pannello admin con lista conversazioni e chat
+  - Pannello messaggi nell'area clienti con badge contatore non letti
+  - Compiti assegnabili con scadenza e pulsante "completato"
+  - Notifica email automatica via Zoho SMTP ad ogni nuovo messaggio
 
 ## Backlog
 
