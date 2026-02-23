@@ -2660,6 +2660,242 @@ async def update_playlist_users(playlist_doc_id: str, data: AssignUsersRequest, 
         "message": "Utenti aggiornati per la playlist e tutti i contenuti"
     }
 
+# ==================== MESSAGING ENDPOINTS ====================
+
+def send_notification_email(recipient_email: str, sender_name: str, message_preview: str, message_type: str = "text"):
+    """Send email notification for new message"""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    if not recipient_email:
+        return False
+    
+    try:
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.zoho.eu')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_USER', '')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        
+        if not smtp_password:
+            return False
+        
+        type_label = {"text": "Messaggio", "audio": "Audio", "video": "Video", "task": "Compito"}.get(message_type, "Messaggio")
+        
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"VocalFitness - Nuovo {type_label} da {sender_name}"
+        msg['From'] = smtp_user
+        msg['To'] = recipient_email
+        
+        preview = (message_preview[:150] + "...") if len(message_preview) > 150 else message_preview
+        
+        html_body = f"""
+        <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:20px;">
+        <div style="max-width:500px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+            <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:20px;text-align:center;">
+                <h2 style="color:#f59e0b;margin:0;">VocalFitness</h2>
+            </div>
+            <div style="padding:24px;">
+                <p style="color:#64748b;font-size:14px;">Hai ricevuto un nuovo {type_label.lower()} da <strong>{sender_name}</strong>:</p>
+                <div style="background:#f8fafc;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;">
+                    <p style="margin:0;color:#1e293b;">{preview}</p>
+                </div>
+                <a href="{os.environ.get('FRONTEND_URL', 'https://admin-notifications-2.preview.emergentagent.com')}/area-clienti" 
+                   style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">
+                    Vai all'Area Riservata
+                </a>
+            </div>
+        </div>
+        </body></html>"""
+        
+        msg.attach(MIMEText(html_body, 'html'))
+        
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        logging.warning(f"Email notification failed: {e}")
+        return False
+
+
+def get_conversation_id(user1_id: str, user2_id: str) -> str:
+    """Generate a consistent conversation ID between two users"""
+    ids = sorted([user1_id, user2_id])
+    return f"conv_{ids[0][:8]}_{ids[1][:8]}"
+
+
+@api_router.get("/admin/messages/conversations")
+async def get_admin_conversations(admin: dict = Depends(get_admin_user)):
+    """Get all conversations for admin"""
+    admin_id = admin["id"]
+    # Get unique conversation partners
+    pipeline = [
+        {"$match": {"$or": [{"sender_id": admin_id}, {"recipient_id": admin_id}]}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": "$conversation_id",
+            "last_message": {"$first": "$$ROOT"},
+            "unread_count": {"$sum": {"$cond": [{"$and": [{"$eq": ["$recipient_id", admin_id]}, {"$eq": ["$read", False]}]}, 1, 0]}}
+        }},
+        {"$sort": {"last_message.created_at": -1}}
+    ]
+    conversations = await db.messages.aggregate(pipeline).to_list(100)
+    
+    # Get user details for each conversation
+    result = []
+    for conv in conversations:
+        msg = conv["last_message"]
+        msg.pop("_id", None)
+        partner_id = msg["sender_id"] if msg["sender_id"] != admin_id else msg["recipient_id"]
+        partner = await db.users.find_one({"id": partner_id}, {"_id": 0, "hashed_password": 0})
+        result.append({
+            "conversation_id": conv["_id"],
+            "partner": partner,
+            "last_message": msg,
+            "unread_count": conv["unread_count"]
+        })
+    return result
+
+
+@api_router.get("/admin/messages/{user_id}")
+async def get_admin_messages_with_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Get all messages between admin and a specific user"""
+    admin_id = admin["id"]
+    conv_id = get_conversation_id(admin_id, user_id)
+    messages = await db.messages.find(
+        {"conversation_id": conv_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    # Mark as read
+    await db.messages.update_many(
+        {"conversation_id": conv_id, "recipient_id": admin_id, "read": False},
+        {"$set": {"read": True}}
+    )
+    return messages
+
+
+@api_router.post("/admin/messages")
+async def send_admin_message(msg: MessageCreate, admin: dict = Depends(get_admin_user)):
+    """Send a message from admin to a user"""
+    admin_id = admin["id"]
+    recipient = await db.users.find_one({"id": msg.recipient_id}, {"_id": 0, "hashed_password": 0})
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Destinatario non trovato")
+    
+    conv_id = get_conversation_id(admin_id, msg.recipient_id)
+    message_doc = {
+        "id": str(uuid.uuid4()),
+        "conversation_id": conv_id,
+        "sender_id": admin_id,
+        "sender_name": admin.get("full_name") or admin.get("username", "Admin"),
+        "recipient_id": msg.recipient_id,
+        "content": msg.content,
+        "message_type": msg.message_type,
+        "media_url": msg.media_url,
+        "embed_code": msg.embed_code,
+        "task_description": msg.task_description,
+        "task_due_date": msg.task_due_date,
+        "task_completed": False,
+        "read": False,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.messages.insert_one(message_doc)
+    message_doc.pop("_id", None)
+    
+    # Send email notification in background
+    import threading
+    threading.Thread(target=send_notification_email, args=(
+        recipient.get("email", ""),
+        admin.get("full_name") or "VocalFitness Admin",
+        msg.content or msg.task_description or f"Nuovo {msg.message_type}",
+        msg.message_type
+    )).start()
+    
+    return message_doc
+
+
+@api_router.get("/members/messages")
+async def get_member_messages(current_user: dict = Depends(get_current_user)):
+    """Get all messages for the current user (with admin)"""
+    user_id = current_user["id"]
+    # Find admin user
+    admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1})
+    if not admin_user:
+        return []
+    admin_id = admin_user["id"]
+    conv_id = get_conversation_id(admin_id, user_id)
+    messages = await db.messages.find(
+        {"conversation_id": conv_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    # Mark as read
+    await db.messages.update_many(
+        {"conversation_id": conv_id, "recipient_id": user_id, "read": False},
+        {"$set": {"read": True}}
+    )
+    return messages
+
+
+@api_router.post("/members/messages")
+async def send_member_message(msg: MessageCreate, current_user: dict = Depends(get_current_user)):
+    """Send a message from client to admin"""
+    user_id = current_user["id"]
+    admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0})
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Admin non trovato")
+    
+    conv_id = get_conversation_id(admin_user["id"], user_id)
+    message_doc = {
+        "id": str(uuid.uuid4()),
+        "conversation_id": conv_id,
+        "sender_id": user_id,
+        "sender_name": current_user.get("full_name") or current_user.get("username", ""),
+        "recipient_id": admin_user["id"],
+        "content": msg.content,
+        "message_type": msg.message_type,
+        "media_url": msg.media_url,
+        "embed_code": msg.embed_code,
+        "task_description": msg.task_description,
+        "task_due_date": msg.task_due_date,
+        "task_completed": False,
+        "read": False,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.messages.insert_one(message_doc)
+    message_doc.pop("_id", None)
+    
+    # Notify admin by email
+    import threading
+    threading.Thread(target=send_notification_email, args=(
+        admin_user.get("email", ""),
+        current_user.get("full_name") or current_user.get("username", "Cliente"),
+        msg.content or f"Nuovo {msg.message_type}",
+        msg.message_type
+    )).start()
+    
+    return message_doc
+
+
+@api_router.get("/members/messages/unread-count")
+async def get_member_unread_count(current_user: dict = Depends(get_current_user)):
+    """Get unread message count for current user"""
+    user_id = current_user["id"]
+    count = await db.messages.count_documents({"recipient_id": user_id, "read": False})
+    return {"unread_count": count}
+
+
+@api_router.post("/members/messages/{message_id}/complete-task")
+async def complete_task(message_id: str, current_user: dict = Depends(get_current_user)):
+    """Mark a task as completed"""
+    result = await db.messages.update_one(
+        {"id": message_id, "recipient_id": current_user["id"], "message_type": "task"},
+        {"$set": {"task_completed": True}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Compito non trovato")
+    return {"message": "Compito completato"}
+
+
 # ==================== POPUP MESSAGES ENDPOINTS ====================
 
 @api_router.post("/admin/popups")
