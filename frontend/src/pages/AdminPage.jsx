@@ -1071,6 +1071,9 @@ const AdminPage = () => {
           <Button onClick={() => setActiveTab('popups')} className={activeTab === 'popups' ? 'bg-amber-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-popups">
             <MessageSquare className="w-4 h-4 mr-2" /> {t.popupMessages} ({popupMessages.length})
           </Button>
+          <Button onClick={() => { setActiveTab('messaging'); fetchConversations(); }} className={activeTab === 'messaging' ? 'bg-emerald-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-messaging">
+            <Send className="w-4 h-4 mr-2" /> {language === 'it' ? 'Messaggi' : 'Messages'}
+          </Button>
         </div>
 
         {/* Storage Stats */}
