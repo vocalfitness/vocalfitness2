@@ -5,80 +5,32 @@ import {
   ArrowRight, BarChart3, Clock, 
   GraduationCap, Calendar, Check, Phone, Mail, Download,
   Mic2, BrainCircuit, AudioWaveform, Presentation,
-  Monitor, LineChart, ClipboardCheck, Play, Headphones,
-  MessageSquare, Activity, FileText
+  Monitor, LineChart, ClipboardCheck, Headphones,
+  Activity
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
 
 const MedtronicLandingPage = () => {
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
-  const [activeVideo, setActiveVideo] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Training videos
-  const trainingVideos = [
-    {
-      id: 1,
-      url: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qo5q7c4c_ad501a89-967e-48e3-99fd-4f1d12412ba5.mp4',
-      title: 'Articulatory Workshop Session'
-    },
-    {
-      id: 2,
-      url: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/45ylxra6_4d1a8b4c-feeb-433e-b1a7-37e27b10d238.mp4',
-      title: 'Group Training Exercise'
-    },
-    {
-      id: 3,
-      url: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/mo03g0sv_849bf25e-793e-43a4-b188-09197516b84b.mp4',
-      title: 'Phonetics Practice Session'
-    },
-    {
-      id: 4,
-      url: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/bvvtq8nw_39659c96-0738-4b6f-9e27-1a762972c150.mp4',
-      title: 'Speech Production Training'
-    },
-    {
-      id: 5,
-      url: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3dkg7o1q_a1175e9c-c731-46a7-bd5f-90a9591257fe.mp4',
-      title: 'Pronunciation Workshop'
-    }
-  ];
+  // Background videos for visual elements
+  const bgVideos = {
+    hero: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qo5q7c4c_ad501a89-967e-48e3-99fd-4f1d12412ba5.mp4',
+    program: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/45ylxra6_4d1a8b4c-feeb-433e-b1a7-37e27b10d238.mp4',
+    pilot: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/mo03g0sv_849bf25e-793e-43a4-b188-09197516b84b.mp4'
+  };
 
   // Program modules
   const programModules = [
-    {
-      number: '01',
-      title: 'Speech Anatomy & Physiology',
-      hours: 4,
-      description: 'Understanding the physical mechanics of speech production for conscious articulatory control.'
-    },
-    {
-      number: '02',
-      title: 'Psychoacoustics & Perception',
-      hours: 4,
-      description: 'Developing auditory awareness for self-monitoring and continuous improvement.'
-    },
-    {
-      number: '03',
-      title: 'Segmentals - Individual Sounds',
-      hours: 6,
-      description: 'Mastering English phonemes through targeted articulatory practice.'
-    },
-    {
-      number: '04',
-      title: 'Suprasegmentals - Rhythm/Flow',
-      hours: 6,
-      description: 'Acquiring natural English prosody for improved comprehension by international listeners.'
-    },
-    {
-      number: '05',
-      title: 'Music Notation & Integration',
-      hours: 5,
-      description: 'Consolidating skills through business scenario practice and personalized feedback.'
-    }
+    { number: '01', title: 'Speech Anatomy & Physiology', hours: 4, description: 'Understanding the physical mechanics of speech production for conscious articulatory control.' },
+    { number: '02', title: 'Psychoacoustics & Perception', hours: 4, description: 'Developing auditory awareness for self-monitoring and continuous improvement.' },
+    { number: '03', title: 'Segmentals - Individual Sounds', hours: 6, description: 'Mastering English phonemes through targeted articulatory practice.' },
+    { number: '04', title: 'Suprasegmentals - Rhythm/Flow', hours: 6, description: 'Acquiring natural English prosody for improved comprehension by international listeners.' },
+    { number: '05', title: 'Music Notation & Integration', hours: 5, description: 'Consolidating skills through business scenario practice and personalized feedback.' }
   ];
 
   // Post-foundation add-ons
@@ -109,9 +61,21 @@ const MedtronicLandingPage = () => {
         </div>
       </header>
 
-      {/* 1. HERO SECTION */}
-      <section className="bg-gradient-to-b from-slate-50 to-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
+      {/* 1. HERO SECTION - with video accent */}
+      <section className="relative bg-gradient-to-b from-slate-50 to-white py-20 overflow-hidden">
+        {/* Video accent - right side decorative */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[400px] opacity-[0.08] pointer-events-none hidden lg:block">
+          <video 
+            src={bgVideos.hero} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover rounded-l-3xl"
+          />
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="max-w-4xl">
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
               Specialist Spoken English Training Proposal
@@ -120,7 +84,7 @@ const MedtronicLandingPage = () => {
               for Medtronic Italy HR/L&D
             </p>
             
-            <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 inline-block">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 inline-block shadow-sm">
               <h2 className="text-xl font-semibold text-slate-800 mb-2">Speak Right 101 Pilot Program</h2>
               <p className="text-slate-600">25-hour foundation training for international communication excellence</p>
             </div>
@@ -207,37 +171,21 @@ const MedtronicLandingPage = () => {
         </div>
       </section>
 
-      {/* Training in Action - Videos */}
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Training in Action</h2>
-            <p className="text-slate-600">Live workshop sessions demonstrating our hands-on methodology</p>
-          </div>
-          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {trainingVideos.map((video) => (
-              <div key={video.id} className="relative group cursor-pointer" onClick={() => setActiveVideo(video)}>
-                <video 
-                  src={video.url} 
-                  className="w-full h-32 object-cover rounded-lg border border-slate-200"
-                  muted
-                  preload="metadata"
-                />
-                <div className="absolute inset-0 bg-slate-900/40 rounded-lg flex items-center justify-center group-hover:bg-slate-900/60 transition-colors">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                    <Play className="w-4 h-4 text-slate-800 ml-0.5" />
-                  </div>
-                </div>
-                <p className="text-xs text-slate-600 mt-2 text-center">{video.title}</p>
-              </div>
-            ))}
-          </div>
+      {/* 3. PROGRAM STRUCTURE - with subtle video background */}
+      <section className="relative py-16 bg-slate-50 overflow-hidden">
+        {/* Subtle video background - left side */}
+        <div className="absolute left-0 bottom-0 w-[350px] h-[280px] opacity-[0.06] pointer-events-none hidden xl:block">
+          <video 
+            src={bgVideos.program} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover rounded-tr-3xl"
+          />
         </div>
-      </section>
 
-      {/* 3. PROGRAM STRUCTURE */}
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Speak Right 101 Foundation</h2>
             <p className="text-slate-600 text-lg">25 hours across 5 integrated modules</p>
@@ -245,7 +193,7 @@ const MedtronicLandingPage = () => {
 
           <div className="space-y-4 mb-12">
             {programModules.map((module, i) => (
-              <div key={i} className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-sm transition-shadow">
                 <div className="p-6 flex items-center gap-6">
                   <div className="w-14 h-14 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
                     <span className="text-white font-bold text-lg">{module.number}</span>
@@ -253,7 +201,7 @@ const MedtronicLandingPage = () => {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-slate-800 text-lg">{module.title}</h3>
-                      <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-sm text-slate-600 font-medium">{module.hours}h</span>
+                      <span className="px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-sm text-slate-600 font-medium">{module.hours}h</span>
                     </div>
                     <p className="text-slate-600">{module.description}</p>
                   </div>
@@ -263,7 +211,7 @@ const MedtronicLandingPage = () => {
           </div>
 
           {/* Post-Foundation Add-ons */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+          <div className="bg-white rounded-xl border border-slate-200 p-8">
             <h3 className="font-semibold text-slate-800 mb-6 uppercase tracking-wide text-sm">Post-Foundation Add-ons</h3>
             <div className="grid md:grid-cols-2 gap-4">
               {postFoundationAddons.map((addon, i) => (
@@ -282,9 +230,22 @@ const MedtronicLandingPage = () => {
         </div>
       </section>
 
-      {/* 4. ITALY PILOT */}
-      <section className="py-16 bg-blue-600">
-        <div className="max-w-6xl mx-auto px-6">
+      {/* 4. ITALY PILOT - with video accent strip */}
+      <section className="relative py-16 bg-blue-600 overflow-hidden">
+        {/* Video strip accent - right side */}
+        <div className="absolute right-0 top-0 bottom-0 w-32 opacity-20 pointer-events-none hidden lg:block">
+          <video 
+            src={bgVideos.pilot} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-600" />
+        </div>
+
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-2">Italy Pilot Proposal — Phase 1</h2>
           </div>
@@ -503,27 +464,6 @@ const MedtronicLandingPage = () => {
           </p>
         </div>
       </footer>
-
-      {/* Video Modal */}
-      {activeVideo && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setActiveVideo(null)}>
-          <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-            <button 
-              onClick={() => setActiveVideo(null)} 
-              className="absolute -top-12 right-0 text-white hover:text-slate-300"
-            >
-              Close
-            </button>
-            <video 
-              src={activeVideo.url} 
-              controls 
-              autoPlay 
-              className="w-full rounded-lg"
-            />
-            <p className="text-white text-center mt-4">{activeVideo.title}</p>
-          </div>
-        </div>
-      )}
 
       {/* Quote Form Modal */}
       {isQuoteFormOpen && (
