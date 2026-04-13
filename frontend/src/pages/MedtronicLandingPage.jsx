@@ -3,10 +3,10 @@ import { Button } from '../components/ui/button';
 import { 
   Building2, Users, Target, Globe, 
   ArrowRight, BarChart3, Clock, 
-  GraduationCap, Calendar, Check, Phone, Mail, Download,
+  GraduationCap, Calendar, Check, Mail, Download,
   Mic2, BrainCircuit, AudioWaveform, Presentation,
   Monitor, LineChart, ClipboardCheck, Headphones,
-  Activity
+  Activity, MessageCircle
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
 
@@ -479,8 +479,8 @@ const MedtronicLandingPage = () => {
               <a href="mailto:corporate@vocalfitness.org" className="flex items-center gap-2 hover:text-white transition-colors">
                 <Mail className="w-5 h-5" /> corporate@vocalfitness.org
               </a>
-              <a href="tel:+390000000000" className="flex items-center gap-2 hover:text-white transition-colors">
-                <Phone className="w-5 h-5" /> +39 XXX XXX XXXX
+              <a href="https://wa.me/393515765749" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition-colors">
+                <MessageCircle className="w-5 h-5" /> +39 351 576 5749
               </a>
             </div>
           </div>
