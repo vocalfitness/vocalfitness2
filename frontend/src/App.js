@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import ResourcesPage from "./pages/ResourcesPage";
 import CorporateTrainingPage from "./pages/CorporateTrainingPage";
+import MedtronicLandingPage from "./pages/MedtronicLandingPage";
 import LoginPage from "./pages/LoginPage";
 import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
@@ -21,6 +22,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/risorse" element={<ResourcesPage />} />
               <Route path="/corporate-training" element={<CorporateTrainingPage />} />
+              <Route path="/speak-right-medtronic" element={<MedtronicLandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/area-clienti" element={<MembersAreaPage />} />
               <Route path="/admin" element={<AdminPage />} />

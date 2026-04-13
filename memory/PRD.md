@@ -165,6 +165,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Badge colorati per ogni ruolo nella tabella utenti
   - Spiegazione permessi sotto il selettore ruolo
   - Ogni sezione ha icona, titolo e chevron per indicare stato espanso/compresso
+- ✅ **Landing Page Corporate Medtronic** (implementato 23/02/2026)
+  - Pagina dedicata `/speak-right-medtronic` nascosta dal menu principale
+  - Target: HR Medtronic Italia - dal Board al personale operativo
+  - 6 moduli syllabus: Segmentali, Soprasegmentali, Psicoacustica, Fisiologia, SOVT, Notazione Musicale
+  - 3 pricing tiers: Speak Right 101 (€79), Pro (€119), Executive (€249)
+  - 5 Key Assessment Methods: Intelligibility Audits, Analisi Spettrografica, Perceptual Ratings, etc.
+  - 4 Tools VocalFitness per tracking: Analyzer, Pitch Coach, Ear Trainer, Stamina Tracker
+  - Implementation Roadmap 6 mesi con deliverable
+  - Confronto competitivo vs EF Education First
 
 ## Backlog
 
