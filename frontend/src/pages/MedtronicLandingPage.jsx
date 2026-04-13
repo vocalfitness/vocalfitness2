@@ -17,11 +17,13 @@ const MedtronicLandingPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Background videos for visual elements
-  const bgVideos = {
+  // Videos for visual elements
+  const videos = {
     hero: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qo5q7c4c_ad501a89-967e-48e3-99fd-4f1d12412ba5.mp4',
-    program: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/45ylxra6_4d1a8b4c-feeb-433e-b1a7-37e27b10d238.mp4',
-    pilot: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/mo03g0sv_849bf25e-793e-43a4-b188-09197516b84b.mp4'
+    opportunity: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/45ylxra6_4d1a8b4c-feeb-433e-b1a7-37e27b10d238.mp4',
+    pilot: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/mo03g0sv_849bf25e-793e-43a4-b188-09197516b84b.mp4',
+    measurement: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/bvvtq8nw_39659c96-0738-4b6f-9e27-1a762972c150.mp4',
+    digital: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3dkg7o1q_a1175e9c-c731-46a7-bd5f-90a9591257fe.mp4'
   };
 
   // Program modules
@@ -61,59 +63,67 @@ const MedtronicLandingPage = () => {
         </div>
       </header>
 
-      {/* 1. HERO SECTION - with video accent */}
-      <section className="relative bg-gradient-to-b from-slate-50 to-white py-20 overflow-hidden">
-        {/* Video accent - right side decorative */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[400px] opacity-[0.08] pointer-events-none hidden lg:block">
-          <video 
-            src={bgVideos.hero} 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover rounded-l-3xl"
-          />
-        </div>
-        
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
-              Specialist Spoken English Training Proposal
-            </h1>
-            <p className="text-2xl text-blue-600 font-medium mb-8">
-              for Medtronic Italy HR/L&D
-            </p>
-            
-            <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 inline-block shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-800 mb-2">Speak Right 101 Pilot Program</h2>
-              <p className="text-slate-600">25-hour foundation training for international communication excellence</p>
-            </div>
-
-            <div className="mb-10">
-              <p className="text-slate-500 text-sm uppercase tracking-wide mb-2">Target Groups</p>
-              <p className="text-lg text-slate-700">
-                <span className="font-medium">Leadership</span> • <span className="font-medium">Commercial</span> • <span className="font-medium">Medical/Technical</span>
+      {/* 1. HERO SECTION - with prominent video on right */}
+      <section className="bg-gradient-to-b from-slate-50 to-white py-16 lg:py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left - Content */}
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
+                Specialist Spoken English Training Proposal
+              </h1>
+              <p className="text-2xl text-blue-600 font-medium mb-8">
+                for Medtronic Italy HR/L&D
               </p>
+              
+              <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 shadow-sm">
+                <h2 className="text-xl font-semibold text-slate-800 mb-2">Speak Right 101 Pilot Program</h2>
+                <p className="text-slate-600">25-hour foundation training for international communication excellence</p>
+              </div>
+
+              <div className="mb-10">
+                <p className="text-slate-500 text-sm uppercase tracking-wide mb-2">Target Groups</p>
+                <p className="text-lg text-slate-700">
+                  <span className="font-medium">Leadership</span> • <span className="font-medium">Commercial</span> • <span className="font-medium">Medical/Technical</span>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <Button onClick={() => setIsQuoteFormOpen(true)} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6">
+                  Request 30-Minute Pilot Discussion <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <Button variant="outline" size="lg" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-6">
+                  <Download className="w-4 h-4 mr-2" /> Download Proposal PDF
+                </Button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-4">
-              <Button onClick={() => setIsQuoteFormOpen(true)} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
-                Request 30-Minute Pilot Discussion <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button variant="outline" size="lg" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-8">
-                <Download className="w-4 h-4 mr-2" /> Download Proposal PDF
-              </Button>
+            {/* Right - Video (fully visible) */}
+            <div className="relative hidden lg:block">
+              <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+                <video 
+                  src={videos.hero} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-[400px] object-cover"
+                />
+              </div>
+              <div className="absolute -bottom-4 -left-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
+                Live Training Session
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. OPPORTUNITY SECTION */}
+      {/* 2. OPPORTUNITY SECTION - with video accent */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Left Column */}
-            <div className="space-y-10">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Left Column - Context & Gap */}
+            <div className="lg:col-span-2 space-y-10">
               {/* Medtronic Context */}
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -149,43 +159,45 @@ const MedtronicLandingPage = () => {
                   ))}
                 </ul>
               </div>
+
+              {/* Why Now */}
+              <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-800 uppercase tracking-wide text-sm">Why Now</h3>
+                </div>
+                <p className="text-lg text-slate-800 font-medium">
+                  Italy-first pilot validates methodology before group-wide rollout
+                </p>
+              </div>
             </div>
 
-            {/* Right Column - Why Now */}
-            <div className="bg-blue-50 rounded-xl p-8 border border-blue-100 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+            {/* Right - Video */}
+            <div className="hidden lg:block">
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 sticky top-24">
+                <video 
+                  src={videos.opportunity} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-[350px] object-cover"
+                />
+                <div className="bg-slate-800 text-white px-4 py-3 text-sm">
+                  <p className="font-medium">Group Practice Session</p>
+                  <p className="text-slate-400 text-xs">Articulatory training methodology</p>
                 </div>
-                <h3 className="font-semibold text-slate-800 uppercase tracking-wide text-sm">Why Now</h3>
               </div>
-              <p className="text-xl text-slate-800 font-medium">
-                Italy-first pilot validates methodology before group-wide rollout
-              </p>
-              <p className="text-slate-600 mt-4">
-                Medtronic Italy serves as the ideal test market for this specialist training before 
-                expanding to other EMEA regions and global locations.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. PROGRAM STRUCTURE - with subtle video background */}
-      <section className="relative py-16 bg-slate-50 overflow-hidden">
-        {/* Subtle video background - left side */}
-        <div className="absolute left-0 bottom-0 w-[350px] h-[280px] opacity-[0.06] pointer-events-none hidden xl:block">
-          <video 
-            src={bgVideos.program} 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover rounded-tr-3xl"
-          />
-        </div>
-
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+      {/* 3. PROGRAM STRUCTURE */}
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Speak Right 101 Foundation</h2>
             <p className="text-slate-600 text-lg">25 hours across 5 integrated modules</p>
@@ -230,27 +242,14 @@ const MedtronicLandingPage = () => {
         </div>
       </section>
 
-      {/* 4. ITALY PILOT - with video accent strip */}
-      <section className="relative py-16 bg-blue-600 overflow-hidden">
-        {/* Video strip accent - right side */}
-        <div className="absolute right-0 top-0 bottom-0 w-32 opacity-20 pointer-events-none hidden lg:block">
-          <video 
-            src={bgVideos.pilot} 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent to-blue-600" />
-        </div>
-
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+      {/* 4. ITALY PILOT - with video */}
+      <section className="py-16 bg-blue-600">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-2">Italy Pilot Proposal — Phase 1</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-10">
+          <div className="grid lg:grid-cols-3 gap-8 mb-10">
             {/* Pilot Details */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8">
               <div className="space-y-4">
@@ -262,9 +261,23 @@ const MedtronicLandingPage = () => {
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between items-center py-2 border-b border-white/20 last:border-0">
                     <span className="text-blue-100">{item.label}</span>
-                    <span className="text-white font-medium">{item.value}</span>
+                    <span className="text-white font-medium text-right">{item.value}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Video */}
+            <div className="hidden lg:block">
+              <div className="rounded-xl overflow-hidden shadow-lg h-full">
+                <video 
+                  src={videos.pilot} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full min-h-[250px] object-cover"
+                />
               </div>
             </div>
 
@@ -305,7 +318,7 @@ const MedtronicLandingPage = () => {
         </div>
       </section>
 
-      {/* 5. MEASUREMENT */}
+      {/* 5. MEASUREMENT - with video */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -313,7 +326,7 @@ const MedtronicLandingPage = () => {
             <p className="text-slate-600 text-lg">Pre/Post Program Evaluation</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-4 gap-6">
             {/* Intelligibility Audits */}
             <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
@@ -371,11 +384,25 @@ const MedtronicLandingPage = () => {
                 </li>
               </ul>
             </div>
+
+            {/* Video */}
+            <div className="hidden lg:block">
+              <div className="rounded-xl overflow-hidden shadow-lg border border-slate-200 h-full">
+                <video 
+                  src={videos.measurement} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full min-h-[250px] object-cover"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 6. DIGITAL TOOLS */}
+      {/* 6. DIGITAL TOOLS - with video */}
       <section className="py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -383,7 +410,7 @@ const MedtronicLandingPage = () => {
             <p className="text-slate-600 text-lg">Between-Lesson Practice Platform</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid lg:grid-cols-5 gap-6 mb-8">
             {[
               { name: 'VoiceLab', desc: 'Group recording + peer feedback', icon: Headphones },
               { name: 'Voice Analysis', desc: 'Pitch/stamina tracking tools', icon: Activity },
@@ -398,6 +425,20 @@ const MedtronicLandingPage = () => {
                 <p className="text-sm text-slate-600">{tool.desc}</p>
               </div>
             ))}
+            
+            {/* Video */}
+            <div className="hidden lg:block">
+              <div className="rounded-xl overflow-hidden shadow-lg border border-slate-200 h-full">
+                <video 
+                  src={videos.digital} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full min-h-[180px] object-cover"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="text-center">
