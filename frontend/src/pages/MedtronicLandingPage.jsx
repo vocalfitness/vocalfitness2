@@ -92,7 +92,7 @@ const MedtronicLandingPage = () => {
                 <Button onClick={() => setIsQuoteFormOpen(true)} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6">
                   Request 30-Minute Pilot Discussion <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-                <Button variant="outline" size="lg" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-6" onClick={() => window.open('https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5ek2hky6_vf-medtronic-proposal-v1.2-sales-figures.pdf', '_blank')}>
+                <Button variant="outline" size="lg" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-6" onClick={() => window.open('https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/v6rgpmxs_vf-medtronic-proposal-v1.2-sales-figures.pdf', '_blank')}>
                   <Download className="w-4 h-4 mr-2" /> Download Proposal PDF
                 </Button>
               </div>
@@ -468,7 +468,7 @@ const MedtronicLandingPage = () => {
             <Button onClick={() => setIsQuoteFormOpen(true)} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
               <Calendar className="w-5 h-5 mr-2" /> Schedule Pilot Discussion
             </Button>
-            <Button variant="outline" size="lg" className="border-slate-600 text-white hover:bg-slate-800 px-8" onClick={() => window.open('https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5ek2hky6_vf-medtronic-proposal-v1.2-sales-figures.pdf', '_blank')}>
+            <Button variant="outline" size="lg" className="border-slate-600 text-white hover:bg-slate-800 px-8" onClick={() => window.open('https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/v6rgpmxs_vf-medtronic-proposal-v1.2-sales-figures.pdf', '_blank')}>
               <Download className="w-5 h-5 mr-2" /> Download Proposal PDF
             </Button>
           </div>
