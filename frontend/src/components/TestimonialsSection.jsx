@@ -217,11 +217,15 @@ const TestimonialsSection = () => {
         <div className={`grid md:grid-cols-3 gap-6 transition-all duration-1000 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           {/* Quick testimonial cards */}
-          {[
+          {(language === 'it' ? [
             { role: "Tech Executive", quote: "Risultati straordinari in sole 8 settimane", rating: 5 },
             { role: "Opera Singer", quote: "Dizione perfetta per performance internazionali", rating: 5 },
             { role: "Business Leader", quote: "Fiducia vocale che ha trasformato la mia leadership", rating: 5 }
-          ].map((testimonial, index) => (
+          ] : [
+            { role: "Tech Executive", quote: "Outstanding results in just 8 weeks", rating: 5 },
+            { role: "Opera Singer", quote: "Perfect diction for international performances", rating: 5 },
+            { role: "Business Leader", quote: "Vocal confidence that transformed my leadership", rating: 5 }
+          ]).map((testimonial, index) => (
             <div key={index} className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/30 hover:bg-slate-800/50 transition-all duration-500 group">
               
               {/* Stars */}
@@ -246,41 +250,6 @@ const TestimonialsSection = () => {
               
             </div>
           ))}
-
-        </div>
-
-        {/* Trust indicators */}
-        <div className={`mt-16 text-center transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          
-          <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-2xl p-8 max-w-4xl mx-auto">
-            
-            <h3 className="text-2xl font-bold text-white mb-4">{text.globalRecognitions}</h3>
-            <p className="text-slate-400 mb-8 max-w-2xl mx-auto">{text.recognitionsDesc}</p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-center">
-              {[
-                { label: "Diesse", desc: "Associazione Docenti" },
-                { label: "MUR & MIUR", desc: "Ministeri Istruzione" },
-                { label: "Università Torino", desc: "LFAG Fonetica" },
-                { label: "E-Campus", desc: "Università Online" },
-                { label: "Oxford Alumni", desc: "Business Courses" },
-                { label: "EF Education First", desc: "Metodo Approvato" },
-                { label: "Cambridge", desc: "Assessment Partner" },
-                { label: "H-Farm & Link", desc: "University Partners" },
-                { label: "Senato Repubblica", desc: "Commissione Antimafia" },
-                { label: "Harvard BS Roma", desc: "Business Chapter" }
-              ].map((item, index) => (
-                <div key={index} className="group">
-                  <div className="w-16 h-16 mx-auto mb-3 bg-slate-700/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600/20 transition-all duration-300">
-                    <div className="w-8 h-8 bg-slate-500 rounded group-hover:bg-blue-400 transition-colors duration-300"></div>
-                  </div>
-                  <div className="text-white font-medium text-sm">{item.label}</div>
-                  <div className="text-slate-400 text-xs">{item.desc}</div>
-                </div>
-              ))}
-            </div>
-            
-          </div>
 
         </div>
 

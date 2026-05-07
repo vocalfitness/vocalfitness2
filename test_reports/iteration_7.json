@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only validation of bilingual EN/IT HomePage redesign (iteration 7). Verified: default IT language, IT/EN hero headlines, IT/EN Navbar items, brand-name compliance inside HomePage sections + #testimonials, Testimonials section positioned between #results (CEFR) and home-proof-section, removal of 'Global Recognitions' brand grid, Hero corporate CTA opens CorporateQuoteForm in EN ('Request Personalized Quote'), all section IDs (#hero, #method, #process, #programmes, #results, #testimonials, #professor, #integrate) exist for Navbar anchors, zero console errors on load + language toggle.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CorporateQuoteForm", "issue": "Select dropdown placeholder still shows Italian 'Seleziona...' even when language is set to EN (visible in 'Number of Employees', 'Indicative Annual Budget', 'Preferred Mode' selects). Other labels translate correctly. Minor i18n leak in select default option.", "selector": "[role='dialog'] select", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Global", "issues": ["Sticky CTA chip 'Book Free Assessment / Discover your level' renders at bottom-right and overlaps modal content area; modal still usable but z-index ordering with sticky CTA could be reviewed."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(LOW) Translate the default <option> placeholder ('Seleziona...') in CorporateQuoteForm select fields when language is 'en' (e.g., 'Select...').",
+    "(OPTIONAL) Confirm sticky CTA does not visually fight the modal overlay on smaller screens."
+  ],
+  "critical_code_review_comments": [
+    "HomePage.jsx is ~1100 lines including a large COPY object — consider extracting i18n COPY into /src/i18n/homepage.js to keep page component <700 lines.",
+    "TestimonialsSection still defines unused i18n keys (globalRecognitions, recognitionsDesc) after the brand grid was deleted — clean up dead strings.",
+    "Navbar 'Aziende'/'Companies' anchor points to /corporate-training (route navigation) while all other items are in-page anchors; this is intentional per request but worth a comment."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "95%"},
+  "test_credentials": "N/A — no auth flows tested",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All bilingual + Navbar anchor + Testimonials position + brand-name compliance + Hero corporate modal i18n verified working. Validated section IDs present: hero, method, process, programmes, results, testimonials, professor, integrate. Zero console errors. Open follow-up: minor 'Seleziona...' i18n leak inside CorporateQuoteForm <select> placeholder when language=en (cosmetic only). Footer brand names intentionally preserved per user instruction. Hero corporate CTA modal opens in English with correct title 'Request Personalized Quote' and subtitle 'Fill out the form and we'll contact you within 48 hours with a tailored proposal' — confirmed via screenshot.",
+  "rca of the issue": "N/A — no functional bugs blocking the iteration. The single minor finding (Italian placeholder in select) is localized to CorporateQuoteForm.jsx where the <option value=''> label hardcodes 'Seleziona...' instead of pulling from useLanguage(). Fix path: replace hardcoded 'Seleziona...' with isItalian ? 'Seleziona...' : 'Select...' or equivalent translation key."
+}

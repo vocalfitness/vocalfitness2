@@ -23,19 +23,21 @@ const Navbar = () => {
   const navItems = isItalian ? [
     { label: 'Home', href: '/' },
     { label: 'Metodo', href: '/#method' },
-    { label: 'Professor', href: '/#professor' },
+    { label: 'Processo', href: '/#process' },
+    { label: 'Programmi', href: '/#programmes' },
     { label: 'Risultati', href: '/#results' },
-    { label: 'Aziende', href: '/corporate-training' },
-    { label: 'DappersClass', href: '/#dappersclass' },
-    { label: 'Testimonial', href: '/#testimonials' }
+    { label: 'Testimonial', href: '/#testimonials' },
+    { label: 'Professor', href: '/#professor' },
+    { label: 'Aziende', href: '/corporate-training' }
   ] : [
     { label: 'Home', href: '/' },
     { label: 'Method', href: '/#method' },
-    { label: 'Professor', href: '/#professor' },
+    { label: 'Process', href: '/#process' },
+    { label: 'Programmes', href: '/#programmes' },
     { label: 'Results', href: '/#results' },
-    { label: 'Companies', href: '/corporate-training' },
-    { label: 'DappersClass', href: '/#dappersclass' },
-    { label: 'Testimonials', href: '/#testimonials' }
+    { label: 'Testimonials', href: '/#testimonials' },
+    { label: 'Professor', href: '/#professor' },
+    { label: 'Companies', href: '/corporate-training' }
   ];
 
   return (
