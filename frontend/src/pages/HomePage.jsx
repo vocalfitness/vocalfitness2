@@ -451,7 +451,7 @@ const audienceIcons = [Briefcase, Users, GraduationCap, Building2];
 const contextIcons = [Building2, GraduationCap, Library, Globe];
 const dapperIcons = [GraduationCap, Mic2, Award];
 
-const cefrColors = ['from-blue-400 to-blue-500', 'from-blue-600 to-indigo-600', 'from-indigo-600 to-violet-700'];
+const cefrColors = ['from-blue-400 to-blue-500', 'from-blue-600 to-blue-600', 'from-blue-600 to-blue-800'];
 
 // ============================================================
 // HomePage
@@ -478,8 +478,11 @@ const HomePage = () => {
   }, []);
 
   const assets = {
-    heroVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qo5q7c4c_ad501a89-967e-48e3-99fd-4f1d12412ba5.mp4',
-    contextVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/45ylxra6_4d1a8b4c-feeb-433e-b1a7-37e27b10d238.mp4',
+    heroVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/inqu5ja0_4ed65995-f476-4620-915c-b4cd221710c3.mp4',
+    methodVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/p81ta6dy_765b1576-8124-4e61-8245-17c4b8783504.mp4',
+    integrationVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7dms3cea_849bf25e-793e-43a4-b188-09197516b84b.mp4',
+    contextVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5h0rillj_a1175e9c-c731-46a7-bd5f-90a9591257fe.mp4',
+    dapperVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7mg7kjqj_c051742c-05a0-41e2-976a-aa88512ba441.mp4',
     dapperPortrait: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/lil21e7s__mg_2586.PNG'
   };
 
@@ -539,6 +542,10 @@ const HomePage = () => {
         @keyframes scale-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes wave { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .vf-marquee { animation: marquee 32s linear infinite; }
+        .vf-marquee-track:hover .vf-marquee { animation-play-state: paused; }
         .vf-slide-up { animation: slide-up 0.8s ease-out forwards; }
         .vf-slide-left { animation: slide-left 0.9s ease-out forwards; }
         .vf-slide-right { animation: slide-right 0.9s ease-out forwards; }
@@ -565,29 +572,32 @@ const HomePage = () => {
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute w-[28rem] h-[28rem] bg-blue-500/[0.04] rounded-full blur-3xl"
           style={{ top: '8%', left: '4%', transform: `translate(${mousePosition.x * 0.015}px, ${mousePosition.y * 0.015}px)` }} />
-        <div className="absolute w-[22rem] h-[22rem] bg-indigo-500/[0.04] rounded-full blur-3xl"
+        <div className="absolute w-[22rem] h-[22rem] bg-blue-500/[0.04] rounded-full blur-3xl"
           style={{ top: '55%', right: '6%', transform: `translate(${-mousePosition.x * 0.012}px, ${-mousePosition.y * 0.012}px)` }} />
       </div>
 
       {/* ========== 1. HERO ========== */}
       <section ref={heroRef} id="hero" className="relative min-h-[100vh] flex items-center pt-28 pb-20 overflow-hidden" data-testid="home-hero-section">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 vf-gradient" />
-        <div className="absolute inset-0 opacity-[0.08]" style={{
-          backgroundImage: 'linear-gradient(to right, rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.4) 1px, transparent 1px)',
+        {/* Light medical-style background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/40 to-white vf-gradient" />
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{
+          backgroundImage: 'linear-gradient(to right, rgba(37,99,235,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(37,99,235,0.4) 1px, transparent 1px)',
           backgroundSize: '64px 64px'
         }} />
-        <div className="absolute top-32 right-10 w-72 h-72 bg-blue-500/15 rounded-full blur-3xl vf-parallax"
+        {/* Parallax accents */}
+        <div className="absolute top-32 right-10 w-72 h-72 bg-blue-400/15 rounded-full blur-3xl vf-parallax"
           style={{ transform: `translateY(${scrollY * 0.12}px)` }} />
-        <div className="absolute bottom-10 left-10 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl vf-parallax"
+        <div className="absolute bottom-10 left-10 w-56 h-56 bg-blue-300/15 rounded-full blur-3xl vf-parallax"
           style={{ transform: `translateY(${scrollY * -0.16}px)` }} />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 w-full">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
             <div className={`lg:col-span-7 ${heroVisible ? 'vf-slide-right' : 'opacity-0'}`}>
-              <p className="text-blue-400 font-semibold mb-6 uppercase tracking-[0.2em] text-xs flex items-center gap-3" data-testid="home-hero-eyebrow">
-                <span className="w-10 h-[1px] bg-blue-400"></span>
+              <p className="text-blue-600 font-semibold mb-6 uppercase tracking-[0.2em] text-xs flex items-center gap-3" data-testid="home-hero-eyebrow">
+                <span className="w-10 h-[1px] bg-blue-600"></span>
                 {t.hero.eyebrow}
-                <span className="inline-flex items-center gap-[2px] text-blue-400 ml-2" aria-hidden="true">
+                <span className="inline-flex items-center gap-[2px] text-blue-600 ml-2" aria-hidden="true">
                   <span className="vf-wave-bar h-3" style={{ animationDelay: '0s' }}></span>
                   <span className="vf-wave-bar h-4" style={{ animationDelay: '0.15s' }}></span>
                   <span className="vf-wave-bar h-5" style={{ animationDelay: '0.3s' }}></span>
@@ -596,33 +606,33 @@ const HomePage = () => {
               </p>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.05] mb-8 tracking-tight" data-testid="home-hero-headline">
-                <span className="block text-white">{t.hero.h1a}</span>
-                <span className="block bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent">
+                <span className="block text-slate-900">{t.hero.h1a}</span>
+                <span className="block bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 bg-clip-text text-transparent">
                   {t.hero.h1b}
                 </span>
-                <span className="block text-slate-200 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl mt-3 font-bold">
+                <span className="block text-slate-700 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl mt-3 font-bold">
                   {t.hero.h1c}
                 </span>
               </h1>
 
-              <p className="text-lg md:text-xl text-slate-300 leading-relaxed max-w-2xl mb-10" data-testid="home-hero-sub">
+              <p className="text-lg md:text-xl text-slate-600 leading-relaxed max-w-2xl mb-10" data-testid="home-hero-sub">
                 {t.hero.sub_pre}
-                <span className="text-white font-semibold">{t.hero.sub_a}</span>,{' '}
-                <span className="text-white font-semibold">{t.hero.sub_b}</span> {language === 'it' ? 'e' : 'and'}{' '}
-                <span className="text-white font-semibold">{t.hero.sub_c}</span>
+                <span className="text-slate-900 font-semibold">{t.hero.sub_a}</span>,{' '}
+                <span className="text-slate-900 font-semibold">{t.hero.sub_b}</span> {language === 'it' ? 'e' : 'and'}{' '}
+                <span className="text-slate-900 font-semibold">{t.hero.sub_c}</span>
                 {t.hero.sub_post}
               </p>
 
               <div className={`flex flex-col sm:flex-row gap-4 mb-8 ${heroVisible ? 'vf-slide-up vf-d-300' : 'opacity-0'}`}>
                 <Button onClick={() => setIsCorpFormOpen(true)} size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-7 text-base shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.03] group"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-7 text-base shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.03] group"
                   data-testid="home-hero-cta-corporate">
                   <Building2 className="w-5 h-5 mr-2" />
                   {t.hero.cta_corp}
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button onClick={() => setIsBookingOpen(true)} size="lg" variant="outline"
-                  className="border-2 border-slate-600 bg-slate-900/40 backdrop-blur-sm text-white hover:bg-slate-800 hover:border-blue-400 px-8 py-7 text-base transition-all duration-300 hover:scale-[1.03]"
+                  className="border-2 border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 px-8 py-7 text-base transition-all duration-300 hover:scale-[1.03]"
                   data-testid="home-hero-cta-individual">
                   <Calendar className="w-5 h-5 mr-2" />
                   {t.hero.cta_ind}
@@ -630,16 +640,16 @@ const HomePage = () => {
               </div>
 
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500" data-testid="home-hero-legacy-line">
-                <span className="text-slate-400">{t.hero.legacy_label}</span> · {t.hero.legacy_text}
+                <span className="text-slate-600">{t.hero.legacy_label}</span> · {t.hero.legacy_text}
               </p>
             </div>
 
             <div className={`lg:col-span-5 hidden lg:block ${heroVisible ? 'vf-slide-left vf-d-200' : 'opacity-0'}`}>
               <div className="relative">
-                <div className="rounded-3xl overflow-hidden border border-white/10 shadow-[0_30px_80px_rgba(2,6,23,0.6)] vf-pulse-glow">
+                <div className="rounded-3xl overflow-hidden border-4 border-white shadow-[0_30px_80px_rgba(37,99,235,0.25)] vf-pulse-glow">
                   <video src={assets.heroVideo} autoPlay loop muted playsInline className="w-full h-[520px] object-cover" data-testid="home-hero-video" />
                 </div>
-                <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl vf-float flex items-center gap-2">
+                <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl vf-float flex items-center gap-2">
                   <Play className="w-4 h-4" />
                   {t.hero.badge_session}
                 </div>
@@ -671,59 +681,62 @@ const HomePage = () => {
       </section>
 
       {/* ========== 2.5 TRUSTED BY INDUSTRY & ACADEMIA ========== */}
-      <section ref={trustedRef} className="relative py-24 lg:py-28 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden" data-testid="home-trusted-section">
-        <div className="absolute inset-0 opacity-[0.06]" style={{
-          backgroundImage: 'linear-gradient(to right, rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.4) 1px, transparent 1px)',
-          backgroundSize: '64px 64px'
-        }} />
-        <div className="absolute top-0 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+      <section ref={trustedRef} className="relative py-24 lg:py-28 bg-gradient-to-b from-white via-blue-50/30 to-white overflow-hidden" data-testid="home-trusted-section">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-300/8 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className={`max-w-3xl mb-16 ${trustedVisible ? 'vf-slide-up' : 'opacity-0'}`}>
-            <p className="text-blue-400 font-semibold mb-4 uppercase tracking-[0.2em] text-xs flex items-center gap-2">
-              <span className="w-8 h-[2px] bg-blue-400"></span>
+          <div className={`max-w-3xl mx-auto text-center mb-16 ${trustedVisible ? 'vf-slide-up' : 'opacity-0'}`}>
+            <p className="text-blue-600 font-semibold mb-4 uppercase tracking-[0.2em] text-xs">
               {t.trusted.eyebrow}
             </p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-6">
               {t.trusted.title_a}{' '}
-              <span className="bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 bg-clip-text text-transparent">
                 {t.trusted.title_b}
               </span>
             </h2>
-            <p className="text-lg text-slate-300 leading-relaxed">{t.trusted.sub}</p>
+            <p className="text-lg text-slate-600 leading-relaxed">{t.trusted.sub}</p>
           </div>
 
-          {/* Industry logos grid */}
+          {/* Industry logos — infinite marquee */}
           <div className="mb-16">
-            <p className={`text-[11px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-6 ${trustedVisible ? 'vf-fade-in vf-d-100' : 'opacity-0'}`}>
+            <p className={`text-center text-[11px] uppercase tracking-[0.25em] text-slate-500 font-semibold mb-8 ${trustedVisible ? 'vf-fade-in vf-d-100' : 'opacity-0'}`}>
               {t.trusted.industry_label}
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {industryLogos.map((c, i) => (
-                <div
-                  key={c.name}
-                  className={`group flex items-center justify-center p-8 bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-blue-400/40 hover:bg-white/[0.06] transition-all duration-500 ${trustedVisible ? `vf-scale-in vf-d-${(i + 2) * 100}` : 'opacity-0'}`}
-                  data-testid={`home-trusted-logo-${i}`}
-                >
-                  <img
-                    src={c.logo}
-                    alt={`${c.name} logo`}
-                    className="w-full h-auto max-h-12 object-contain filter brightness-0 invert opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
-                  />
-                </div>
-              ))}
+            <div
+              className="vf-marquee-track relative overflow-hidden"
+              style={{
+                maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)'
+              }}
+            >
+              <div className="vf-marquee flex gap-12 lg:gap-16 w-max">
+                {[...industryLogos, ...industryLogos, ...industryLogos].map((c, i) => (
+                  <div
+                    key={`${c.name}-${i}`}
+                    className="group flex items-center justify-center min-w-[180px] h-20 px-6"
+                    data-testid={i < industryLogos.length ? `home-trusted-logo-${i}` : undefined}
+                  >
+                    <img
+                      src={c.logo}
+                      alt={`${c.name} logo`}
+                      className="max-h-12 w-auto object-contain filter grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Additional text-based clients */}
-            <div className={`mt-6 flex flex-wrap gap-2 ${trustedVisible ? 'vf-fade-in vf-d-500' : 'opacity-0'}`}>
+            <div className={`mt-8 flex flex-wrap justify-center gap-2 ${trustedVisible ? 'vf-fade-in vf-d-500' : 'opacity-0'}`}>
               <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500 self-center mr-2">
                 {t.trusted.additional_label} —
               </span>
               {additionalClients.map((c) => (
                 <span
                   key={c}
-                  className="px-4 py-1.5 bg-white/[0.03] border border-white/10 rounded-full text-sm text-slate-300 hover:border-blue-400/40 hover:text-white transition-all duration-300"
+                  className="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:border-blue-500 hover:text-blue-700 hover:shadow-sm transition-all duration-300"
                 >
                   {c}
                 </span>
@@ -732,20 +745,20 @@ const HomePage = () => {
           </div>
 
           {/* Academic & Institutional partners */}
-          <div className="border-t border-white/10 pt-12">
-            <p className={`text-[11px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-6 ${trustedVisible ? 'vf-fade-in vf-d-200' : 'opacity-0'}`}>
+          <div className="border-t border-slate-200 pt-12">
+            <p className={`text-center text-[11px] uppercase tracking-[0.25em] text-slate-500 font-semibold mb-8 ${trustedVisible ? 'vf-fade-in vf-d-200' : 'opacity-0'}`}>
               {t.trusted.institutions_label}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {academicPartners.map((p, i) => (
                 <div
                   key={p}
-                  className={`group relative px-5 py-4 bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-blue-400/40 hover:bg-white/[0.06] transition-all duration-500 ${trustedVisible ? `vf-slide-up vf-d-${((i % 5) + 2) * 100}` : 'opacity-0'}`}
+                  className={`group relative px-5 py-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-500 ${trustedVisible ? `vf-slide-up vf-d-${((i % 5) + 2) * 100}` : 'opacity-0'}`}
                   data-testid={`home-trusted-partner-${i}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="mt-1 w-1.5 h-1.5 shrink-0 rounded-full bg-blue-400 group-hover:bg-cyan-300 transition-colors" />
-                    <span className="text-sm text-slate-200 font-medium leading-snug group-hover:text-white transition-colors">
+                    <span className="mt-1.5 w-1.5 h-1.5 shrink-0 rounded-full bg-blue-600 group-hover:scale-150 transition-transform" />
+                    <span className="text-sm text-slate-700 font-medium leading-snug group-hover:text-blue-700 transition-colors">
                       {p}
                     </span>
                   </div>
@@ -756,9 +769,9 @@ const HomePage = () => {
 
           {/* Footer note */}
           <div className={`mt-16 text-center ${trustedVisible ? 'vf-fade-in vf-d-600' : 'opacity-0'}`}>
-            <p className="text-slate-400 text-base md:text-lg">
+            <p className="text-slate-600 text-base md:text-lg">
               {t.trusted.footer_pre}
-              <span className="text-white font-semibold">{t.trusted.footer_em}</span>
+              <span className="text-slate-900 font-semibold">{t.trusted.footer_em}</span>
               {t.trusted.footer_post}
             </p>
           </div>
@@ -801,7 +814,7 @@ const HomePage = () => {
                     className={`group bg-white border border-slate-200 rounded-3xl p-8 shadow-sm vf-hover-lift ${whatVisible ? `vf-slide-up ${delays[i]}` : 'opacity-0'}`}
                     data-testid={`home-what-pillar-${i}`}>
                     <div className="flex items-start gap-5">
-                      <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                         <Icon className="w-7 h-7 text-white" />
                       </div>
                       <div>
@@ -820,7 +833,7 @@ const HomePage = () => {
       {/* ========== 4. HOW THE METHOD WORKS ========== */}
       <section ref={methodRef} id="process" className="py-24 lg:py-32 bg-slate-50 relative overflow-hidden" data-testid="home-process-section">
         <div className="absolute top-1/3 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 -right-32 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 -right-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <div className={`max-w-3xl mb-20 ${methodVisible ? 'vf-slide-up' : 'opacity-0'}`}>
@@ -834,6 +847,26 @@ const HomePage = () => {
             <p className="text-lg text-slate-600 leading-relaxed">{t.method.sub}</p>
           </div>
 
+          {/* Method showcase video — full-width banner */}
+          <div className={`relative mb-16 rounded-3xl overflow-hidden border border-slate-200 shadow-2xl shadow-blue-500/10 ${methodVisible ? 'vf-scale-in vf-d-100' : 'opacity-0'}`}>
+            <video
+              src={assets.methodVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-[280px] md:h-[360px] object-cover"
+              data-testid="home-method-video"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3">
+              <Play className="w-4 h-4 text-blue-600" />
+              <span className="text-xs uppercase tracking-widest text-slate-700 font-semibold">
+                {language === 'it' ? 'Metodo · Sessione dimostrativa' : 'Method · Demonstration Session'}
+              </span>
+            </div>
+          </div>
+
           <div className="grid lg:grid-cols-5 gap-6">
             {t.method.stages.map((step, i) => {
               const Icon = stageIcons[i];
@@ -842,7 +875,7 @@ const HomePage = () => {
                   className={`relative bg-white border border-slate-200 rounded-3xl p-7 vf-hover-lift ${methodVisible ? `vf-slide-up vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
                   data-testid={`home-process-step-${i}`}>
                   <div className="text-[11px] font-mono tracking-widest text-blue-600 mb-4">{t.method.stage_label} {step.num}</div>
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center mb-5 shadow-md">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center mb-5 shadow-md">
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-3">{step.title}</h3>
@@ -873,15 +906,15 @@ const HomePage = () => {
               const Icon = audienceIcons[i];
               return (
                 <div key={i}
-                  className={`group relative overflow-hidden rounded-3xl p-10 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 vf-hover-lift ${whoVisible ? `vf-scale-in vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
+                  className={`group relative overflow-hidden rounded-3xl p-10 bg-white border border-slate-200 hover:border-blue-400 vf-hover-lift ${whoVisible ? `vf-scale-in vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
                   data-testid={`home-audience-${i}`}>
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-colors" />
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-100/60 rounded-full blur-3xl group-hover:bg-blue-200/80 transition-colors" />
                   <div className="relative z-10">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                       <Icon className="w-7 h-7 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-3">{a.title}</h3>
-                    <p className="text-slate-300 leading-relaxed">{a.desc}</p>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">{a.title}</h3>
+                    <p className="text-slate-600 leading-relaxed">{a.desc}</p>
                   </div>
                 </div>
               );
@@ -891,7 +924,7 @@ const HomePage = () => {
       </section>
 
       {/* ========== 6. DESIGNED TO INTEGRATE ========== */}
-      <section ref={integrateRef} id="integrate" className="py-24 lg:py-32 bg-gradient-to-br from-blue-700 via-indigo-700 to-blue-800 relative overflow-hidden" data-testid="home-integration-section">
+      <section ref={integrateRef} id="integrate" className="py-24 lg:py-32 bg-gradient-to-br from-blue-700 via-blue-700 to-blue-800 relative overflow-hidden" data-testid="home-integration-section">
         <div className="absolute inset-0 opacity-[0.07]" style={{
           backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
           backgroundSize: '48px 48px'
@@ -922,7 +955,20 @@ const HomePage = () => {
               </ul>
             </div>
 
-            <div className={`lg:col-span-5 ${integrateVisible ? 'vf-slide-left vf-d-300' : 'opacity-0'}`}>
+            <div className={`lg:col-span-5 space-y-5 ${integrateVisible ? 'vf-slide-left vf-d-300' : 'opacity-0'}`}>
+              {/* Integration showcase video */}
+              <div className="rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                <video
+                  src={assets.integrationVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-[200px] object-cover"
+                  data-testid="home-integration-video"
+                />
+              </div>
+
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -984,7 +1030,7 @@ const HomePage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             {t.programmes.modules.map((m, i) => (
               <div key={m.num}
-                className={`rounded-3xl p-6 border-2 transition-all duration-500 vf-hover-lift ${m.highlight ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300' : 'bg-white border-slate-200'} ${progVisible ? `vf-slide-up vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
+                className={`rounded-3xl p-6 border-2 transition-all duration-500 vf-hover-lift ${m.highlight ? 'bg-gradient-to-br from-blue-50 to-blue-50 border-blue-300' : 'bg-white border-slate-200'} ${progVisible ? `vf-slide-up vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
                 data-testid={`home-module-${i}`}>
                 <div className="flex items-center justify-between mb-4">
                   <span className={`text-sm font-mono ${m.highlight ? 'text-blue-700' : 'text-slate-500'}`}>{m.num}</span>
@@ -1076,7 +1122,7 @@ const HomePage = () => {
                   <div key={c.title}
                     className={`group bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-3xl p-7 vf-hover-lift ${proofVisible ? `vf-slide-up vf-d-${(i + 1) * 100}` : 'opacity-0'}`}
                     data-testid={`home-proof-${i}`}>
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center mb-5 shadow-md group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center mb-5 shadow-md group-hover:scale-110 transition-transform">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-2">{c.title}</h3>
@@ -1092,7 +1138,7 @@ const HomePage = () => {
       {/* ========== 11. STEVE DAPPER ========== */}
       <section ref={dapperRef} id="professor" className="py-24 lg:py-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden" data-testid="home-dapper-section">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <div className={`text-center mb-16 ${dapperVisible ? 'vf-slide-up' : 'opacity-0'}`}>
@@ -1104,16 +1150,29 @@ const HomePage = () => {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-10 items-start">
-            <div className={`lg:col-span-1 ${dapperVisible ? 'vf-slide-right vf-d-200' : 'opacity-0'}`}>
+            <div className={`lg:col-span-1 space-y-5 ${dapperVisible ? 'vf-slide-right vf-d-200' : 'opacity-0'}`}>
               <div className="relative group">
                 <div className="rounded-3xl overflow-hidden shadow-2xl border-2 border-slate-700 group-hover:border-blue-500 transition-all duration-500">
                   <img src={assets.dapperPortrait} alt="Professor Steve Dapper"
                     className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
                     data-testid="home-dapper-portrait" />
                 </div>
-                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest">
+                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest">
                   {t.dapper.badge}
                 </div>
+              </div>
+
+              {/* Dapper showcase video */}
+              <div className="rounded-3xl overflow-hidden border-2 border-slate-700 shadow-2xl">
+                <video
+                  src={assets.dapperVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-[220px] object-cover"
+                  data-testid="home-dapper-video"
+                />
               </div>
             </div>
 
@@ -1125,7 +1184,7 @@ const HomePage = () => {
                   <div key={i}
                     className={`bg-slate-800/50 backdrop-blur-sm rounded-2xl p-7 border border-slate-700 hover:border-blue-500/50 transition-all duration-500 vf-hover-lift ${dapperVisible ? `vf-slide-up ${delays[i]}` : 'opacity-0'}`}>
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                      <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                         <Icon className="w-5 h-5 text-white" />
                       </div>
                       <h3 className="text-white font-bold text-lg">{b.title}</h3>
@@ -1159,7 +1218,7 @@ const HomePage = () => {
             <div className={`group relative overflow-hidden rounded-3xl p-10 bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 vf-hover-lift ${ctaVisible ? 'vf-slide-up vf-d-200' : 'opacity-0'}`} data-testid="home-cta-corporate-card">
               <div className="absolute -top-12 -right-12 w-48 h-48 bg-blue-500/15 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors duration-500" />
               <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
                 <p className="text-blue-300 text-xs uppercase tracking-widest mb-3 font-semibold">{t.finalCta.corp_eyebrow}</p>
@@ -1178,7 +1237,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            <div className={`group relative overflow-hidden rounded-3xl p-10 bg-gradient-to-br from-blue-600 to-indigo-700 vf-hover-lift ${ctaVisible ? 'vf-slide-up vf-d-300' : 'opacity-0'}`} data-testid="home-cta-individual-card">
+            <div className={`group relative overflow-hidden rounded-3xl p-10 bg-gradient-to-br from-blue-600 to-blue-700 vf-hover-lift ${ctaVisible ? 'vf-slide-up vf-d-300' : 'opacity-0'}`} data-testid="home-cta-individual-card">
               <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-colors duration-500" />
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
