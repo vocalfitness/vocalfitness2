@@ -5,6 +5,7 @@ import StickyCTA from '../components/StickyCTA';
 import ExitIntentPopup from '../components/ExitIntentPopup';
 import BookingFormModal from '../components/BookingFormModal';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
+import OnboardingWizard from '../components/OnboardingWizard';
 import TestimonialsSection from '../components/TestimonialsSection';
 import { Button } from '../components/ui/button';
 import { useLanguage } from '../context/LanguageContext';
@@ -534,6 +535,7 @@ const HomePage = () => {
 
   const [isCorpFormOpen, setIsCorpFormOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -703,7 +705,7 @@ const HomePage = () => {
                   {t.hero.cta_corp}
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                <Button onClick={() => setIsBookingOpen(true)} size="lg" variant="outline"
+                <Button onClick={() => setIsWizardOpen(true)} size="lg" variant="outline"
                   className="border-2 border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 px-8 py-7 text-base transition-all duration-300 hover:scale-[1.03]"
                   data-testid="home-hero-cta-individual">
                   <Calendar className="w-5 h-5 mr-2" />
@@ -1312,7 +1314,7 @@ const HomePage = () => {
                 <p className="text-blue-100 text-xs uppercase tracking-widest mb-3 font-semibold">{t.finalCta.ind_eyebrow}</p>
                 <h3 className="text-3xl font-black text-white mb-4">{t.finalCta.ind_title}</h3>
                 <p className="text-blue-50 leading-relaxed mb-8">{t.finalCta.ind_desc}</p>
-                <Button onClick={() => setIsBookingOpen(true)} size="lg"
+                <Button onClick={() => setIsWizardOpen(true)} size="lg"
                   className="w-full bg-white text-blue-700 hover:bg-blue-50 px-8 py-6 text-base font-bold shadow-xl group-hover:scale-[1.02] transition-transform"
                   data-testid="home-cta-individual-button">
                   {t.finalCta.ind_btn}
@@ -1337,6 +1339,7 @@ const HomePage = () => {
         <CorporateQuoteForm isOpen={isCorpFormOpen} onClose={() => setIsCorpFormOpen(false)} />
       )}
       <BookingFormModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
+      <OnboardingWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
     </div>
   );
 };

@@ -597,6 +597,11 @@ class BookingFormSubmission(BaseModel):
     message: str = ""
     type: str = "booking"
     language: str = "en"
+    # Onboarding wizard extra structured fields (optional)
+    role: str = ""
+    nativeLanguage: str = ""
+    motivation: str = ""
+    source: str = "booking_form"  # "booking_form" | "onboarding_wizard"
 
 class BookingFormResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -616,6 +621,11 @@ class BookingFormResponse(BaseModel):
     status: str = "pending"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     email_sent: bool = False
+    # Onboarding wizard extra structured fields (optional)
+    role: str = ""
+    nativeLanguage: str = ""
+    motivation: str = ""
+    source: str = "booking_form"
 
 class StatusCheckCreate(BaseModel):
     client_name: str
