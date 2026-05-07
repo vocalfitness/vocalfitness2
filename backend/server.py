@@ -2030,6 +2030,58 @@ async def get_storage_stats(admin: dict = Depends(get_admin_user)):
         "max_file_size_formatted": format_size(UPLOAD_MAX_FILE_SIZE)
     }
 
+@api_router.get("/admin/leads")
+async def get_admin_leads(
+    admin: dict = Depends(get_admin_user),
+    source: Optional[str] = None,
+    englishLevel: Optional[str] = None,
+    role: Optional[str] = None,
+    sector: Optional[str] = None,
+    nativeLanguage: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 200
+):
+    """List bookings (leads) for the admin lead inbox with filters."""
+    query: dict = {}
+    if source:
+        query["source"] = source
+    if englishLevel:
+        query["englishLevel"] = englishLevel
+    if role:
+        query["role"] = role
+    if sector:
+        query["sector"] = sector
+    if nativeLanguage:
+        query["nativeLanguage"] = nativeLanguage
+    if status:
+        query["status"] = status
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}},
+            {"motivation": {"$regex": search, "$options": "i"}},
+        ]
+
+    cursor = db.bookings.find(query, {"_id": 0}).sort("created_at", -1).limit(min(limit, 500))
+    items = await cursor.to_list(length=None)
+    return {"items": items, "count": len(items)}
+
+
+@api_router.patch("/admin/leads/{lead_id}")
+async def update_admin_lead(lead_id: str, payload: dict, admin: dict = Depends(get_admin_user)):
+    """Update lead status / notes."""
+    allowed = {k: v for k, v in payload.items() if k in {"status", "internal_notes"}}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    result = await db.bookings.update_one({"id": lead_id}, {"$set": allowed})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    doc = await db.bookings.find_one({"id": lead_id}, {"_id": 0})
+    return doc
+
+
 @api_router.get("/admin/database/stats")
 async def get_database_stats(admin: dict = Depends(get_admin_user)):
     """Get database statistics and index information (admin only)"""

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import ContactFormModal from './ContactFormModal';
+import OnboardingWizard from './OnboardingWizard';
 
 const StickyCTA = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -80,9 +80,9 @@ const StickyCTA = () => {
         </div>
       </div>
 
-      {/* Contact Form Modal */}
-      <ContactFormModal 
-        isOpen={showContactForm} 
+      {/* Onboarding Wizard */}
+      <OnboardingWizard
+        isOpen={showContactForm}
         onClose={() => setShowContactForm(false)}
       />
     </>

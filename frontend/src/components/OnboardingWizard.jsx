@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft, Check, Briefcase, GraduationCap, Globe2, Sparkles, ArrowRight, User, Building2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../context/LanguageContext';
@@ -268,12 +269,12 @@ const OnboardingWizard = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-wizard-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       data-testid="onboarding-wizard-modal"
     >
@@ -551,7 +552,8 @@ const OnboardingWizard = ({ isOpen, onClose }) => {
         .vf-input:focus { border-color: rgb(37, 99, 235); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
         .vf-input::placeholder { color: rgb(148, 163, 184); }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
 
