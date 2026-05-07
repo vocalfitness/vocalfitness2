@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only smoke + interaction test of newly rewritten HomePage.jsx (institutional B2B repositioning). All 11 sections render with their expected data-testid, hero headline contains 'A scientific method' + 'clarity and communication performance', legacy line 'Speak English Like a CEO in 10 Sessions' is present as secondary, NO occurrence of 'Medtronic' or 'EF Education First' / 'EF +' inside HomePage sections (verified by scanning innerText of the 11 section testids). All 4 CTAs (hero corporate, hero individual, final corporate, final individual) successfully trigger their respective modals (CorporateQuoteForm and BookingFormModal). Integration section shows the 6 bullet points + 'Integration Logic' card. 5 process stages render with numbers 01-05. CEFR section shows A1—A2, B1—B2, C1—C2. Steve Dapper portrait loads. Page loads with no console errors at desktop (1920x1080) and mobile (375x812). Hero + dual CTA stack correctly on mobile.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "CTA modal opens — language mismatch",
+        "issue": "Both modals (CorporateQuoteForm and BookingFormModal) display fully in ITALIAN ('Richiedi Preventivo Personalizzato', 'Prenota Valutazione Gratuita', 'Ragione Sociale Azienda', 'Compila il form...') while the new HomePage public copy is entirely in English. This breaks the editorial coherence of the institutional repositioning when an English-speaking visitor opens a CTA modal. StickyCTA bottom-right pill ('Prenota Valutazione Gratuita · Scopri il tuo livello') is also Italian-only on the otherwise-English homepage.",
+        "affected_selectors": ["CorporateQuoteForm dialog", "BookingFormModal dialog", "StickyCTA pill"]
+      },
+      {
+        "flow": "Modal close UX",
+        "issue": "Pressing the Escape key does NOT close CorporateQuoteForm or BookingFormModal — neither modal registers a keydown handler for Escape. User must click the explicit X close button or the 'Annulla' button. Minor accessibility/UX gap.",
+        "affected_selectors": ["CorporateQuoteForm", "BookingFormModal"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/frontend/src/pages/HomePage.jsx"],
+  "action_items": [
+    "Decide whether CorporateQuoteForm + BookingFormModal + StickyCTA copy should be translated to English (or i18n-driven via the existing IT/EN Navbar toggle) so the institutional homepage reads coherently end-to-end. Right now an English visitor lands on an English homepage and gets an Italian-only modal/sticky CTA — content compliance gap relative to the strategic repositioning brief.",
+    "(Optional UX) Add Escape-key + backdrop-click close handlers to both modals.",
+    "(Optional refactor) HomePage.jsx is ~979 lines and exceeds the 700-line guideline; consider splitting each numbered section (1..11) into its own component under /pages/home/sections for maintainability."
+  ],
+  "critical_code_review_comments": [
+    "HomePage.jsx is 979 lines — over the 700-line file-size guideline. Each of the 11 sections would map cleanly to its own component for readability and reuse.",
+    "useScrollAnimation hook captures ref.current inside the useEffect cleanup closure. By the time cleanup runs the ref may have changed; copy ref.current to a local variable inside the effect to silence React's exhaustive-deps warning and guarantee correct unobserve target.",
+    "Multiple <video autoPlay loop muted> elements (heroVideo, contextVideo) load remote MP4s on every mount — consider lazy-loading the contextVideo (only mount when its section enters the viewport) to reduce initial bandwidth on the homepage.",
+    "All 11 sections call their own useScrollAnimation instance — works but creates 11 IntersectionObservers; a single shared observer could be more efficient.",
+    "Modal language mismatch (Italian modals on an English homepage) is a content-compliance regression relative to the editorial repositioning brief; either translate or wire to existing IT/EN toggle.",
+    "All interactive buttons have data-testid (good). Recommend adding data-testid to the X close buttons of both modals so future tests can dismiss programmatically without keyboard fallback."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only request)", "frontend": "100% of requested testable behaviours pass"},
+  "test_credentials": "N/A",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "HomePage.jsx public copy is verified Medtronic-free / EF-free inside the 11 sections (Footer is shared and not part of these sections). All 4 CTAs (data-testid: home-hero-cta-corporate, home-hero-cta-individual, home-cta-corporate-button, home-cta-individual-button) confirmed wired to their respective modals. Open follow-ups are content/i18n decisions on the modals + StickyCTA, not bugs. If next iteration translates modals, retest by clicking each CTA on a fresh page reload (Escape does NOT close these modals — use the explicit X or click 'Annulla' between tests, or simply page.goto reload between CTA tests as done here).",
+  "rca_of_the_issue": "Italian modal copy: CorporateQuoteForm.jsx and BookingFormModal.jsx were authored for the previous Italian-language site and were not updated as part of the institutional repositioning rewrite of HomePage.jsx. They are still hard-coded Italian and don't read from any i18n/locale source. Fix path: either (a) replace strings with English literals, or (b) introduce a small i18n map keyed off the language toggle that the Navbar already surfaces."
+}
