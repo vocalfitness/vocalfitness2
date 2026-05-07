@@ -13,6 +13,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ### Funzionalità Pubbliche ✅
 - [x] Homepage con presentazione del metodo VocalFitness
+- [x] **Homepage redesign istituzionale B2B/scientifico** (07/02/2026) — 11 sezioni in inglese: Hero ("A scientific method for spoken English, clarity and communication performance."), Credibility Strip, What VocalFitness Is, How The Method Works (5-stage protocol), Who It Is For, "Designed to integrate, not to replace", Corporate & Institutional Programmes (SpeakRight 101 modules), CEFR & Outcomes, Selected Contexts, Steve Dapper, dual-path Final CTA. Nessun riferimento pubblico a Medtronic/EF.
 - [x] Sezione testimonial e success stories
 - [x] Form di prenotazione valutazione gratuita
 - [x] Form di contatto
@@ -20,6 +21,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - [x] Pagina Risorse con materiali educativi
 - [x] Sezione Corporate Solutions
 - [x] Pagina dedicata Corporate Training
+- [x] Pagina corporate Medtronic interna (`/speak-right-medtronic`) — riferimento visivo
 - [x] Supporto bilingue IT/EN
 - [x] Link WhatsApp per contatto diretto
 
