@@ -95,9 +95,9 @@ const TestimonialsSection = () => {
   // Show loading state
   if (loading) {
     return (
-      <section id="testimonials" className="py-24 bg-slate-950 relative overflow-hidden">
+      <section id="testimonials" className="py-24 bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="text-slate-400 text-xl">{text.loading}</div>
+          <div className="text-slate-500 text-base uppercase tracking-[0.2em]">{text.loading}</div>
         </div>
       </section>
     );

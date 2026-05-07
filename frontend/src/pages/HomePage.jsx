@@ -647,7 +647,7 @@ const HomePage = () => {
             <div className={`lg:col-span-5 hidden lg:block ${heroVisible ? 'vf-slide-left vf-d-200' : 'opacity-0'}`}>
               <div className="relative">
                 <div className="rounded-3xl overflow-hidden border-4 border-white shadow-[0_30px_80px_rgba(37,99,235,0.25)] vf-pulse-glow">
-                  <video src={assets.heroVideo} autoPlay loop muted playsInline className="w-full h-[520px] object-cover" data-testid="home-hero-video" />
+                  <video src={assets.heroVideo} autoPlay loop muted playsInline aria-label="VocalFitness method live session preview" className="w-full h-[520px] object-cover" data-testid="home-hero-video" />
                 </div>
                 <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl vf-float flex items-center gap-2">
                   <Play className="w-4 h-4" />
@@ -855,6 +855,7 @@ const HomePage = () => {
               loop
               muted
               playsInline
+              aria-label="VocalFitness method demonstration session"
               className="w-full h-[280px] md:h-[360px] object-cover"
               data-testid="home-method-video"
             />
@@ -964,6 +965,7 @@ const HomePage = () => {
                   loop
                   muted
                   playsInline
+                  aria-label="VocalFitness integration use case showcase"
                   className="w-full h-[200px] object-cover"
                   data-testid="home-integration-video"
                 />
@@ -1170,6 +1172,7 @@ const HomePage = () => {
                   loop
                   muted
                   playsInline
+                  aria-label="Professor Steve Dapper teaching session"
                   className="w-full h-[220px] object-cover"
                   data-testid="home-dapper-video"
                 />
