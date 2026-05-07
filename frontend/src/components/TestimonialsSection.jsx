@@ -149,7 +149,7 @@ const TestimonialsSection = () => {
               <Quote size={56} className="text-blue-400/40 mb-6" />
               
               {/* Testimonial content */}
-              <blockquote className="text-xl md:text-2xl lg:text-3xl text-slate-100 leading-relaxed italic mb-8 relative font-light">
+              <blockquote className="text-base sm:text-lg md:text-2xl lg:text-3xl text-slate-100 leading-relaxed italic mb-8 relative font-light">
                 {testimonials[currentTestimonial]?.text}
               </blockquote>
 
