@@ -19,8 +19,8 @@ const COPY = {
     submit: 'Submit & finalise',
     submitting: 'Submitting…',
     success_title: 'Your assessment is booked.',
-    success_sub: 'We have received your profile and will be in touch within 48 hours with a tailored plan.',
-    success_cta_login: 'Go to your Members Area',
+    success_sub: 'We have received your profile and just sent you a magic-link email. Use it to access your VocalFitness Members Area instantly — no password required.',
+    success_cta_login: 'Go to Login',
     success_cta_close: 'Close',
     s1: {
       eyebrow: 'Step 1 · Personal',
@@ -104,8 +104,8 @@ const COPY = {
     submit: 'Invia e finalizza',
     submitting: 'Invio in corso…',
     success_title: 'La tua valutazione è prenotata.',
-    success_sub: 'Abbiamo ricevuto il tuo profilo e ti contatteremo entro 48 ore con un piano su misura.',
-    success_cta_login: 'Vai alla tua Area Clienti',
+    success_sub: 'Abbiamo ricevuto il tuo profilo e ti abbiamo appena inviato una email con magic-link. Usalo per accedere subito alla tua Area Clienti VocalFitness — senza password.',
+    success_cta_login: 'Vai al Login',
     success_cta_close: 'Chiudi',
     s1: {
       eyebrow: 'Step 1 · Personale',

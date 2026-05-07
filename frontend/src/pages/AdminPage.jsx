@@ -1753,11 +1753,71 @@ const AdminPage = () => {
 
                     <a
                       href={`mailto:${selectedLead.email}?subject=${encodeURIComponent('VocalFitness — Diagnostic Assessment')}`}
-                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-colors"
                     >
                       <Send className="w-4 h-4" />
-                      {language === 'it' ? 'Email diretta' : 'Email lead'}
+                      {language === 'it' ? 'Apri client email' : 'Open mail client'}
                     </a>
+
+                    {/* Templated email sender */}
+                    <div className="mt-6 pt-6 border-t border-slate-700">
+                      <p className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+                        {language === 'it' ? 'Invia email da template' : 'Send templated email'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mb-3">
+                        {language === 'it' ? 'Variabili auto-sostituite: {{name}}, {{englishLevel}}, {{role}}, {{sector}}' : 'Auto-substituted variables: {{name}}, {{englishLevel}}, {{role}}, {{sector}}'}
+                      </p>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'welcome', en: 'Welcome onboarding', it: 'Benvenuto onboarding' },
+                          { key: 'followup', en: 'Follow-up after 48h', it: 'Follow-up dopo 48h' },
+                          { key: 'proposal', en: 'Custom proposal request', it: 'Richiesta proposta su misura' }
+                        ].map(tpl => (
+                          <Button
+                            key={tpl.key}
+                            onClick={async () => {
+                              if (!window.confirm(language === 'it' ? `Inviare email "${tpl.it}" a ${selectedLead.email}?` : `Send "${tpl.en}" email to ${selectedLead.email}?`)) return;
+                              try {
+                                const res = await axios.post(
+                                  `${backendUrl}/api/admin/leads/${selectedLead.id}/email`,
+                                  { template: tpl.key, language },
+                                  { headers: { Authorization: `Bearer ${token}` } }
+                                );
+                                showToast('success', language === 'it' ? `Email inviata: ${res.data.subject}` : `Email sent: ${res.data.subject}`);
+                                fetchLeads();
+                              } catch (e) {
+                                showToast('error', e.response?.data?.detail || (language === 'it' ? 'Invio fallito' : 'Send failed'));
+                              }
+                            }}
+                            className="w-full justify-start bg-blue-600/80 hover:bg-blue-600 text-white text-sm"
+                            data-testid={`lead-template-${tpl.key}`}
+                          >
+                            <Send className="w-3.5 h-3.5 mr-2" />
+                            {language === 'it' ? tpl.it : tpl.en}
+                          </Button>
+                        ))}
+                      </div>
+
+                      {/* Touch history */}
+                      {selectedLead.touches && selectedLead.touches.length > 0 && (
+                        <div className="mt-5">
+                          <p className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+                            {language === 'it' ? 'Cronologia contatti' : 'Touch history'}
+                          </p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {selectedLead.touches.slice().reverse().map((t, i) => (
+                              <div key={i} className="text-xs bg-slate-800/60 rounded px-3 py-2 border border-slate-700/40">
+                                <div className="flex justify-between text-slate-500">
+                                  <span>{t.template || t.type}</span>
+                                  <span>{new Date(t.at).toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <p className="text-slate-300 mt-0.5 truncate">{t.subject}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

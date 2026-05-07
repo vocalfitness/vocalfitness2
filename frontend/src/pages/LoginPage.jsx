@@ -1,24 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, loading } = useAuth();
+  const { login, isAuthenticated, loading, setAuth } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [magicState, setMagicState] = useState(null); // 'verifying' | 'success' | 'error' | null
+
+  // Auto-handle magic link tokens from query string
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const magic = params.get('magic');
+    if (!magic) return;
+    setMagicState('verifying');
+    const exchange = async () => {
+      try {
+        const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/magic`, { token: magic });
+        const { access_token, user } = res.data;
+        if (typeof setAuth === 'function') {
+          setAuth(access_token, user);
+        }
+        setMagicState('success');
+        setTimeout(() => navigate('/area-clienti'), 600);
+      } catch (e) {
+        setMagicState('error');
+        setError(e.response?.data?.detail || 'Magic link invalid or expired');
+        // Clean URL
+        window.history.replaceState({}, '', '/login');
+      }
+    };
+    exchange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Redirect if already logged in
   React.useEffect(() => {
-    if (isAuthenticated && !loading) {
+    if (isAuthenticated && !loading && magicState !== 'verifying') {
       navigate('/area-clienti');
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, magicState]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,8 +103,22 @@ const LoginPage = () => {
             </p>
           </div>
 
+          {/* Magic link state banner */}
+          {magicState === 'verifying' && (
+            <div className="mb-6 p-4 bg-blue-500/20 border border-blue-400/40 rounded-lg flex items-center gap-3" data-testid="magic-link-verifying">
+              <Loader2 className="w-5 h-5 text-blue-300 animate-spin" />
+              <p className="text-blue-100 text-sm">Verifying your magic link…</p>
+            </div>
+          )}
+          {magicState === 'success' && (
+            <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-400/40 rounded-lg flex items-center gap-3" data-testid="magic-link-success">
+              <Sparkles className="w-5 h-5 text-emerald-300" />
+              <p className="text-emerald-100 text-sm">Welcome back. Redirecting to your Members Area…</p>
+            </div>
+          )}
+
           {/* Error Message */}
-          {error && (
+          {error && magicState !== 'success' && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 rounded-lg">
               <p className="text-red-300 text-sm text-center">{error}</p>
             </div>

@@ -59,6 +59,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const setAuth = (accessToken, userData) => {
+    localStorage.setItem('vf_token', accessToken);
+    setToken(accessToken);
+    setUser(userData);
+  };
+
   const isAdmin = () => user?.role === 'admin';
 
   const value = {
@@ -67,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    setAuth,
     isAdmin,
     isAuthenticated: !!user
   };

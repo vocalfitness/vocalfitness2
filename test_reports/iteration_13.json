@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 13 testing complete. Backend: 14/14 pytest tests pass (magic-link auto-registration via /api/booking + /api/auth/magic exchange + /api/admin/leads/{id}/email templated emails with 3 templates and EN/IT locales). Frontend: magic-link login flow works end-to-end (valid token → /area-clienti redirect with user logged in; invalid token → red error banner; no magic param → standard form). Lead Inbox templated email integration verified: 3 template buttons render with correct data-testids, clicking 'Welcome onboarding' triggers backend send, lead status auto-flips to 'contacted', touch entry appended.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "DevServer / CRA overlay", "issue": "Persistent CRA 'Compiled with problems' overlay (eslint rule react-hooks/exhaustive-deps not found). Overlay is dev-mode only (intercepts clicks; had to remove via JS during automated testing). Does not affect production build but breaks UX in preview/dev environment.", "selector": "iframe (webpack-dev-server-client-overlay)", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter13_magic_and_lead_email.py",
+    "/app/test_reports/pytest/iter13_results.xml"
+  ],
+  "action_items": [
+    "(MEDIUM) Resolve eslint config warning in /app/frontend (rule 'react-hooks/exhaustive-deps' not found). The eslint-plugin-react-hooks dependency is referenced via the disable comment at LoginPage.jsx:41 but the plugin is not registered → CRA throws compile-warning overlay. Fix by either adding eslint-plugin-react-hooks to the eslintConfig in package.json or removing the eslint-disable directive (and fixing the dependency array on the useEffect at lines 12-42 instead).",
+    "(LOW) The drawer in AdminPage Lead Inbox does not auto-refresh after a templated send → user has to close and reopen the lead drawer to see the touch history populate. Consider re-fetching the selected lead after a successful POST (touches and status are correctly persisted in the backend, just not reflected immediately in the open drawer)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 3601 lines — well over the 700-line guideline; recommend splitting into routers (auth, leads, bookings, admin, members).",
+    "Magic-link flow correctly uses jwt 'magic' claim to differentiate from regular session tokens — good guardrail. Default fallback JWT_SECRET_KEY is hardcoded in server.py — should fail-fast in production rather than fall back to a known string.",
+    "Lead email endpoint substitutes variables via simple string.replace — fine for {{name}} etc., but does not HTML-escape user content (lead.name is directly injected into HTML body). Low risk because admin-only and the lead names come from public form, but XSS-by-email is a theoretical concern."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter13_magic_and_lead_email.py (created)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% on tested flows"},
+  "test_credentials": "Admin: admin / VocalFitness2026!. Auto-created during testing: usernames matching pattern 'test_iter13_*'. Magic tokens generated using JWT_SECRET_KEY default 'vocalfitness-secret-key-change-in-production-2024' (env var JWT_SECRET_KEY is NOT set in /app/backend/.env, so the default applies).",
+  "seed_data_creation": "Created several TEST_iter13_*@example.com leads + auto-generated client users via /api/booking with source='onboarding_wizard'. One lead (a5942aee-86d6-41cc-a970-9522eaf967f5) has 1 'welcome' touch logged via the frontend UI flow; status='contacted'.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest file at /app/backend/tests/test_iter13_magic_and_lead_email.py covers: booking auto-registration (3 cases), /api/auth/magic (4 cases including valid+expired+missing+non-magic JWT), /api/admin/leads/{id}/email (welcome/followup/proposal + invalid template + 404 + auth-required). Run with: pytest /app/backend/tests/test_iter13_magic_and_lead_email.py -v. JWT_SECRET_KEY is NOT set in backend/.env so the in-code default is used: 'vocalfitness-secret-key-change-in-production-2024'. Magic exchange endpoint accepts payload {'token': '<jwt>'}. Lead inbox testids: lead-row-{id}, lead-template-welcome|followup|proposal, leads-panel, leads-filter-search.",
+  "rca_of_the_issue": "Only frontend issue is the CRA dev-mode ESLint warning overlay (rule 'react-hooks/exhaustive-deps' not found). RCA: LoginPage.jsx line 41 contains '// eslint-disable-next-line react-hooks/exhaustive-deps' but the project's eslintConfig (package.json) does not include the 'react-hooks' plugin in its rules/plugins, so ESLint reports 'rule not found' as an error which CRA promotes into the compile-with-problems overlay. Mitigation: either add 'plugin:react-hooks/recommended' to eslintConfig.extends in package.json AND ensure eslint-plugin-react-hooks is in dependencies, or remove the eslint-disable directive and fix the missing dependency by wrapping the exchange function in useCallback or accepting the warning."
+}
