@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 8 frontend validation PASSED. Verified the new 'Trusted by Industry & Academia' section renders between Credibility Strip and What VocalFitness Is, with 5 corporate logos (BASF, Accenture, Dell, BCG, Electrolux), 6 additional client pills (Mediaset, Yamazaki Mazak, Hitachi, TEVA, DIPHARMA, Alfio Bardolla), and 10 academic partners (EF Education First, Cambridge Assessment, Oxford Alumni, Università di Torino — LFSAG, Università eCampus, MUR & MIUR, DIESSE, H-Farm & Link, Senato della Repubblica, Harvard BS Roma) — all in correct order via data-testid. Navbar shows exactly 7 items in both IT (Home, Metodo, Processo, Programmi, Risultati, Testimonial, Professor) and EN (Home, Method, Process, Programmes, Results, Testimonials, Professor) — Aziende/Companies confirmed removed. Bilingual EN↔IT toggle works for the trusted section ('TRUSTED ACROSS INDUSTRY & ACADEMIA' / 'ADOTTATO IN INDUSTRIA & ACCADEMIA'). Testimonials section visually harmonized with dark slate-950→slate-900 gradient, eyebrow 'VOCI DAL METODO' / 'VOICES FROM THE METHOD', amber stars, blue/indigo accents, prev/next carousel functional. Steve Dapper #professor section renders. Zero console errors. Mobile (375x812) responsive layout confirmed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Testimonials (mobile 375)", "issues": ["Long Italian quote text overflows the fixed-height card creating internal scroll/clipping at narrow viewports — quote content visually crops at the top edge of the card. Consider auto-height or reduced font on mobile."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(LOW) On mobile (≤375px), Testimonials card uses fixed height causing long quotes to crop. Switch to min-h with auto-height or shrink font-size on mobile.",
+    "(CARRYOVER from iter 7, optional) CorporateQuoteForm <select> still hardcodes 'Seleziona...' placeholder in EN — wasn't part of this iteration scope but remains open."
+  ],
+  "critical_code_review_comments": [
+    "HomePage.jsx is now ~1100+ lines including industryLogos, additionalClients, academicPartners arrays + COPY object — strongly recommend extracting i18n COPY and brand arrays into /src/i18n/homepage.js and /src/data/partners.js to keep page <700 lines.",
+    "TestimonialsSection.jsx may still have legacy unused i18n keys (globalRecognitions/recognitionsDesc) carried from iter 7 — verify and prune.",
+    "Trusted section's logo white-on-dark filter is applied via inline class — consider centralizing to a utility class for reuse across other dark-bg logo grids."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "100% (14/14 features passing, 1 minor mobile design issue)"},
+  "test_credentials": "N/A",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 8 validated end-to-end. All trusted section (logos, pills, partners), Navbar 7-item IT/EN, bilingual toggle, harmonized testimonials, carousel, professor section, and zero-console-error checks pass. The brand names EF Education First / Cambridge / Oxford / Harvard ARE allowed on homepage as 'partners' per user clarification — no compliance flag. Only minor follow-up is mobile testimonial card overflow (cosmetic) and the carryover EN <select> placeholder leak inside CorporateQuoteForm from iter 7. Section order verified: Hero → Credibility Strip → Trusted → What VocalFitness Is → How → Audience → Integrate → Programmes → CEFR → Testimonials → Selected Contexts → Steve Dapper → Final CTA.",
+  "rca of the issue": "N/A — no functional bugs."
+}

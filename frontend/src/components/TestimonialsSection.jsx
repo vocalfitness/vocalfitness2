@@ -109,24 +109,28 @@ const TestimonialsSection = () => {
   }
 
   return (
-    <section id="testimonials" ref={sectionRef} className="py-24 bg-slate-950 relative overflow-hidden">
+    <section id="testimonials" ref={sectionRef} className="py-24 lg:py-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden" data-testid="home-testimonials-section">
       
-      {/* Animated background elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 rounded-full blur-3xl animate-pulse"></div>
-      </div>
+      {/* Editorial grid overlay */}
+      <div className="absolute inset-0 opacity-[0.06]" style={{
+        backgroundImage: 'linear-gradient(to right, rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.4) 1px, transparent 1px)',
+        backgroundSize: '64px 64px'
+      }} />
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              {text.title}
-            </span>
+        <div className={`max-w-3xl mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <p className="text-blue-400 font-semibold mb-4 uppercase tracking-[0.2em] text-xs flex items-center gap-2">
+            <span className="w-8 h-[2px] bg-blue-400"></span>
+            {language === 'it' ? 'Voci dal Metodo' : 'Voices from the Method'}
+          </p>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+            {text.title}
           </h2>
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-300 leading-relaxed">
             {text.subtitle}
           </p>
         </div>
@@ -135,32 +139,32 @@ const TestimonialsSection = () => {
         <div className={`relative max-w-5xl mx-auto mb-16 transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           
           {/* Background card */}
-          <div className="relative bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-3xl p-12 hover:border-blue-500/50 transition-all duration-500">
+          <div className="relative bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-3xl p-8 md:p-12 hover:border-blue-500/50 transition-all duration-500">
             
             {/* Glow effect */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-3xl blur-2xl"></div>
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-3xl blur-2xl pointer-events-none"></div>
             
             {/* Quote icon */}
             <div className="relative">
-              <Quote size={64} className="text-blue-400/30 mb-8" />
+              <Quote size={56} className="text-blue-400/40 mb-6" />
               
               {/* Testimonial content */}
-              <blockquote className="text-2xl md:text-3xl text-slate-200 leading-relaxed italic mb-8 relative">
+              <blockquote className="text-xl md:text-2xl lg:text-3xl text-slate-100 leading-relaxed italic mb-8 relative font-light">
                 {testimonials[currentTestimonial]?.text}
               </blockquote>
 
               {/* Author info */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                  <div className="text-xl font-semibold text-blue-400 mb-1">
+                  <div className="text-lg md:text-xl font-bold text-white mb-1">
                     {testimonials[currentTestimonial]?.author}
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-blue-300 text-sm">
                     {testimonials[currentTestimonial]?.role}
-                    {testimonials[currentTestimonial]?.company && ` - ${testimonials[currentTestimonial].company}`}
+                    {testimonials[currentTestimonial]?.company && ` · ${testimonials[currentTestimonial].company}`}
                   </div>
                   {testimonials[currentTestimonial]?.location && (
-                    <div className="text-slate-500 text-sm">
+                    <div className="text-slate-500 text-xs uppercase tracking-widest mt-1">
                       {testimonials[currentTestimonial].location}
                     </div>
                   )}
@@ -169,7 +173,7 @@ const TestimonialsSection = () => {
                 {/* Star rating */}
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={20} className="text-yellow-400 fill-current" />
+                    <Star key={i} size={18} className="text-amber-400 fill-current" />
                   ))}
                 </div>
               </div>
@@ -182,31 +186,34 @@ const TestimonialsSection = () => {
             variant="ghost"
             size="sm"
             onClick={prevTestimonial}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 hover:border-blue-500/50 text-white rounded-full w-12 h-12 p-0"
+            className="absolute -left-2 md:-left-6 top-1/2 transform -translate-y-1/2 bg-slate-900/80 backdrop-blur-sm border border-slate-700 hover:border-blue-500 hover:bg-slate-800 text-white rounded-full w-12 h-12 p-0 shadow-xl"
+            data-testid="testimonials-prev"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={22} />
           </Button>
           
           <Button
             variant="ghost" 
             size="sm"
             onClick={nextTestimonial}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 hover:border-blue-500/50 text-white rounded-full w-12 h-12 p-0"
+            className="absolute -right-2 md:-right-6 top-1/2 transform -translate-y-1/2 bg-slate-900/80 backdrop-blur-sm border border-slate-700 hover:border-blue-500 hover:bg-slate-800 text-white rounded-full w-12 h-12 p-0 shadow-xl"
+            data-testid="testimonials-next"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={22} />
           </Button>
 
           {/* Dots indicator */}
-          <div className="flex justify-center mt-8 gap-2">
+          <div className="flex justify-center mt-8 gap-2 flex-wrap">
             {testimonials?.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentTestimonial(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                className={`h-2 rounded-full transition-all duration-300 ${
                   index === currentTestimonial 
-                    ? 'bg-blue-500 w-8' 
-                    : 'bg-slate-600 hover:bg-slate-500'
+                    ? 'bg-blue-400 w-10' 
+                    : 'bg-slate-700 hover:bg-slate-500 w-2'
                 }`}
+                aria-label={`Testimonial ${index + 1}`}
               />
             ))}
           </div>
@@ -226,27 +233,27 @@ const TestimonialsSection = () => {
             { role: "Opera Singer", quote: "Perfect diction for international performances", rating: 5 },
             { role: "Business Leader", quote: "Vocal confidence that transformed my leadership", rating: 5 }
           ]).map((testimonial, index) => (
-            <div key={index} className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/30 hover:bg-slate-800/50 transition-all duration-500 group">
+            <div key={index} className="bg-slate-800/40 backdrop-blur-sm border border-slate-700 rounded-2xl p-6 hover:border-blue-500/40 hover:bg-slate-800/60 transition-all duration-500 group">
               
               {/* Stars */}
               <div className="flex gap-1 mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (
-                  <Star key={i} size={16} className="text-yellow-400 fill-current" />
+                  <Star key={i} size={14} className="text-amber-400 fill-current" />
                 ))}
               </div>
 
               {/* Quote */}
-              <p className="text-slate-300 italic mb-4 group-hover:text-white transition-colors duration-300">
+              <p className="text-slate-300 italic mb-4 group-hover:text-white transition-colors duration-300 leading-relaxed">
                 "{testimonial.quote}"
               </p>
 
               {/* Role */}
-              <div className="text-sm text-blue-400 font-medium">
+              <div className="text-xs text-blue-300 font-semibold uppercase tracking-widest">
                 {testimonial.role}
               </div>
 
               {/* Hover effect line */}
-              <div className="w-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 group-hover:w-full transition-all duration-300 mt-3"></div>
+              <div className="w-0 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 group-hover:w-full transition-all duration-500 mt-4"></div>
               
             </div>
           ))}

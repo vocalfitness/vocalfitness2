@@ -50,6 +50,18 @@ const COPY = {
         'Developed by Steve Dapper'
       ]
     },
+    trusted: {
+      eyebrow: 'Trusted Across Industry & Academia',
+      title_a: 'Adopted by global organisations',
+      title_b: 'and recognised institutions.',
+      sub: 'A method validated in real corporate environments and aligned with leading academic and institutional partners.',
+      industry_label: 'Corporate Clients',
+      institutions_label: 'Academic & Institutional Partners',
+      additional_label: 'Additional clients',
+      footer_pre: 'A combined portfolio of ',
+      footer_em: '50+ multinationals, market leaders and academic institutions',
+      footer_post: ' across Europe, the United States and global markets.'
+    },
     what: {
       eyebrow: 'What VocalFitness Is',
       title_a: 'A specialist layer for ',
@@ -226,6 +238,18 @@ const COPY = {
         'Uso Istituzionale',
         'Sviluppato da Steve Dapper'
       ]
+    },
+    trusted: {
+      eyebrow: 'Adottato in Industria & Accademia',
+      title_a: 'Scelto da organizzazioni globali',
+      title_b: 'e istituzioni riconosciute.',
+      sub: 'Un metodo validato in contesti corporate reali e allineato a partner accademici e istituzionali di riferimento.',
+      industry_label: 'Clienti Corporate',
+      institutions_label: 'Partner Accademici & Istituzionali',
+      additional_label: 'Altri clienti',
+      footer_pre: 'Un portfolio combinato di ',
+      footer_em: '50+ multinazionali, leader di mercato e istituzioni accademiche',
+      footer_post: ' tra Europa, Stati Uniti e mercati globali.'
     },
     what: {
       eyebrow: 'Cos\'è VocalFitness',
@@ -459,8 +483,40 @@ const HomePage = () => {
     dapperPortrait: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/lil21e7s__mg_2586.PNG'
   };
 
+  // Industry logos (uniform from vocalfitness.org CDN)
+  const industryLogos = [
+    { name: 'BASF', logo: 'https://cloud-1de12d.becdn.net/media/iW=258&iH=129&oX=0&oY=0&cW=258&cH=129/fde7d7897bc94923b604e7bbdbdb4ebf.png' },
+    { name: 'Accenture', logo: 'https://cloud-1de12d.becdn.net/media/iW=186&iH=67&oX=0&oY=0&cW=186&cH=67/ad63d8b5dd6f42c132feb7830ee8635d.png' },
+    { name: 'Dell', logo: 'https://cloud-1de12d.becdn.net/media/iW=204&iH=62&oX=0&oY=0&cW=204&cH=62/9bdf47c0e9c11b5ee82291427314fc43.png' },
+    { name: 'Boston Consulting Group', logo: 'https://cloud-1de12d.becdn.net/media/iW=248&iH=57&oX=0&oY=0&cW=248&cH=57/9334e7569be83631b89f4ee7c5672352.png' },
+    { name: 'Electrolux', logo: 'https://cloud-1de12d.becdn.net/media/iW=268&iH=62&oX=0&oY=0&cW=268&cH=62/c2d94e2324eff72aa501e32293a2b265.png' }
+  ];
+
+  const additionalClients = [
+    'Mediaset',
+    'Yamazaki Mazak',
+    'Hitachi',
+    'TEVA Pharmaceuticals',
+    'DIPHARMA',
+    'The Alfio Bardolla Group'
+  ];
+
+  const academicPartners = [
+    'EF Education First',
+    'Cambridge Assessment',
+    'Oxford Alumni Business Courses',
+    'Università di Torino — LFSAG',
+    'Università eCampus',
+    'MUR & MIUR',
+    'DIESSE',
+    'H-Farm & Link University',
+    'Senato della Repubblica',
+    'Harvard BS Roma'
+  ];
+
   const [heroRef, heroVisible] = useScrollAnimation();
   const [credRef, credVisible] = useScrollAnimation();
+  const [trustedRef, trustedVisible] = useScrollAnimation();
   const [whatRef, whatVisible] = useScrollAnimation();
   const [methodRef, methodVisible] = useScrollAnimation();
   const [whoRef, whoVisible] = useScrollAnimation();
@@ -610,6 +666,101 @@ const HomePage = () => {
                 <span className="text-sm md:text-base font-semibold tracking-wide">{m}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== 2.5 TRUSTED BY INDUSTRY & ACADEMIA ========== */}
+      <section ref={trustedRef} className="relative py-24 lg:py-28 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden" data-testid="home-trusted-section">
+        <div className="absolute inset-0 opacity-[0.06]" style={{
+          backgroundImage: 'linear-gradient(to right, rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.4) 1px, transparent 1px)',
+          backgroundSize: '64px 64px'
+        }} />
+        <div className="absolute top-0 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+          <div className={`max-w-3xl mb-16 ${trustedVisible ? 'vf-slide-up' : 'opacity-0'}`}>
+            <p className="text-blue-400 font-semibold mb-4 uppercase tracking-[0.2em] text-xs flex items-center gap-2">
+              <span className="w-8 h-[2px] bg-blue-400"></span>
+              {t.trusted.eyebrow}
+            </p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+              {t.trusted.title_a}{' '}
+              <span className="bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-200 bg-clip-text text-transparent">
+                {t.trusted.title_b}
+              </span>
+            </h2>
+            <p className="text-lg text-slate-300 leading-relaxed">{t.trusted.sub}</p>
+          </div>
+
+          {/* Industry logos grid */}
+          <div className="mb-16">
+            <p className={`text-[11px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-6 ${trustedVisible ? 'vf-fade-in vf-d-100' : 'opacity-0'}`}>
+              {t.trusted.industry_label}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {industryLogos.map((c, i) => (
+                <div
+                  key={c.name}
+                  className={`group flex items-center justify-center p-8 bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-blue-400/40 hover:bg-white/[0.06] transition-all duration-500 ${trustedVisible ? `vf-scale-in vf-d-${(i + 2) * 100}` : 'opacity-0'}`}
+                  data-testid={`home-trusted-logo-${i}`}
+                >
+                  <img
+                    src={c.logo}
+                    alt={`${c.name} logo`}
+                    className="w-full h-auto max-h-12 object-contain filter brightness-0 invert opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Additional text-based clients */}
+            <div className={`mt-6 flex flex-wrap gap-2 ${trustedVisible ? 'vf-fade-in vf-d-500' : 'opacity-0'}`}>
+              <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500 self-center mr-2">
+                {t.trusted.additional_label} —
+              </span>
+              {additionalClients.map((c) => (
+                <span
+                  key={c}
+                  className="px-4 py-1.5 bg-white/[0.03] border border-white/10 rounded-full text-sm text-slate-300 hover:border-blue-400/40 hover:text-white transition-all duration-300"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Academic & Institutional partners */}
+          <div className="border-t border-white/10 pt-12">
+            <p className={`text-[11px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-6 ${trustedVisible ? 'vf-fade-in vf-d-200' : 'opacity-0'}`}>
+              {t.trusted.institutions_label}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {academicPartners.map((p, i) => (
+                <div
+                  key={p}
+                  className={`group relative px-5 py-4 bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-blue-400/40 hover:bg-white/[0.06] transition-all duration-500 ${trustedVisible ? `vf-slide-up vf-d-${((i % 5) + 2) * 100}` : 'opacity-0'}`}
+                  data-testid={`home-trusted-partner-${i}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 w-1.5 h-1.5 shrink-0 rounded-full bg-blue-400 group-hover:bg-cyan-300 transition-colors" />
+                    <span className="text-sm text-slate-200 font-medium leading-snug group-hover:text-white transition-colors">
+                      {p}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer note */}
+          <div className={`mt-16 text-center ${trustedVisible ? 'vf-fade-in vf-d-600' : 'opacity-0'}`}>
+            <p className="text-slate-400 text-base md:text-lg">
+              {t.trusted.footer_pre}
+              <span className="text-white font-semibold">{t.trusted.footer_em}</span>
+              {t.trusted.footer_post}
+            </p>
           </div>
         </div>
       </section>
