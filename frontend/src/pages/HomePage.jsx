@@ -454,6 +454,78 @@ const dapperIcons = [GraduationCap, Mic2, Award];
 const cefrColors = ['from-blue-400 to-blue-500', 'from-blue-600 to-blue-600', 'from-blue-600 to-blue-800'];
 
 // ============================================================
+// VideoWithLoader — video with skeleton/shimmer + buffering indicator
+// ============================================================
+const VideoWithLoader = ({ src, className = '', wrapperClassName = '', poster, ...rest }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [inView, setInView] = useState(false);
+  const containerRef = useRef(null);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.unobserve(node);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className={`relative ${wrapperClassName}`}>
+      {/* Skeleton + shimmer + spinner overlay (visible until video can play) */}
+      <div
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${loaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        aria-hidden="true"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100" />
+        <div
+          className="absolute inset-0 vf-shimmer"
+          style={{
+            backgroundImage: 'linear-gradient(110deg, transparent 0%, transparent 35%, rgba(37,99,235,0.18) 50%, transparent 65%, transparent 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.8s ease-in-out infinite'
+          }}
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-200" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-600 animate-spin" />
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-blue-700/70 font-semibold">
+            Loading video
+          </span>
+        </div>
+      </div>
+
+      {inView && (
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster={poster}
+          onCanPlay={() => setLoaded(true)}
+          onLoadedData={() => setLoaded(true)}
+          className={className}
+          {...rest}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============================================================
 // HomePage
 // ============================================================
 const HomePage = () => {
@@ -646,14 +718,18 @@ const HomePage = () => {
 
             <div className={`lg:col-span-5 hidden lg:block ${heroVisible ? 'vf-slide-left vf-d-200' : 'opacity-0'}`}>
               <div className="relative">
-                <div className="rounded-3xl overflow-hidden border-4 border-white shadow-[0_30px_80px_rgba(37,99,235,0.25)] vf-pulse-glow">
-                  <video src={assets.heroVideo} autoPlay loop muted playsInline aria-label="VocalFitness method live session preview" className="w-full h-[520px] object-cover" data-testid="home-hero-video" />
-                </div>
-                <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl vf-float flex items-center gap-2">
+                <VideoWithLoader
+                  src={assets.heroVideo}
+                  aria-label="VocalFitness method live session preview"
+                  className="w-full h-[520px] object-cover"
+                  wrapperClassName="rounded-3xl overflow-hidden border-4 border-white shadow-[0_30px_80px_rgba(37,99,235,0.25)] vf-pulse-glow h-[520px]"
+                  data-testid="home-hero-video"
+                />
+                <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl vf-float flex items-center gap-2 z-20">
                   <Play className="w-4 h-4" />
                   {t.hero.badge_session}
                 </div>
-                <div className="absolute -top-5 -right-5 bg-white text-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-100">
+                <div className="absolute -top-5 -right-5 bg-white text-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-100 z-20">
                   <p className="text-3xl font-black text-blue-600">{t.hero.badge_cefr}</p>
                   <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-1">{t.hero.badge_cefr_sub}</p>
                 </div>
@@ -848,19 +924,16 @@ const HomePage = () => {
           </div>
 
           {/* Method showcase video — full-width banner */}
-          <div className={`relative mb-16 rounded-3xl overflow-hidden border border-slate-200 shadow-2xl shadow-blue-500/10 ${methodVisible ? 'vf-scale-in vf-d-100' : 'opacity-0'}`}>
-            <video
+          <div className={`relative mb-16 ${methodVisible ? 'vf-scale-in vf-d-100' : 'opacity-0'}`}>
+            <VideoWithLoader
               src={assets.methodVideo}
-              autoPlay
-              loop
-              muted
-              playsInline
               aria-label="VocalFitness method demonstration session"
               className="w-full h-[280px] md:h-[360px] object-cover"
+              wrapperClassName="rounded-3xl overflow-hidden border border-slate-200 shadow-2xl shadow-blue-500/10 h-[280px] md:h-[360px]"
               data-testid="home-method-video"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3">
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent pointer-events-none rounded-3xl" />
+            <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3 z-20">
               <Play className="w-4 h-4 text-blue-600" />
               <span className="text-xs uppercase tracking-widest text-slate-700 font-semibold">
                 {language === 'it' ? 'Metodo · Sessione dimostrativa' : 'Method · Demonstration Session'}
@@ -958,18 +1031,13 @@ const HomePage = () => {
 
             <div className={`lg:col-span-5 space-y-5 ${integrateVisible ? 'vf-slide-left vf-d-300' : 'opacity-0'}`}>
               {/* Integration showcase video */}
-              <div className="rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl">
-                <video
-                  src={assets.integrationVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  aria-label="VocalFitness integration use case showcase"
-                  className="w-full h-[200px] object-cover"
-                  data-testid="home-integration-video"
-                />
-              </div>
+              <VideoWithLoader
+                src={assets.integrationVideo}
+                aria-label="VocalFitness integration use case showcase"
+                className="w-full h-[200px] object-cover"
+                wrapperClassName="rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl h-[200px]"
+                data-testid="home-integration-video"
+              />
 
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6">
@@ -1138,45 +1206,40 @@ const HomePage = () => {
       </section>
 
       {/* ========== 11. STEVE DAPPER ========== */}
-      <section ref={dapperRef} id="professor" className="py-24 lg:py-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden" data-testid="home-dapper-section">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+      <section ref={dapperRef} id="professor" className="py-24 lg:py-32 bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden" data-testid="home-dapper-section">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-200/40 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-100/40 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <div className={`text-center mb-16 ${dapperVisible ? 'vf-slide-up' : 'opacity-0'}`}>
-            <p className="text-blue-400 text-xs uppercase tracking-[0.25em] mb-4 font-semibold">{t.dapper.eyebrow}</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-4">
+            <p className="text-blue-600 text-xs uppercase tracking-[0.25em] mb-4 font-semibold">{t.dapper.eyebrow}</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-4">
               {t.dapper.title}
             </h2>
-            <p className="text-slate-400 text-lg md:text-xl">{t.dapper.sub}</p>
+            <p className="text-slate-600 text-lg md:text-xl">{t.dapper.sub}</p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-10 items-start">
             <div className={`lg:col-span-1 space-y-5 ${dapperVisible ? 'vf-slide-right vf-d-200' : 'opacity-0'}`}>
               <div className="relative group">
-                <div className="rounded-3xl overflow-hidden shadow-2xl border-2 border-slate-700 group-hover:border-blue-500 transition-all duration-500">
+                <div className="rounded-3xl overflow-hidden shadow-xl border-2 border-white group-hover:border-blue-400 transition-all duration-500">
                   <img src={assets.dapperPortrait} alt="Professor Steve Dapper"
                     className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
                     data-testid="home-dapper-portrait" />
                 </div>
-                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest">
+                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest">
                   {t.dapper.badge}
                 </div>
               </div>
 
               {/* Dapper showcase video */}
-              <div className="rounded-3xl overflow-hidden border-2 border-slate-700 shadow-2xl">
-                <video
-                  src={assets.dapperVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  aria-label="Professor Steve Dapper teaching session"
-                  className="w-full h-[220px] object-cover"
-                  data-testid="home-dapper-video"
-                />
-              </div>
+              <VideoWithLoader
+                src={assets.dapperVideo}
+                aria-label="Professor Steve Dapper teaching session"
+                className="w-full h-[220px] object-cover"
+                wrapperClassName="rounded-3xl overflow-hidden border-2 border-white shadow-xl"
+                data-testid="home-dapper-video"
+              />
             </div>
 
             <div className="lg:col-span-2 space-y-5">
@@ -1185,14 +1248,14 @@ const HomePage = () => {
                 const delays = ['vf-d-100', 'vf-d-200', 'vf-d-300'];
                 return (
                   <div key={i}
-                    className={`bg-slate-800/50 backdrop-blur-sm rounded-2xl p-7 border border-slate-700 hover:border-blue-500/50 transition-all duration-500 vf-hover-lift ${dapperVisible ? `vf-slide-up ${delays[i]}` : 'opacity-0'}`}>
+                    className={`bg-white border border-slate-200 rounded-2xl p-7 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-500 vf-hover-lift ${dapperVisible ? `vf-slide-up ${delays[i]}` : 'opacity-0'}`}>
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                      <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
                         <Icon className="w-5 h-5 text-white" />
                       </div>
-                      <h3 className="text-white font-bold text-lg">{b.title}</h3>
+                      <h3 className="text-slate-900 font-bold text-lg">{b.title}</h3>
                     </div>
-                    <p className="text-slate-300 leading-relaxed">{b.body}</p>
+                    <p className="text-slate-600 leading-relaxed">{b.body}</p>
                   </div>
                 );
               })}
