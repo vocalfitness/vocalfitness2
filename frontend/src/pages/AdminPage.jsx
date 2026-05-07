@@ -1784,6 +1784,15 @@ const AdminPage = () => {
                                   { headers: { Authorization: `Bearer ${token}` } }
                                 );
                                 showToast('success', language === 'it' ? `Email inviata: ${res.data.subject}` : `Email sent: ${res.data.subject}`);
+                                // Refresh selected lead from backend so drawer shows the new touch + updated status immediately
+                                try {
+                                  const refreshed = await axios.get(
+                                    `${backendUrl}/api/admin/leads?search=${encodeURIComponent(selectedLead.email)}`,
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                  );
+                                  const updated = (refreshed.data?.items || []).find(l => l.id === selectedLead.id);
+                                  if (updated) setSelectedLead(updated);
+                                } catch { /* ignore */ }
                                 fetchLeads();
                               } catch (e) {
                                 showToast('error', e.response?.data?.detail || (language === 'it' ? 'Invio fallito' : 'Send failed'));

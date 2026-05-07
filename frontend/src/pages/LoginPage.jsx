@@ -38,7 +38,6 @@ const LoginPage = () => {
       }
     };
     exchange();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Redirect if already logged in
