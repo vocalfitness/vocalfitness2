@@ -31,6 +31,9 @@ THUMBNAILS_DIR.mkdir(exist_ok=True)
 
 load_dotenv(ROOT_DIR / '.env')
 
+# Emergent Object Storage (persistent across deploys)
+from storage_helper import init_storage as _init_emergent_storage, put_object as emergent_put, get_object as emergent_get, guess_content_type as guess_mime
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -135,8 +138,12 @@ async def create_indexes():
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database indexes on startup"""
+    """Initialize database indexes and persistent object storage on startup"""
     await create_indexes()
+    try:
+        _init_emergent_storage()
+    except Exception as e:
+        logging.warning(f"Emergent storage init at startup failed (will retry on first use): {e}")
 
 
 # ==================== AUTHENTICATION CONFIG ====================
@@ -2505,6 +2512,13 @@ async def upload_file(
     # Build URL - will be served via static files
     file_url = f"/api/uploads/{safe_filename}"
     
+    # Persist to Emergent Object Storage (survives container restarts)
+    try:
+        with open(file_path, "rb") as fh:
+            emergent_put(safe_filename, fh.read(), guess_mime(safe_filename))
+    except Exception as e:
+        logging.warning(f"Emergent storage put failed for {safe_filename}: {e}")
+    
     # Auto-generate thumbnail
     thumbnail_url = auto_generate_thumbnail(file_path, content_type=file_type)
     
@@ -3508,6 +3522,13 @@ async def upload_popup_media(
     audio_exts = ['.mp3', '.wav', '.ogg', '.m4a', '.aac']
     file_type = "audio" if file_ext in audio_exts else "video"
 
+    # Persist to Emergent Object Storage (survives container restarts)
+    try:
+        with open(file_path, "rb") as fh:
+            emergent_put(safe_filename, fh.read(), guess_mime(safe_filename))
+    except Exception as e:
+        logging.warning(f"Emergent storage put failed for {safe_filename}: {e}")
+
     # Auto-generate thumbnail for video uploads
     thumbnail_url = auto_generate_thumbnail(file_path, content_type=file_type) or ""
 
@@ -3573,6 +3594,42 @@ async def dismiss_popup(popup_id: str, current_user: dict = Depends(get_current_
             "dismissed_at": datetime.now(timezone.utc),
         })
     return {"message": "Popup dismissato"}
+
+
+@api_router.get("/uploads/{file_path:path}")
+async def serve_uploaded_file(file_path: str):
+    """Serve an uploaded file with persistent-storage fallback.
+    Strategy:
+      1. If present on local disk → FileResponse (sendfile, zero-copy).
+      2. Else fetch from Emergent Object Storage and stream bytes back.
+      3. On hit from storage, write a local copy back to /app/backend/uploads
+         so subsequent requests are served from disk.
+    """
+    from fastapi.responses import FileResponse, Response
+
+    # Disallow path traversal
+    if ".." in file_path or file_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    local_path = UPLOADS_DIR / file_path
+    if local_path.exists() and local_path.is_file():
+        return FileResponse(str(local_path), media_type=guess_mime(local_path.name))
+
+    # Local miss → fetch from Emergent storage
+    obj = emergent_get(file_path)
+    if obj is None:
+        raise HTTPException(status_code=404, detail="File not found")
+    data, content_type = obj
+
+    # Best-effort: write back to local disk so next request is fast (and
+    # subdirectory uploads/thumbnails are also handled)
+    try:
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_bytes(data)
+    except Exception as e:
+        logging.warning(f"Failed to cache fetched object locally: {e}")
+
+    return Response(content=data, media_type=content_type or guess_mime(file_path))
 
 
 # Include the router in the main app
