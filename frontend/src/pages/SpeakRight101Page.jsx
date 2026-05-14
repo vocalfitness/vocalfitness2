@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { useLanguage } from '../context/LanguageContext';
 import {
   GraduationCap, Award, Mic2, AudioWaveform, Activity,
-  Users, User, Building2, Layers, Check, ArrowRight,
+  Users, User, Building2, Layers, Check, X, ArrowRight,
   Calendar, ChevronDown, HelpCircle, Sparkles, Globe,
   Video, FileText, Clock
 } from 'lucide-react';
@@ -61,6 +61,24 @@ const COPY = {
         'Biomechanical Voice Conditioning',
         'Executive Communication in English'
       ]
+    },
+    comparison: {
+      eyebrow: 'Method Positioning',
+      title: 'Speak Right 101 vs. a traditional English course.',
+      sub: 'A focused, scientific layer on spoken English — designed to complement, not replace, the English course you already follow.',
+      colA: 'Speak Right 101',
+      colB: 'Traditional English course',
+      rows: [
+        { criterion: 'Primary focus',          a: 'Oral production: pronunciation, articulation, prosody', b: 'Grammar, reading, vocabulary' },
+        { criterion: 'Scientific foundation',  a: 'Articulatory phonetics + biomechanical conditioning',  b: 'Communicative / general-purpose methods' },
+        { criterion: 'Diagnostic assessment',  a: 'Free CEFR-based individual diagnostic + sample session', b: 'Generic placement test (often paid)' },
+        { criterion: 'Delivery formats',       a: '4 formats (1:1, One-to-Some, One-to-Many, Blended)',   b: 'One fixed classroom format' },
+        { criterion: 'Platform & replays',     a: 'Proprietary HD platform · 12-month replays',           b: 'Live-only or limited LMS access' },
+        { criterion: 'Output certificate',     a: 'Measurable spoken-English performance certificate',    b: 'Generic CEFR level certificate' },
+        { criterion: 'Integration',            a: 'Additive layer — works alongside existing programmes', b: 'Replacement programme' },
+        { criterion: 'Programme length',       a: '12 focused sessions × 60 min',                          b: '30–100+ hours per CEFR level' }
+      ],
+      cta: 'Speak Right 101 is a method, not a school. It integrates with what you already do.'
     },
     instructor: {
       eyebrow: 'Instructor',
@@ -132,6 +150,24 @@ const COPY = {
         'Condizionamento Biomeccanico Vocale',
         'Executive Communication in Inglese'
       ]
+    },
+    comparison: {
+      eyebrow: 'Posizionamento del Metodo',
+      title: 'Speak Right 101 vs. un corso d\'inglese tradizionale.',
+      sub: 'Un layer scientifico focalizzato sull\'inglese parlato — pensato per integrare, non sostituire, il corso d\'inglese che già segui.',
+      colA: 'Speak Right 101',
+      colB: 'Corso d\'inglese tradizionale',
+      rows: [
+        { criterion: 'Focus primario',            a: 'Produzione orale: pronuncia, articolazione, prosodia',  b: 'Grammatica, lettura, vocabolario' },
+        { criterion: 'Fondamento scientifico',    a: 'Fonetica articolatoria + condizionamento biomeccanico', b: 'Metodi comunicativi / generalisti' },
+        { criterion: 'Valutazione diagnostica',   a: 'Diagnostica CEFR individuale gratuita + sample session', b: 'Test d\'ingresso generico (spesso a pagamento)' },
+        { criterion: 'Formati di erogazione',     a: '4 formati (1:1, One-to-Some, One-to-Many, Blended)',     b: 'Un solo formato aula' },
+        { criterion: 'Piattaforma & repliche',    a: 'Piattaforma HD proprietaria · replay 12 mesi',           b: 'Live only o accesso LMS limitato' },
+        { criterion: 'Certificato finale',        a: 'Certificato di performance orale misurabile',            b: 'Certificato di livello CEFR generico' },
+        { criterion: 'Integrazione',              a: 'Layer additivo — convive con i programmi esistenti',     b: 'Programma sostitutivo' },
+        { criterion: 'Durata del programma',      a: '12 sessioni focalizzate × 60 min',                        b: '30–100+ ore per livello CEFR' }
+      ],
+      cta: 'Speak Right 101 è un metodo, non una scuola. Si integra con quello che già fai.'
     },
     instructor: {
       eyebrow: 'Docente',
@@ -317,9 +353,106 @@ const SpeakRight101Page = () => {
         </div>
       </section>
 
+      {/* COMPARISON TABLE */}
+      <section className="py-20 lg:py-28 bg-gradient-to-b from-white via-slate-50 to-white relative overflow-hidden" data-testid="sr101-comparison">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(to right, rgba(15,23,42,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.5) 1px, transparent 1px)',
+          backgroundSize: '56px 56px'
+        }} />
+        <div className="container mx-auto px-6 lg:px-8 max-w-6xl relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <p className="text-blue-600 text-xs uppercase tracking-[0.25em] mb-4 font-semibold">{t.comparison.eyebrow}</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-tight tracking-tight mb-5">
+              {t.comparison.title}
+            </h2>
+            <p className="text-slate-600 text-lg leading-relaxed">{t.comparison.sub}</p>
+          </div>
+
+          {/* Desktop / tablet: real table */}
+          <div className="hidden md:block overflow-hidden rounded-3xl border border-slate-200 shadow-xl shadow-blue-500/5 bg-white">
+            <table className="w-full" data-testid="sr101-comparison-table">
+              <thead>
+                <tr className="bg-gradient-to-r from-slate-50 to-blue-50/60 border-b border-slate-200">
+                  <th className="text-left px-6 py-5 text-slate-700 font-bold text-sm uppercase tracking-wider w-1/3">&nbsp;</th>
+                  <th className="text-left px-6 py-5 text-blue-700 font-black text-base">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      {t.comparison.colA}
+                    </div>
+                  </th>
+                  <th className="text-left px-6 py-5 text-slate-500 font-semibold text-base">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center">
+                        <X className="w-4 h-4 text-slate-500" />
+                      </div>
+                      {t.comparison.colB}
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {t.comparison.rows.map((row, i) => (
+                  <tr key={i} className={`border-b border-slate-100 last:border-b-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-blue-50/30 transition-colors`} data-testid={`sr101-comparison-row-${i}`}>
+                    <td className="px-6 py-5 text-slate-600 font-semibold text-sm">{row.criterion}</td>
+                    <td className="px-6 py-5 text-slate-900 font-medium">
+                      <div className="flex items-start gap-2.5">
+                        <Check className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span>{row.a}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-slate-500">
+                      <div className="flex items-start gap-2.5">
+                        <X className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <span>{row.b}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: stacked cards */}
+          <div className="md:hidden space-y-5">
+            {t.comparison.rows.map((row, i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm" data-testid={`sr101-comparison-mobile-${i}`}>
+                <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{row.criterion}</p>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-blue-700 font-bold mb-1">{t.comparison.colA}</p>
+                      <p className="text-slate-900 text-sm">{row.a}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 opacity-70">
+                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <X className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">{t.comparison.colB}</p>
+                      <p className="text-slate-600 text-sm">{row.b}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-slate-600 italic mt-10 max-w-2xl mx-auto leading-relaxed" data-testid="sr101-comparison-cta">
+            {t.comparison.cta}
+          </p>
+        </div>
+      </section>
+
       {/* INSTRUCTOR */}
-      <section className="py-20 lg:py-28 bg-gradient-to-b from-white via-blue-50/30 to-white" data-testid="sr101-instructor">
-        <div className="container mx-auto px-6 lg:px-8 max-w-6xl">
+      <section className="py-20 lg:py-28 bg-gradient-to-b from-white via-blue-50/30 to-white" data-testid="sr101-instructor">        <div className="container mx-auto px-6 lg:px-8 max-w-6xl">
           <div className="grid lg:grid-cols-3 gap-10 items-center">
             <div className="lg:col-span-1">
               <div className="rounded-3xl overflow-hidden shadow-xl border-2 border-white">
