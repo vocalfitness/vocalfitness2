@@ -22,7 +22,7 @@ const Navbar = () => {
     { label: 'Home', href: '/' },
     { label: 'Metodo', href: '/#method' },
     { label: 'Processo', href: '/#process' },
-    { label: 'Programmi', href: '/#programmes' },
+    { label: 'Speak Right 101', href: '/speak-right-101' },
     { label: 'Risultati', href: '/#results' },
     { label: 'Testimonial', href: '/#testimonials' },
     { label: 'Professor', href: '/#professor' },
@@ -31,7 +31,7 @@ const Navbar = () => {
     { label: 'Home', href: '/' },
     { label: 'Method', href: '/#method' },
     { label: 'Process', href: '/#process' },
-    { label: 'Programmes', href: '/#programmes' },
+    { label: 'Speak Right 101', href: '/speak-right-101' },
     { label: 'Results', href: '/#results' },
     { label: 'Testimonials', href: '/#testimonials' },
     { label: 'Professor', href: '/#professor' },
@@ -60,7 +60,7 @@ const Navbar = () => {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="text-slate-700 hover:text-blue-700 transition-colors duration-200 text-sm font-semibold relative group tracking-wide"
+                  className="text-slate-700 hover:text-blue-700 transition-colors duration-200 text-sm font-semibold relative group tracking-wide whitespace-nowrap"
                   data-testid={`navbar-link-${item.label.toLowerCase()}`}
                 >
                   {item.label}
