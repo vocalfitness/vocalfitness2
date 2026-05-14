@@ -9,6 +9,7 @@ import OnboardingWizard from '../components/OnboardingWizard';
 import TestimonialsSection from '../components/TestimonialsSection';
 import { Button } from '../components/ui/button';
 import { useLanguage } from '../context/LanguageContext';
+import { bioBlocks as professorBioBlocks } from '../data/professorBio';
 import {
   ArrowRight, Check, Mail, MessageCircle, Calendar, Play,
   Mic2, AudioWaveform, Activity, GraduationCap, Briefcase, Award,
@@ -180,18 +181,9 @@ const COPY = {
       sub: 'Founder of the VocalFitness Method',
       badge: '30+ Years · Voice & Phonetics',
       blocks: [
-        {
-          title: 'Academic Foundations',
-          body: 'University Professor of English Articulatory Phonetics at Università eCampus and scientific collaborator at the LFSAG Phonetics Laboratory of the University of Turin. Certified coach in biomechanics and body conditioning (University of Tampa, Florida, USA).'
-        },
-        {
-          title: 'Method Development',
-          body: 'Founder of the proprietary VocalFitness method for spoken English — combining articulatory phonetics, prosody training and biomechanical conditioning of the speech organs into a single, structured protocol.'
-        },
-        {
-          title: 'Applied Practice',
-          body: 'Three decades of work spanning research, teaching and applied training across academic, broadcast, performance and corporate environments — with a portfolio of executives, professionals and public figures trained in spoken-English performance.'
-        }
+        { title: 'Academic Foundations', body: professorBioBlocks.en.blocks[0].body },
+        { title: 'Method Development', body: professorBioBlocks.en.blocks[1].body },
+        { title: 'Applied Practice', body: professorBioBlocks.en.blocks[2].body }
       ]
     },
     finalCta: {
@@ -369,18 +361,9 @@ const COPY = {
       sub: 'Fondatore del Metodo VocalFitness',
       badge: '30+ Anni · Voce & Fonetica',
       blocks: [
-        {
-          title: 'Fondamenta Accademiche',
-          body: 'Professore Universitario di Fonetica Articolatoria Inglese all\'Università eCampus e collaboratore scientifico presso il Laboratorio di Fonetica LFSAG dell\'Università di Torino. Certified coach in biomeccanica e condizionamento corporeo (Università di Tampa, Florida, USA).'
-        },
-        {
-          title: 'Sviluppo del Metodo',
-          body: 'Fondatore del metodo proprietario VocalFitness per l\'inglese parlato — combinazione di fonetica articolatoria, training prosodico e condizionamento biomeccanico degli organi fonatori in un unico protocollo strutturato.'
-        },
-        {
-          title: 'Pratica Applicata',
-          body: 'Tre decenni di lavoro tra ricerca, didattica e training applicato in ambienti accademici, broadcast, performance e corporate — con un portfolio di executive, professionisti e personalità pubbliche allenati nella performance orale dell\'inglese.'
-        }
+        { title: 'Fondamenta Accademiche', body: professorBioBlocks.it.blocks[0].body },
+        { title: 'Sviluppo del Metodo', body: professorBioBlocks.it.blocks[1].body },
+        { title: 'Pratica Applicata', body: professorBioBlocks.it.blocks[2].body }
       ]
     },
     finalCta: {
