@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- Homepage (primary, bilingual IT default + EN alternate) -->
+  <url>
+    <loc>https://www.vocalfitness.org/</loc>
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.vocalfitness.org/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.vocalfitness.org/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.vocalfitness.org/" />
+    <image:image>
+      <image:loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png</image:loc>
+      <image:title>Vocal Fitness — The Science of Exceptional Voice</image:title>
+      <image:caption>Professor Steve Dapper — Vocal Fitness Method</image:caption>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png</video:thumbnail_loc>
+      <video:title>Vocal Fitness — The Science of Exceptional Voice</video:title>
+      <video:description>Hero showcase del metodo Vocal Fitness per l'inglese parlato.</video:description>
+      <video:content_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/inqu5ja0_4ed65995-f476-4620-915c-b4cd221710c3.mp4</video:content_loc>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png</video:thumbnail_loc>
+      <video:title>Il Metodo Vocal Fitness — Fonetica articolatoria &amp; Prosodia</video:title>
+      <video:description>Esplorazione visiva del protocollo Vocal Fitness: fonetica articolatoria, prosodia e condizionamento biomeccanico.</video:description>
+      <video:content_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/p81ta6dy_765b1576-8124-4e61-8245-17c4b8783504.mp4</video:content_loc>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png</video:thumbnail_loc>
+      <video:title>Vocal Fitness — Integration Layer per Corporate &amp; Istituzioni</video:title>
+      <video:description>Showcase del layer di integrazione Vocal Fitness per multinazionali, università, accademie ed editori formativi.</video:description>
+      <video:content_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7dms3cea_849bf25e-793e-43a4-b188-09197516b84b.mp4</video:content_loc>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png</video:thumbnail_loc>
+      <video:title>Professor Steve Dapper — Live Teaching Session</video:title>
+      <video:description>Sessione live del Prof. Steve Dapper sul metodo Vocal Fitness.</video:description>
+      <video:content_loc>https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7mg7kjqj_c051742c-05a0-41e2-976a-aa88512ba441.mp4</video:content_loc>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+
+  <!-- Resources page -->
+  <url>
+    <loc>https://www.vocalfitness.org/risorse</loc>
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Corporate Training page -->
+  <url>
+    <loc>https://www.vocalfitness.org/corporate-training</loc>
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Login (public-facing entrypoint for clients) -->
+  <url>
+    <loc>https://www.vocalfitness.org/login</loc>
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+</urlset>

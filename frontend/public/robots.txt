@@ -1,0 +1,23 @@
+# robots.txt — Vocal Fitness (vocalfitness.org)
+# Updated: 2026-05-14
+
+User-agent: *
+Allow: /
+Allow: /risorse
+Allow: /corporate-training
+Allow: /login
+
+# Disallow private / authenticated areas
+Disallow: /admin
+Disallow: /area-clienti
+Disallow: /impostazioni
+Disallow: /api/
+
+# Disallow internal corporate landing (NDA-bound reference)
+Disallow: /speak-right-medtronic
+
+# Crawl-friendly directives
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://www.vocalfitness.org/sitemap.xml
