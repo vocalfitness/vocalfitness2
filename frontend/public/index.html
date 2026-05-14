@@ -138,6 +138,140 @@
           "inLanguage": ["it-IT", "en-US"]
         }
         </script>
+
+        <!-- Structured Data: Course (Speak Right 101 / Vocal Fitness Method) -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "@id": "https://www.vocalfitness.org/#course-speak-right-101",
+          "name": "Speak Right 101 — Corso Strutturato di Pronuncia Inglese",
+          "alternateName": [
+            "Speak Right 101",
+            "Vocal Fitness Method — Spoken English Program (from A2 to C2)",
+            "Metodo Vocal Fitness — 12 Sessioni"
+          ],
+          "description": "Corso strutturato di pronuncia inglese su tutti i livelli del CEFR (A2 → C2). 12 lezioni da 60 minuti ciascuna basate sul metodo Vocal Fitness: fonetica articolatoria, training prosodico e condizionamento biomeccanico degli organi fonatori. Erogato in modalità Online 1:1, One-to-Some, One-to-Many o Blended (online + in presenza presso il cliente). Lezioni in qualità HD registrate sulla piattaforma proprietaria e disponibili per la fruizione fino a 12 mesi. Certificato finale incluso. Valutazione iniziale gratuita.",
+          "courseCode": "SR101",
+          "provider": {
+            "@id": "https://www.vocalfitness.org/#organization"
+          },
+          "instructor": {
+            "@id": "https://www.vocalfitness.org/#steve-dapper"
+          },
+          "creator": {
+            "@id": "https://www.vocalfitness.org/#steve-dapper"
+          },
+          "educationalLevel": "CEFR A2 → C2",
+          "coursePrerequisites": "CEFR A2 (Elementary)",
+          "teaches": [
+            "English Pronunciation",
+            "Articulatory Phonetics",
+            "Prosody",
+            "Intelligibility",
+            "Spoken English Performance",
+            "Biomechanical Voice Conditioning",
+            "Executive Communication in English"
+          ],
+          "inLanguage": ["en", "it"],
+          "numberOfCredits": {
+            "@type": "QuantitativeValue",
+            "value": 12,
+            "unitText": "lessons"
+          },
+          "timeRequired": "PT12H",
+          "educationalCredentialAwarded": {
+            "@type": "EducationalOccupationalCredential",
+            "name": "Vocal Fitness — Speak Right 101 Certificate",
+            "credentialCategory": "certificate",
+            "recognizedBy": {
+              "@id": "https://www.vocalfitness.org/#organization"
+            }
+          },
+          "audience": {
+            "@type": "EducationalAudience",
+            "educationalRole": "Executive, Professional, Adult Learner"
+          },
+          "image": "https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png",
+          "url": "https://www.vocalfitness.org/",
+          "hasCourseInstance": [
+            {
+              "@type": "CourseInstance",
+              "name": "Speak Right 101 — Online 1:1",
+              "courseMode": "Online",
+              "courseWorkload": "PT12H",
+              "inLanguage": ["en", "it"],
+              "instructor": {
+                "@id": "https://www.vocalfitness.org/#steve-dapper"
+              },
+              "description": "Sessioni individuali live 1:1 in HD via piattaforma proprietaria Vocal Fitness. 12 lezioni × 60 minuti. Registrazioni disponibili 12 mesi."
+            },
+            {
+              "@type": "CourseInstance",
+              "name": "Speak Right 101 — Online One-to-Some",
+              "courseMode": "Online",
+              "courseWorkload": "PT12H",
+              "inLanguage": ["en", "it"],
+              "description": "Sessioni live in piccolo gruppo (One-to-Some) in HD via piattaforma proprietaria. 12 lezioni × 60 minuti. Registrazioni disponibili 12 mesi."
+            },
+            {
+              "@type": "CourseInstance",
+              "name": "Speak Right 101 — Online One-to-Many",
+              "courseMode": "Online",
+              "courseWorkload": "PT12H",
+              "inLanguage": ["en", "it"],
+              "description": "Sessioni live in formato aula/gruppo esteso (One-to-Many) in HD via piattaforma proprietaria. 12 lezioni × 60 minuti."
+            },
+            {
+              "@type": "CourseInstance",
+              "name": "Speak Right 101 — Blended (Online + On-site)",
+              "courseMode": "Blended",
+              "courseWorkload": "PT12H",
+              "inLanguage": ["en", "it"],
+              "location": {
+                "@type": "Place",
+                "name": "On-site presso la sede del cliente"
+              },
+              "description": "Formato ibrido: sessioni online HD via piattaforma proprietaria + sessioni in presenza presso la sede del cliente. 12 lezioni × 60 minuti totali. Registrazioni disponibili 12 mesi."
+            }
+          ],
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Valutazione iniziale gratuita",
+              "description": "Assessment diagnostico individuale CEFR + sample-session gratuita prima dell'avvio del programma.",
+              "price": "0",
+              "priceCurrency": "EUR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://www.vocalfitness.org/",
+              "category": "FreeTrial",
+              "eligibleRegion": [
+                { "@type": "Country", "name": "Italy" },
+                { "@type": "Country", "name": "Switzerland" },
+                { "@type": "Place", "name": "Europe" }
+              ]
+            },
+            {
+              "@type": "Offer",
+              "name": "Speak Right 101 — Full Program (12 lessons)",
+              "description": "Programma completo da 12 lezioni × 60 minuti, modalità a scelta (Online 1:1, One-to-Some, One-to-Many o Blended). Prezzo su richiesta in funzione del formato e della popolazione formata.",
+              "priceSpecification": {
+                "@type": "PriceSpecification",
+                "priceCurrency": "EUR",
+                "valueAddedTaxIncluded": false
+              },
+              "availability": "https://schema.org/InStock",
+              "businessFunction": "https://schema.org/Sell",
+              "url": "https://www.vocalfitness.org/",
+              "eligibleRegion": [
+                { "@type": "Country", "name": "Italy" },
+                { "@type": "Country", "name": "Switzerland" },
+                { "@type": "Place", "name": "Europe" }
+              ]
+            }
+          ]
+        }
+        </script>
         <!--
         These two scripts have been added for the testing, please do not edit or remove them
         -->
