@@ -638,6 +638,24 @@ const HomePage = () => {
         .vf-hover-lift:hover { transform: translateY(-8px); box-shadow: 0 24px 48px rgba(15,23,42,0.12); }
         .vf-parallax { will-change: transform; }
         .vf-wave-bar { display: inline-block; width: 4px; margin: 0 2px; background: currentColor; border-radius: 2px; transform-origin: center; animation: wave 1.4s ease-in-out infinite; }
+
+        /* Portrait premium effects */
+        @keyframes portrait-breathe {
+          0%, 100% { box-shadow: 0 12px 36px -8px rgba(37,99,235,0.18), 0 0 0 1px rgba(37,99,235,0.08); }
+          50%      { box-shadow: 0 22px 56px -8px rgba(37,99,235,0.32), 0 0 0 1px rgba(37,99,235,0.18); }
+        }
+        @keyframes portrait-sheen {
+          0%   { transform: translateX(-120%) skewX(-18deg); }
+          100% { transform: translateX(220%)  skewX(-18deg); }
+        }
+        .vf-portrait-frame { animation: portrait-breathe 5s ease-in-out infinite; transition: transform 0.7s cubic-bezier(.22,.61,.36,1), box-shadow 0.5s ease; }
+        .vf-portrait-frame:hover { transform: translateY(-6px); box-shadow: 0 30px 70px -12px rgba(37,99,235,0.45), 0 0 0 2px rgba(37,99,235,0.35); }
+        .vf-portrait-img { transition: transform 1.1s cubic-bezier(.22,.61,.36,1), filter 0.6s ease; }
+        .vf-portrait-frame:hover .vf-portrait-img { transform: scale(1.08); filter: saturate(1.1) contrast(1.04); }
+        .vf-portrait-sheen { position: absolute; top: 0; left: 0; width: 50%; height: 100%; background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.0) 35%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0.0) 65%, transparent 100%); pointer-events: none; transform: translateX(-120%) skewX(-18deg); }
+        .vf-portrait-frame:hover .vf-portrait-sheen { animation: portrait-sheen 1.4s ease-out forwards; }
+        .vf-portrait-aura { position: absolute; inset: -14px; border-radius: 28px; background: radial-gradient(60% 60% at 50% 50%, rgba(37,99,235,0.22), transparent 70%); filter: blur(24px); opacity: 0; transition: opacity 0.6s ease; pointer-events: none; z-index: -1; }
+        .vf-portrait-frame:hover ~ .vf-portrait-aura, .group:hover .vf-portrait-aura { opacity: 1; }
       `}</style>
 
       <Navbar />
@@ -1224,12 +1242,19 @@ const HomePage = () => {
           <div className="grid lg:grid-cols-3 gap-10 items-start">
             <div className={`lg:col-span-1 space-y-5 ${dapperVisible ? 'vf-slide-right vf-d-200' : 'opacity-0'}`}>
               <div className="relative group">
-                <div className="rounded-3xl overflow-hidden shadow-xl border-2 border-white group-hover:border-blue-400 transition-all duration-500">
+                {/* Soft outer aura (radial blue glow) */}
+                <div className="vf-portrait-aura" aria-hidden="true" />
+                {/* Portrait frame */}
+                <div className="vf-portrait-frame relative rounded-3xl overflow-hidden border-2 border-white">
                   <img src={assets.dapperPortrait} alt="Professor Steve Dapper"
-                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="vf-portrait-img w-full h-auto object-cover"
                     data-testid="home-dapper-portrait" />
+                  {/* Light sheen sweep on hover */}
+                  <div className="vf-portrait-sheen" aria-hidden="true" />
+                  {/* Bottom gradient for depth */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900/30 via-slate-900/0 to-transparent pointer-events-none" aria-hidden="true" />
                 </div>
-                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest">
+                <div className="absolute -bottom-4 -right-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xl uppercase tracking-widest z-10">
                   {t.dapper.badge}
                 </div>
               </div>
