@@ -471,7 +471,7 @@ const MedtronicLandingPage = () => {
                 { 
                   icon: GraduationCap, 
                   title: 'Academic Credentials',
-                  content: '<span class="text-white font-semibold">University Professor of English Articulatory Phonetics</span> at Università eCampus and <span class="text-white font-semibold">researcher at the LFSAG Phonetics Laboratory</span> of the University of Turin. Multi-instrumentalist musician, linguist, and <span class="text-white font-semibold">certified coach in biomechanics and body conditioning</span> from the University of Tampa (Florida, USA). Founder of the proprietary <span class="text-blue-400 font-bold">Vocal Fitness method</span> for spoken English learning.',
+                  content: '<span class="text-white font-semibold">University Professor of English Articulatory Phonetics</span> at Università eCampus and <span class="text-white font-semibold">scientific collaborator at the LFSAG Phonetics Laboratory</span> of the University of Turin. Multi-instrumentalist musician, linguist, and <span class="text-white font-semibold">certified coach in biomechanics and body conditioning</span> from the University of Tampa (Florida, USA). Founder of the proprietary <span class="text-blue-400 font-bold">Vocal Fitness method</span> for spoken English learning.',
                   delay: 'delay-100'
                 },
                 { 

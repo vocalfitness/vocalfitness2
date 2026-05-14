@@ -182,7 +182,7 @@ const COPY = {
       blocks: [
         {
           title: 'Academic Foundations',
-          body: 'University Professor of English Articulatory Phonetics at Università eCampus and researcher at the LFSAG Phonetics Laboratory of the University of Turin. Certified coach in biomechanics and body conditioning (University of Tampa, Florida, USA).'
+          body: 'University Professor of English Articulatory Phonetics at Università eCampus and scientific collaborator at the LFSAG Phonetics Laboratory of the University of Turin. Certified coach in biomechanics and body conditioning (University of Tampa, Florida, USA).'
         },
         {
           title: 'Method Development',
@@ -371,7 +371,7 @@ const COPY = {
       blocks: [
         {
           title: 'Fondamenta Accademiche',
-          body: 'Professore Universitario di Fonetica Articolatoria Inglese all\'Università eCampus e ricercatore presso il Laboratorio di Fonetica LFSAG dell\'Università di Torino. Certified coach in biomeccanica e condizionamento corporeo (Università di Tampa, Florida, USA).'
+          body: 'Professore Universitario di Fonetica Articolatoria Inglese all\'Università eCampus e collaboratore scientifico presso il Laboratorio di Fonetica LFSAG dell\'Università di Torino. Certified coach in biomeccanica e condizionamento corporeo (Università di Tampa, Florida, USA).'
         },
         {
           title: 'Sviluppo del Metodo',
