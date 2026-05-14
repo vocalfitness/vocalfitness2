@@ -15,7 +15,7 @@ import {
   Mic2, AudioWaveform, Activity, GraduationCap, Briefcase, Award,
   Building2, Users, Globe, Layers, Headphones,
   Presentation, Sparkles, Stethoscope,
-  Library, Microscope, Volume2
+  Library, Microscope, Volume2, ChevronDown, HelpCircle
 } from 'lucide-react';
 
 // ============================================================
@@ -184,6 +184,37 @@ const COPY = {
         { title: 'Academic Foundations', body: professorBioBlocks.en.blocks[0].body },
         { title: 'Method Development', body: professorBioBlocks.en.blocks[1].body },
         { title: 'Applied Practice', body: professorBioBlocks.en.blocks[2].body }
+      ]
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: 'Domande Ricorrenti',
+      sub: 'Le risposte alle domande più frequenti sul metodo, sul programma Speak Right 101 e sulle modalità di erogazione.',
+      items: [
+        {
+          q: 'Who is Vocal Fitness for?',
+          a: 'For executives, managers, professionals, academics and public figures who want to improve spoken English in a structured way — pronunciation, prosody, intelligibility and communication performance. Suitable for both B2B corporate programmes and individual journeys.'
+        },
+        {
+          q: 'How many CEFR levels does the method cover?',
+          a: 'Speak Right 101 covers all CEFR levels, from A2 (Elementary) up to C2 (Mastery), with a structured protocol of 12 lessons of 60 minutes each based on articulatory phonetics, prosody training and biomechanical conditioning.'
+        },
+        {
+          q: 'Is it a traditional English course?',
+          a: 'No. Vocal Fitness does not teach grammar or vocabulary: it is a scientific method focused on the oral production of English — articulation, prosody and mechanical conditioning of the speech organs. It integrates with (and does not replace) existing English programmes.'
+        },
+        {
+          q: 'In which formats is the programme delivered?',
+          a: 'Online 1:1, One-to-Some (small groups), One-to-Many (extended classroom) or Blended (online + on-site sessions at the client\'s location). All live sessions are recorded in HD on our proprietary platform and remain available for 12 months.'
+        },
+        {
+          q: 'Is there a final certificate?',
+          a: 'Yes. Upon completion of the programme, the participant receives the "Vocal Fitness — Speak Right 101" certificate, recognised by Vocal Fitness and signed by Prof. Steve Dapper.'
+        },
+        {
+          q: 'Can you try before purchasing?',
+          a: 'Yes. A free initial assessment is included, with an individual CEFR diagnostic and a sample session, in order to define baseline, objectives and format of the programme before the start.'
+        }
       ]
     },
     finalCta: {
@@ -364,6 +395,37 @@ const COPY = {
         { title: 'Fondamenta Accademiche', body: professorBioBlocks.it.blocks[0].body },
         { title: 'Sviluppo del Metodo', body: professorBioBlocks.it.blocks[1].body },
         { title: 'Pratica Applicata', body: professorBioBlocks.it.blocks[2].body }
+      ]
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: 'Domande Ricorrenti',
+      sub: 'Le risposte alle domande più frequenti sul metodo, sul programma Speak Right 101 e sulle modalità di erogazione.',
+      items: [
+        {
+          q: 'A chi è rivolto Vocal Fitness?',
+          a: 'A executive, manager, professionisti, accademici e personalità pubbliche che vogliono migliorare in modo strutturato l\'inglese parlato — pronuncia, prosodia, intelligibilità e performance comunicativa. Adatto sia a programmi B2B aziendali sia a percorsi individuali.'
+        },
+        {
+          q: 'Quanti livelli CEFR copre il metodo?',
+          a: 'Speak Right 101 copre tutti i livelli CEFR, da A2 (Elementary) fino a C2 (Mastery), con un protocollo strutturato di 12 lezioni da 60 minuti basato su fonetica articolatoria, training prosodico e condizionamento biomeccanico.'
+        },
+        {
+          q: 'È un corso d\'inglese tradizionale?',
+          a: 'No. Vocal Fitness non insegna grammatica o vocabolario: è un metodo scientifico focalizzato sulla produzione orale dell\'inglese — articolazione, prosodia e condizionamento meccanico degli organi fonatori. Si integra con (e non sostituisce) i programmi di inglese esistenti.'
+        },
+        {
+          q: 'In quali modalità si svolge il programma?',
+          a: 'Online 1:1, One-to-Some (piccoli gruppi), One-to-Many (aule estese) o Blended (online + sessioni in presenza presso la sede del cliente). Tutte le sessioni live sono in HD su piattaforma proprietaria e restano disponibili come registrazione per 12 mesi.'
+        },
+        {
+          q: 'È previsto un certificato finale?',
+          a: 'Sì. Al completamento del programma viene rilasciato il certificato "Vocal Fitness — Speak Right 101", riconosciuto dall\'organizzazione Vocal Fitness e firmato dal Prof. Steve Dapper.'
+        },
+        {
+          q: 'Si può provare prima di acquistare?',
+          a: 'Sì. È inclusa una valutazione iniziale gratuita con assessment CEFR diagnostico individuale e una sample session, così da definire baseline, obiettivi e formato del percorso prima dell\'avvio.'
+        }
       ]
     },
     finalCta: {
@@ -585,7 +647,9 @@ const HomePage = () => {
   const [cefrRef, cefrVisible] = useScrollAnimation();
   const [proofRef, proofVisible] = useScrollAnimation();
   const [dapperRef, dapperVisible] = useScrollAnimation();
+  const [faqRef, faqVisible] = useScrollAnimation();
   const [ctaRef, ctaVisible] = useScrollAnimation();
+  const [openFaq, setOpenFaq] = useState(0);
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden text-slate-900">
@@ -1270,6 +1334,71 @@ const HomePage = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== 11.5 FAQ ========== */}
+      <section ref={faqRef} id="faq" className="py-24 lg:py-32 bg-white relative overflow-hidden" data-testid="home-faq-section">
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(to right, rgba(15,23,42,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.5) 1px, transparent 1px)',
+          backgroundSize: '64px 64px'
+        }} />
+        <div className="container mx-auto px-6 lg:px-8 max-w-5xl relative z-10">
+          <div className={`text-center max-w-3xl mx-auto mb-16 ${faqVisible ? 'vf-slide-up' : 'opacity-0'}`}>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 mb-5">
+              <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+              <p className="text-blue-600 text-xs uppercase tracking-[0.25em] font-semibold">{t.faq.eyebrow}</p>
+            </div>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-5">
+              {t.faq.title}
+            </h2>
+            <p className="text-slate-600 text-lg md:text-xl leading-relaxed">{t.faq.sub}</p>
+          </div>
+
+          <div className="space-y-4" itemScope itemType="https://schema.org/FAQPage">
+            {t.faq.items.map((item, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div
+                  key={i}
+                  itemScope
+                  itemProp="mainEntity"
+                  itemType="https://schema.org/Question"
+                  className={`border border-slate-200 bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5 ${faqVisible ? `vf-slide-up vf-d-${(i + 1) * 100}` : 'opacity-0'} ${isOpen ? 'border-blue-400 shadow-lg shadow-blue-500/10' : ''}`}
+                  data-testid={`home-faq-item-${i}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(isOpen ? -1 : i)}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${i}`}
+                    className="w-full flex items-center justify-between gap-6 px-7 py-6 text-left focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded-2xl"
+                    data-testid={`home-faq-toggle-${i}`}
+                  >
+                    <h3 itemProp="name" className="text-lg md:text-xl font-bold text-slate-900 leading-snug pr-2">
+                      {item.q}
+                    </h3>
+                    <span className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-blue-600 text-white rotate-180' : 'bg-blue-50 text-blue-600'}`}>
+                      <ChevronDown className="w-5 h-5" />
+                    </span>
+                  </button>
+                  <div
+                    id={`faq-answer-${i}`}
+                    itemScope
+                    itemProp="acceptedAnswer"
+                    itemType="https://schema.org/Answer"
+                    className={`grid transition-all duration-500 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                  >
+                    <div className="overflow-hidden">
+                      <p itemProp="text" className="px-7 pb-6 text-slate-600 leading-relaxed text-base md:text-lg">
+                        {item.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

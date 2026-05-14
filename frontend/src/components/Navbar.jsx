@@ -25,7 +25,8 @@ const Navbar = () => {
     { label: 'Programmi', href: '/#programmes' },
     { label: 'Risultati', href: '/#results' },
     { label: 'Testimonial', href: '/#testimonials' },
-    { label: 'Professor', href: '/#professor' }
+    { label: 'Professor', href: '/#professor' },
+    { label: 'FAQ', href: '/#faq' }
   ] : [
     { label: 'Home', href: '/' },
     { label: 'Method', href: '/#method' },
@@ -33,7 +34,8 @@ const Navbar = () => {
     { label: 'Programmes', href: '/#programmes' },
     { label: 'Results', href: '/#results' },
     { label: 'Testimonials', href: '/#testimonials' },
-    { label: 'Professor', href: '/#professor' }
+    { label: 'Professor', href: '/#professor' },
+    { label: 'FAQ', href: '/#faq' }
   ];
 
   return (
