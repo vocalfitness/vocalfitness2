@@ -557,7 +557,7 @@ const HomePage = () => {
     integrationVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7dms3cea_849bf25e-793e-43a4-b188-09197516b84b.mp4',
     contextVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5h0rillj_a1175e9c-c731-46a7-bd5f-90a9591257fe.mp4',
     dapperVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7mg7kjqj_c051742c-05a0-41e2-976a-aa88512ba441.mp4',
-    dapperPortrait: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/lil21e7s__mg_2586.PNG'
+    dapperPortrait: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/xvbdcjbz_ChatGPT%20Image%20May%2014%2C%202026%2C%2004_07_28%20PM_steve_dapper_vf_science_2.png'
   };
 
   // Industry logos (uniform from vocalfitness.org CDN)
