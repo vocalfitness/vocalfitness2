@@ -695,7 +695,7 @@ const PhonemeCardPage = () => {
                 );
               })}
             </div>
-            <p className="text-[10px] text-cyan-500/50 italic mt-3">Some audio recordings available · more being added.</p>
+            <p className="text-[10px] text-cyan-500/50 italic mt-3">All 30 audio recordings available · tap any word to expand and play.</p>
           </div>
 
           {/* Mnemonic phrase */}
