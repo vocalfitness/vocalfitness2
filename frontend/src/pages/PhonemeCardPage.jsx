@@ -447,10 +447,15 @@ const PhonemeCardPage = () => {
                 <img
                   src={phoneme.assets.frontViewClean || phoneme.assets.frontView}
                   alt={`${phoneme.displayIpa} front-view portrait`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover scale-110"
                 />
+                {/* Inner vignette — masks any visible cropped edges of the photo so the disc blends seamlessly with the card background */}
+                <div className="absolute inset-0 pointer-events-none rounded-full" style={{
+                  boxShadow: 'inset 0 0 22px 8px rgba(2,6,23,0.85), inset 0 0 60px 18px rgba(2,6,23,0.55)',
+                  background: 'radial-gradient(circle at center, transparent 55%, rgba(2,6,23,0.35) 78%, rgba(2,6,23,0.75) 100%)'
+                }} />
                 {/* Bottom darkening + label */}
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent" />
                 <div className="absolute inset-x-0 bottom-2 text-center">
                   <span className="text-[9px] sm:text-[10px] text-cyan-100/90 uppercase tracking-[0.22em] font-bold group-hover:text-orange-300 transition-colors">
                     Front View
