@@ -669,18 +669,6 @@ const PhonemeCardPage = () => {
             </div>
           </div>
 
-          {/* Sources / references */}
-          {phoneme.sources?.length > 0 && (
-            <div className="lg:col-span-12 text-center text-xs text-cyan-500/40 italic pt-2" data-testid="phoneme-sources">
-              References ·{' '}
-              {phoneme.sources.map((s, i) => (
-                <span key={i}>
-                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 underline decoration-cyan-500/30">{s.label}</a>
-                  {' '}({s.note}){i < phoneme.sources.length - 1 && ' · '}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Bottom note */}

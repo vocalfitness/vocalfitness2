@@ -149,7 +149,6 @@ export const PHONEME_U_FOOT = {
 
   /**
    * Phonetic classification (linguist-friendly badges).
-   * Source: soundsamerican.net — phoneme taxonomy
    */
   classification: [
     { label: 'Near-high', tooltip: 'The tongue body rises high in the mouth but does not fully close (which would produce /uː/).' },
@@ -160,7 +159,6 @@ export const PHONEME_U_FOOT = {
 
   /**
    * Educational fun-fact shown in the Lab section.
-   * Source: soundsamerican.net
    */
   funFact: {
     headline: 'Statistical curiosity',
@@ -169,8 +167,7 @@ export const PHONEME_U_FOOT = {
 
   /**
    * Top 30 most common /ʊ/ words in American English (frequency-ranked).
-   * Source: soundsamerican.net — common-words corpus
-   * These are factual lexical data, not copyrightable expression.
+   * Factual lexical data — list of common English words containing the phoneme.
    */
   commonWords: [
     'look', 'good', 'would', 'could', 'should', 'put', 'woman', 'took', 'book', 'pull',
@@ -179,8 +176,7 @@ export const PHONEME_U_FOOT = {
   ],
 
   /**
-   * ORIGINAL Vocal Fitness mnemonic phrase — written specifically for the method.
-   * Imperative motor-cue construction with parallel verb + noun structure.
+   * Vocal Fitness mnemonic phrase — imperative motor-cue construction.
    * Densely loaded with /ʊ/ to reinforce oral motor memory.
    */
   mnemonic: {
@@ -191,8 +187,7 @@ export const PHONEME_U_FOOT = {
   },
 
   /**
-   * Pronunciation guide — ORIGINAL Vocal Fitness articulatory instructions.
-   * Replaces the third-party TL;DR with method-specific copy.
+   * Pronunciation guide — Vocal Fitness articulatory instructions.
    */
   pronunciationGuide: {
     headline: 'Vocal Fitness articulatory protocol',
@@ -205,13 +200,6 @@ export const PHONEME_U_FOOT = {
       { label: 'Velum',  body: 'Keep the soft palate raised. All airflow exits through the mouth. /ʊ/ is an oral vowel.' },
     ],
   },
-
-  /**
-   * Reference / academic source acknowledgement.
-   */
-  sources: [
-    { label: 'soundsamerican.net', url: 'https://soundsamerican.net/article/vowel_sound_lax_u_as_in_put', note: 'Phoneme classification & corpus-frequency word list' },
-  ],
 
   /**
    * Audio sample URLs (AmE + RP, isolated + each example).
