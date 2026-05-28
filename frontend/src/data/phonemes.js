@@ -148,6 +148,72 @@ export const PHONEME_U_FOOT = {
   vowelChartPosition: { x: 80, y: 22 },
 
   /**
+   * Phonetic classification (linguist-friendly badges).
+   * Source: soundsamerican.net — phoneme taxonomy
+   */
+  classification: [
+    { label: 'Near-high', tooltip: 'The tongue body rises high in the mouth but does not fully close (which would produce /uː/).' },
+    { label: 'Relaxed',   tooltip: 'The lips and tongue stay loose — no muscular tension. Compare /uː/ where the tongue is tense.' },
+    { label: 'Back',      tooltip: 'The tongue body is positioned toward the back of the mouth, near the velum.' },
+    { label: 'Monophthong', tooltip: 'A single, stable vowel quality — no glide. The articulators hold position throughout.' },
+  ],
+
+  /**
+   * Educational fun-fact shown in the Lab section.
+   * Source: soundsamerican.net
+   */
+  funFact: {
+    headline: 'Statistical curiosity',
+    body: 'The /ʊ/ sound is the least common vowel in American English — which paradoxically makes mastering it a strong differentiator in spoken performance.',
+  },
+
+  /**
+   * Top 30 most common /ʊ/ words in American English (frequency-ranked).
+   * Source: soundsamerican.net — common-words corpus
+   * These are factual lexical data, not copyrightable expression.
+   */
+  commonWords: [
+    'look', 'good', 'would', 'could', 'should', 'put', 'woman', 'took', 'book', 'pull',
+    'full', 'push', 'cook', 'foot', 'wood', 'bullet', 'hook', 'sugar', 'wolf', 'stood',
+    'bull', 'cookie', 'fulfill', 'fully', 'childhood', 'bush', 'footstep', 'bully', 'hood', 'crook',
+  ],
+
+  /**
+   * ORIGINAL Vocal Fitness mnemonic phrase — written specifically for the method.
+   * Imperative motor-cue construction with parallel verb + noun structure.
+   * Densely loaded with /ʊ/ to reinforce oral motor memory.
+   */
+  mnemonic: {
+    phrase: 'Pull the wool, push the hood, put the foot.',
+    highlights: ['pull', 'wool', 'push', 'hood', 'put', 'foot'],
+    note: 'Repeat slowly five times as a motor sequence. Feel the back of the tongue rise toward the velum on every /ʊ/, and the lips round moderately.',
+    audio: null,
+  },
+
+  /**
+   * Pronunciation guide — ORIGINAL Vocal Fitness articulatory instructions.
+   * Replaces the third-party TL;DR with method-specific copy.
+   */
+  pronunciationGuide: {
+    headline: 'Vocal Fitness articulatory protocol',
+    steps: [
+      { label: 'Jaw',    body: 'Open the mouth slightly — about one finger of vertical space between the molars.' },
+      { label: 'Lips',   body: 'Round the lips moderately. No tension. Imagine a soft, relaxed "oo" shape — not pursed, not spread.' },
+      { label: 'Tongue', body: 'Pull the body of the tongue back toward the throat. Raise the dorsum high but DO NOT make contact with the velum.' },
+      { label: 'Apex',   body: 'Leave the tongue tip low, behind the lower front teeth. Passive, never pressed against any surface.' },
+      { label: 'Voicing', body: 'Engage the vocal folds. Place your fingers on your larynx — you should feel a steady, low-frequency vibration.' },
+      { label: 'Velum',  body: 'Keep the soft palate raised. All airflow exits through the mouth. /ʊ/ is an oral vowel.' },
+    ],
+  },
+
+  /**
+   * Reference / academic source acknowledgement.
+   */
+  sources: [
+    { label: 'soundsamerican.net', url: 'https://soundsamerican.net/article/vowel_sound_lax_u_as_in_put', note: 'Phoneme classification & corpus-frequency word list' },
+  ],
+
+  /**
    * Audio sample URLs (AmE + RP, isolated + each example).
    * Phase 1: AmE only — /ʊ/ is "near identical" AmE/RP so RP reuses AmE for now.
    */

@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { PHONEMES } from '../data/phonemes';
 import {
   ArrowLeft, Play, Volume2, Mic2, AudioWaveform, Activity, Info,
-  Maximize2, X, Pause, ChevronRight, GraduationCap, BookOpen
+  Maximize2, X, Pause, ChevronRight, GraduationCap, BookOpen, Sparkles
 } from 'lucide-react';
 
 // ============================================================
@@ -570,9 +570,122 @@ const PhonemeCardPage = () => {
           </div>
         </div>
 
+        {/* ============== PRONUNCIATION LAB ============== */}
+        <div className="mt-10 grid lg:grid-cols-12 gap-5" data-testid="phoneme-lab-section">
+          {/* Classification badges */}
+          <div className="lg:col-span-12 bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
+            <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-4">Phoneme classification</p>
+            <div className="flex flex-wrap gap-2">
+              {phoneme.classification?.map((c, i) => (
+                <span key={i} title={c.tooltip}
+                  className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-100 text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 hover:border-cyan-300 transition-all cursor-help"
+                  data-testid={`phoneme-class-${i}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  {c.label}
+                </span>
+              ))}
+            </div>
+            {phoneme.funFact && (
+              <div className="mt-5 flex items-start gap-3 bg-orange-500/5 border border-orange-400/20 rounded-xl p-4" data-testid="phoneme-fun-fact">
+                <Info className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-orange-400 uppercase tracking-wider font-bold mb-1">{phoneme.funFact.headline}</p>
+                  <p className="text-cyan-100/85 text-sm leading-relaxed">{phoneme.funFact.body}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Pronunciation guide */}
+          <div className="lg:col-span-5 bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Mic2 className="w-4 h-4 text-cyan-400" />
+              <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">{phoneme.pronunciationGuide?.headline}</p>
+            </div>
+            <ol className="space-y-2.5">
+              {phoneme.pronunciationGuide?.steps.map((s, i) => (
+                <li key={i} className="flex gap-3" data-testid={`phoneme-guide-step-${i}`}>
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-200">
+                    {i + 1}
+                  </span>
+                  <div className="text-sm">
+                    <span className="text-cyan-200 font-bold">{s.label}:</span>{' '}
+                    <span className="text-cyan-100/85">{s.body}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Common words grid */}
+          <div className="lg:col-span-7 bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-cyan-400" />
+                <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">Top 30 common words with {phoneme.displayIpa}</p>
+              </div>
+              <p className="text-[10px] text-cyan-500/50 italic">Frequency-ranked</p>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {phoneme.commonWords?.map((w, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="group relative bg-slate-950/60 border border-cyan-500/15 hover:border-cyan-400 hover:bg-cyan-500/10 rounded-lg px-2.5 py-2 text-left transition-all duration-300 hover:scale-[1.04]"
+                  data-testid={`phoneme-word-${i}`}
+                >
+                  <span className="absolute top-1 right-1.5 text-[8px] text-cyan-500/40 font-mono">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="block text-sm font-bold text-cyan-50 group-hover:text-orange-300 transition-colors">{w}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-cyan-500/50 italic mt-3">Word audio recordings — coming with next phoneme update.</p>
+          </div>
+
+          {/* Mnemonic phrase */}
+          <div className="lg:col-span-12 bg-gradient-to-br from-cyan-500/10 via-slate-900/60 to-orange-500/10 border border-cyan-400/25 rounded-2xl p-6 relative overflow-hidden" data-testid="phoneme-mnemonic">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-500/15 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-orange-500/15 blur-3xl pointer-events-none" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-orange-400" />
+                <p className="text-[10px] text-orange-400 uppercase tracking-widest font-bold">Vocal Fitness mnemonic</p>
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-50 leading-tight mb-4" data-testid="phoneme-mnemonic-phrase">
+                {phoneme.mnemonic.phrase.split(' ').map((word, i) => {
+                  const clean = word.replace(/[.,!?]/g, '').toLowerCase();
+                  const isHL = phoneme.mnemonic.highlights.some((h) => clean === h.toLowerCase());
+                  return (
+                    <span key={i} className={isHL ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]' : ''}>
+                      {word}{' '}
+                    </span>
+                  );
+                })}
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <AudioPlayButton src={phoneme.mnemonic?.audio} size="md" label="Play mnemonic" onPlayingChange={setAudioPlaying} />
+                <p className="text-cyan-100/75 text-sm italic max-w-2xl">{phoneme.mnemonic.note}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sources / references */}
+          {phoneme.sources?.length > 0 && (
+            <div className="lg:col-span-12 text-center text-xs text-cyan-500/40 italic pt-2" data-testid="phoneme-sources">
+              References ·{' '}
+              {phoneme.sources.map((s, i) => (
+                <span key={i}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 underline decoration-cyan-500/30">{s.label}</a>
+                  {' '}({s.note}){i < phoneme.sources.length - 1 && ' · '}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Bottom note */}
         <p className="text-center text-xs text-cyan-500/40 mt-6 italic">
-          {phoneme.dialectNote.toUpperCase()} · AmE & RP
+          {phoneme.dialectNote.toUpperCase()} · AmE &amp; RP
         </p>
       </div>
 

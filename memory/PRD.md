@@ -11,6 +11,10 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+## External Reference Library (LMS data)
+- **soundsamerican.net** — Reference source for phoneme classification, frequency data, and common-words corpus across the 44+ American English phonemes. Used as factual data source for the Vocal Fitness Phonetic Lab cards. Original copy (mnemonic phrases, pronunciation guides) is always written in-house in Vocal Fitness voice.
+
+
 ### Funzionalità Pubbliche ✅
 - [x] Homepage con presentazione del metodo VocalFitness
 - [x] **Homepage redesign istituzionale B2B/scientifico** (07/02/2026, iter. 11) — Palette unificata WHITE + BLUE medical/scientific su tutto il sito (homepage + footer + navbar). 13 sezioni in EN/IT bilingue + Footer light + 4 video con shimmer loader.
