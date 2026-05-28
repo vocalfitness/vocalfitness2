@@ -167,12 +167,39 @@ export const PHONEME_U_FOOT = {
 
   /**
    * Top 30 most common /ʊ/ words in American English (frequency-ranked).
-   * Factual lexical data — list of common English words containing the phoneme.
+   * Each entry: word + standard IPA transcription (American English).
    */
   commonWords: [
-    'look', 'good', 'would', 'could', 'should', 'put', 'woman', 'took', 'book', 'pull',
-    'full', 'push', 'cook', 'foot', 'wood', 'bullet', 'hook', 'sugar', 'wolf', 'stood',
-    'bull', 'cookie', 'fulfill', 'fully', 'childhood', 'bush', 'footstep', 'bully', 'hood', 'crook',
+    { w: 'look',      ipa: '/lʊk/' },
+    { w: 'good',      ipa: '/ɡʊd/' },
+    { w: 'would',     ipa: '/wʊd/' },
+    { w: 'could',     ipa: '/kʊd/' },
+    { w: 'should',    ipa: '/ʃʊd/' },
+    { w: 'put',       ipa: '/pʊt/' },
+    { w: 'woman',     ipa: '/ˈwʊmən/' },
+    { w: 'took',      ipa: '/tʊk/' },
+    { w: 'book',      ipa: '/bʊk/' },
+    { w: 'pull',      ipa: '/pʊl/' },
+    { w: 'full',      ipa: '/fʊl/' },
+    { w: 'push',      ipa: '/pʊʃ/' },
+    { w: 'cook',      ipa: '/kʊk/' },
+    { w: 'foot',      ipa: '/fʊt/' },
+    { w: 'wood',      ipa: '/wʊd/' },
+    { w: 'bullet',    ipa: '/ˈbʊlɪt/' },
+    { w: 'hook',      ipa: '/hʊk/' },
+    { w: 'sugar',     ipa: '/ˈʃʊɡər/' },
+    { w: 'wolf',      ipa: '/wʊlf/' },
+    { w: 'stood',     ipa: '/stʊd/' },
+    { w: 'bull',      ipa: '/bʊl/' },
+    { w: 'cookie',    ipa: '/ˈkʊki/' },
+    { w: 'fulfill',   ipa: '/fʊlˈfɪl/' },
+    { w: 'fully',     ipa: '/ˈfʊli/' },
+    { w: 'childhood', ipa: '/ˈtʃaɪldhʊd/' },
+    { w: 'bush',      ipa: '/bʊʃ/' },
+    { w: 'footstep',  ipa: '/ˈfʊtstɛp/' },
+    { w: 'bully',     ipa: '/ˈbʊli/' },
+    { w: 'hood',      ipa: '/hʊd/' },
+    { w: 'crook',     ipa: '/krʊk/' },
   ],
 
   /**

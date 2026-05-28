@@ -238,6 +238,7 @@ const PhonemeCardPage = () => {
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [coordPickerEnabled, setCoordPickerEnabled] = useState(false);
   const [pickedCoords, setPickedCoords] = useState([]);
+  const [expandedWord, setExpandedWord] = useState(null);
   const imageContainerRef = useRef(null);
 
   // Dev coordinate picker: hold Alt and click anywhere on the image to log x,y%.
@@ -624,20 +625,66 @@ const PhonemeCardPage = () => {
                 <BookOpen className="w-4 h-4 text-cyan-400" />
                 <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">Top 30 common words with {phoneme.displayIpa}</p>
               </div>
-              <p className="text-[10px] text-cyan-500/50 italic">Frequency-ranked</p>
+              <p className="text-[10px] text-cyan-500/50 italic">Tap to reveal IPA</p>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {phoneme.commonWords?.map((w, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="group relative bg-slate-950/60 border border-cyan-500/15 hover:border-cyan-400 hover:bg-cyan-500/10 rounded-lg px-2.5 py-2 text-left transition-all duration-300 hover:scale-[1.04]"
-                  data-testid={`phoneme-word-${i}`}
-                >
-                  <span className="absolute top-1 right-1.5 text-[8px] text-cyan-500/40 font-mono">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="block text-sm font-bold text-cyan-50 group-hover:text-orange-300 transition-colors">{w}</span>
-                </button>
-              ))}
+              {phoneme.commonWords?.map((item, i) => {
+                const isExpanded = expandedWord === i;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setExpandedWord(isExpanded ? null : i)}
+                    aria-expanded={isExpanded}
+                    className={`group relative rounded-lg px-2.5 transition-all duration-500 ease-out text-left
+                      ${isExpanded
+                        ? 'bg-gradient-to-br from-cyan-500/20 via-slate-950/80 to-orange-500/15 border border-cyan-400 shadow-[0_8px_28px_-6px_rgba(34,211,238,0.45)] -translate-y-1 py-3 z-10'
+                        : 'bg-slate-950/60 border border-cyan-500/15 hover:border-cyan-400/70 hover:bg-cyan-500/8 py-2 hover:-translate-y-0.5'}
+                    `}
+                    data-testid={`phoneme-word-${i}`}
+                  >
+                    <span className={`absolute top-1 right-1.5 text-[8px] font-mono transition-colors ${isExpanded ? 'text-cyan-200' : 'text-cyan-500/40'}`}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className={`block text-sm font-bold transition-colors duration-300 ${isExpanded ? 'text-orange-300' : 'text-cyan-50 group-hover:text-orange-300'}`}>
+                      {item.w}
+                    </span>
+                    {/* IPA reveal — animated height + fade */}
+                    <div
+                      className={`grid transition-all duration-500 ease-out overflow-hidden ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-1.5' : 'grid-rows-[0fr] opacity-0 mt-0'}`}
+                    >
+                      <div className="overflow-hidden">
+                        <p className="font-mono text-base sm:text-lg text-cyan-100 tracking-wide leading-tight">
+                          {/* Split IPA so we can color the ʊ in orange */}
+                          {item.ipa.split('').map((ch, ci) => (
+                            <span
+                              key={ci}
+                              className={ch === phoneme.ipa
+                                ? 'text-orange-400 font-black drop-shadow-[0_0_8px_rgba(251,146,60,0.6)]'
+                                : ''}
+                              style={{
+                                opacity: isExpanded ? 1 : 0,
+                                transform: isExpanded ? 'translateY(0)' : 'translateY(4px)',
+                                transition: `opacity 0.4s ease ${ci * 25}ms, transform 0.4s ease ${ci * 25}ms`,
+                                display: 'inline-block',
+                              }}
+                            >
+                              {ch}
+                            </span>
+                          ))}
+                        </p>
+                        {/* Subtle bottom hint when expanded */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="inline-flex w-5 h-5 rounded-full bg-cyan-500/25 border border-cyan-400/45 items-center justify-center hover:bg-cyan-500/45 transition-colors cursor-not-allowed" title="Audio coming soon">
+                            <Play className="w-2.5 h-2.5 text-cyan-200" />
+                          </span>
+                          <span className="text-[9px] text-cyan-300/50 uppercase tracking-wider italic">audio soon</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-[10px] text-cyan-500/50 italic mt-3">Word audio recordings — coming with next phoneme update.</p>
           </div>
