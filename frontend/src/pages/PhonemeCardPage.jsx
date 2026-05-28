@@ -236,6 +236,33 @@ const PhonemeCardPage = () => {
   const [showArticulatory, setShowArticulatory] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [coordPickerEnabled, setCoordPickerEnabled] = useState(false);
+  const [pickedCoords, setPickedCoords] = useState([]);
+  const imageContainerRef = useRef(null);
+
+  // Dev coordinate picker: hold Alt and click anywhere on the image to log x,y%.
+  // Toggle by pressing 'D' on keyboard. Logs to console + saves to local list.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'd' || e.key === 'D') {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          setCoordPickerEnabled(prev => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const handleImageClick = (e) => {
+    if (!coordPickerEnabled) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const entry = { x: x.toFixed(1), y: y.toFixed(1) };
+    setPickedCoords(prev => [...prev, entry]);
+    console.log(`📍 Coord picked: x=${entry.x}, y=${entry.y}`);
+  };
 
   // Resolve audio sources based on selected dialect
   const audio = phoneme.audio?.[dialect] || phoneme.audio?.AmE || { isolated: null, examples: [null, null, null] };
@@ -304,42 +331,45 @@ const PhonemeCardPage = () => {
           {/* Scanline accent */}
           <div className="phoneme-scanline" />
 
-          {/* Background image (main side view) */}
-          <div className="relative aspect-[16/9] w-full">
+          {/* Background image (clean anatomical side-view, square ratio capped at viewport height) */}
+          <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '1 / 1', maxHeight: '85vh' }}>
             <img
               src={phoneme.assets.sideView}
               alt={`${phoneme.displayIpa} — articulatory side view`}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain bg-slate-950"
               data-testid="phoneme-side-image"
             />
 
-            {/* Hotspot overlay */}
-            <div className="absolute inset-0">
-              {phoneme.hotspots.map((h) => (
-                <Hotspot key={h.id} hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} />
-              ))}
+            {/* Dev coord picker — marker dots for picked positions */}
+            {coordPickerEnabled && pickedCoords.map((c, i) => (
+              <span key={i} className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 bg-fuchsia-500 rounded-full ring-2 ring-fuchsia-200 pointer-events-none z-40" style={{ left: `${c.x}%`, top: `${c.y}%` }}>
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-fuchsia-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono whitespace-nowrap">{c.x},{c.y}</span>
+              </span>
+            ))}
+            {coordPickerEnabled && (
+              <div className="absolute bottom-2 left-2 bg-fuchsia-600/95 text-white text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full font-bold z-40 pointer-events-none">
+                Picker ON · D to toggle · {pickedCoords.length} picked
+              </div>
+            )}
+
+            {/* TOP-LEFT: Brand glyph + caption + master play (overlay because image no longer contains them) */}
+            <div className="absolute top-[4%] left-[3%] sm:left-[4%] flex flex-col items-start z-20">
+              <h1 className="text-cyan-100 text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tighter drop-shadow-[0_4px_24px_rgba(34,211,238,0.4)]" data-testid="phoneme-ipa-glyph">
+                /{phoneme.ipa}/
+              </h1>
+              <p className="text-cyan-300/80 text-[10px] sm:text-xs uppercase tracking-[0.32em] font-bold mt-2 ml-1">
+                {phoneme.examples.join(' · ')}
+              </p>
+              <div className="mt-4 ml-1 flex items-center gap-3">
+                <AudioPlayButton size="lg" src={audio.isolated} label={`Play /${phoneme.ipa}/ isolated`} onPlayingChange={setAudioPlaying} />
+                <span className={`text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${audioPlaying ? 'text-orange-300' : 'text-cyan-300/70'}`} data-testid="phoneme-play-status">
+                  {audioPlaying ? `Playing /${phoneme.ipa}/` : `Tap to hear`}
+                </span>
+              </div>
             </div>
 
-            {/* TOP-LEFT: Circular Front View trigger */}
-            <button
-              type="button"
-              onClick={() => setShowFrontView(true)}
-              className="absolute top-[4%] left-[4%] sm:top-[5%] sm:left-[3%] w-[14%] aspect-square rounded-full overflow-hidden border-2 border-cyan-400/60 hover:border-orange-400 transition-all duration-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(251,146,60,0.6)] group"
-              data-testid="phoneme-front-view-trigger"
-              aria-label="Open facial muscle activation deep-dive"
-            >
-              <img src={phoneme.assets.frontView} alt="Front view trigger" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-1 left-0 right-0 text-center">
-                <span className="text-[8px] sm:text-[10px] text-cyan-200 uppercase tracking-widest font-bold group-hover:text-orange-300 transition-colors">Front View</span>
-              </div>
-              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-cyan-500/30 backdrop-blur-sm border border-cyan-400/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Maximize2 className="w-3 h-3 text-cyan-100" />
-              </div>
-            </button>
-
-            {/* TOP-RIGHT: AmE/RP Switch */}
-            <div className="absolute top-[5%] right-[3%] flex flex-col items-end gap-2">
+            {/* TOP-RIGHT: AmE/RP Switch (sole instance now — no underlying conflict) */}
+            <div className="absolute top-[4%] right-[3%] z-20">
               <button
                 type="button"
                 onClick={() => setDialect(d => d === 'AmE' ? 'RP' : 'AmE')}
@@ -352,50 +382,49 @@ const PhonemeCardPage = () => {
               </button>
             </div>
 
-            {/* CENTER-TOP: IPA glyph itself acts as the master play target
-                (transparent button overlay; reveals subtle glow on hover, orange ring when playing) */}
-            <div className="absolute top-[6%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none">
-              <div className="opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
-                <AudioPlayButton size="lg" src={audio.isolated} label={`Play /${phoneme.ipa}/ isolated`} onPlayingChange={setAudioPlaying} />
-              </div>
-              <span className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 transition-colors duration-300 ${audioPlaying ? 'text-orange-300' : 'text-cyan-300/50'}`}>
-                {audioPlaying ? 'Playing /ʊ/' : 'Hover · tap glyph to hear'}
-              </span>
-            </div>
-            {/* Invisible large click target over the IPA glyph area */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                // Forward the click to the master AudioPlayButton above
-                const masterBtn = e.currentTarget.parentElement.querySelector('[data-testid="phoneme-audio-play"]');
-                masterBtn?.click();
-              }}
-              className="absolute top-[7%] left-[46%] w-[12%] h-[22%] cursor-pointer focus:outline-none group"
-              aria-label={`Play /${phoneme.ipa}/ isolated phoneme`}
-              data-testid="phoneme-master-glyph-trigger"
-            >
-              <span className={`absolute inset-0 rounded-2xl transition-all duration-500 ${audioPlaying ? 'ring-2 ring-orange-400/70 shadow-[0_0_36px_rgba(251,146,60,0.55)]' : 'group-hover:ring-2 group-hover:ring-cyan-400/60 group-hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]'}`} />
-            </button>
-            {/* TOP-CENTER: Airflow + Voicing indicators (clickable for sample audio) */}
-            <div className="absolute top-[18%] right-[6%] sm:right-[16%] flex items-center gap-4">
+            {/* TOP-RIGHT BELOW: Airflow + Voicing indicators (in clean empty space) */}
+            <div className="absolute top-[16%] right-[3%] sm:right-[4%] flex flex-col items-end gap-3 bg-slate-900/40 backdrop-blur-sm border border-cyan-500/20 rounded-2xl px-4 py-3 z-20">
               <div className="flex flex-col items-center" data-testid="phoneme-airflow-indicator">
-                <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider mb-1.5">Airflow</p>
-                <div className={`relative h-7 w-16 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-50'}`}>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <span key={i} className="airflow-dot absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" style={{ animationDelay: `${i * 0.32}s`, animationDuration: audioPlaying ? '0.9s' : '1.6s', top: `${20 + (i % 2) * 12}%` }} />
+                <p className="text-[9px] text-cyan-300/70 uppercase tracking-wider mb-1 font-bold">Airflow</p>
+                <div className={`relative h-6 w-20 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-55'}`}>
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <span key={i} className="airflow-dot absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" style={{ animationDelay: `${i * 0.28}s`, animationDuration: audioPlaying ? '0.9s' : '1.7s', top: `${20 + (i % 2) * 14}%` }} />
                   ))}
                 </div>
               </div>
               <div className="flex flex-col items-center" data-testid="phoneme-voicing-indicator">
-                <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider mb-1.5">Voicing</p>
-                <div className="flex items-end gap-0.5 h-7">
-                  {[40, 80, 60, 100, 70, 90, 50, 75, 55].map((h, i) => (
+                <p className="text-[9px] text-cyan-300/70 uppercase tracking-wider mb-1 font-bold">Voicing</p>
+                <div className="flex items-end gap-0.5 h-6">
+                  {[40, 80, 60, 100, 70, 90, 50, 75, 55, 70].map((h, i) => (
                     <span key={i} className={`w-1 rounded-full transition-colors duration-300 ${audioPlaying ? 'bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.85)]' : 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.7)]'}`} style={{ height: `${h}%`, animation: `wave 1.4s ease-in-out infinite`, animationDelay: `${i * 0.08}s`, animationDuration: audioPlaying ? '0.7s' : '1.4s' }} />
                   ))}
                 </div>
-                <span className={`text-[10px] font-bold mt-0.5 transition-colors ${audioPlaying ? 'text-orange-400' : 'text-cyan-200'}`}>ON</span>
+                <span className={`text-[10px] font-bold mt-0.5 transition-colors ${audioPlaying ? 'text-orange-400' : 'text-cyan-200/80'}`}>ON</span>
               </div>
+            </div>
+
+            {/* CLICKABLE FACE ZONE — opens facial muscle activation modal.
+                Covers Steve's face/cheek/jaw region. Subtle ring glow on hover. */}
+            <button
+              type="button"
+              onClick={() => setShowFrontView(true)}
+              className="absolute top-[14%] left-[36%] w-[28%] h-[45%] rounded-[45%] cursor-pointer focus:outline-none group z-10"
+              data-testid="phoneme-front-view-trigger"
+              aria-label="Open facial muscle activation map"
+            >
+              <span className="absolute inset-0 rounded-[45%] transition-all duration-500 opacity-0 group-hover:opacity-100 ring-2 ring-cyan-400/70 shadow-[0_0_50px_rgba(34,211,238,0.45)]" />
+              <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/95 border border-cyan-500/50 text-cyan-100 text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-[0_0_24px_rgba(34,211,238,0.45)]">
+                Open facial muscle map
+              </span>
+            </button>
+
+            {/* Hotspot overlay (above face zone — so hotspots remain clickable) */}
+            <div className="absolute inset-0 z-30 pointer-events-none">
+              {phoneme.hotspots.map((h) => (
+                <div key={h.id} className="pointer-events-auto">
+                  <Hotspot hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} />
+                </div>
+              ))}
             </div>
           </div>
 
