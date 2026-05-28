@@ -210,7 +210,7 @@ export const PHONEME_U_FOOT = {
     phrase: 'Pull the wool, push the hood, put the foot.',
     highlights: ['pull', 'wool', 'push', 'hood', 'put', 'foot'],
     note: 'Repeat slowly five times as a motor sequence. Feel the back of the tongue rise toward the velum on every /ʊ/, and the lips round moderately.',
-    audio: null,
+    audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/9ynxlorx_mnemonic_phrase.wav',
   },
 
   /**
