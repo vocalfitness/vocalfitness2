@@ -155,21 +155,70 @@ const VowelChart = ({ position }) => (
 );
 
 // ============================================================
-// AudioPlayButton — placeholder while audio assets are pending
+// AudioPlayButton — real HTML5 Audio playback with state
+// Notifies parent of playing state via onPlayingChange (optional).
 // ============================================================
-const AudioPlayButton = ({ size = 'md', label }) => {
+const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const audioRef = useRef(null);
+
+  // Lazily create the audio element on first interaction
+  const getAudio = () => {
+    if (!audioRef.current && src) {
+      const a = new Audio(src);
+      a.preload = 'none';
+      a.addEventListener('ended', () => { setPlaying(false); onPlayingChange?.(false); });
+      a.addEventListener('pause', () => { setPlaying(false); onPlayingChange?.(false); });
+      a.addEventListener('playing', () => { setLoading(false); setPlaying(true); onPlayingChange?.(true); });
+      a.addEventListener('waiting', () => setLoading(true));
+      a.addEventListener('error', () => { setLoading(false); setPlaying(false); onPlayingChange?.(false); });
+      audioRef.current = a;
+    }
+    return audioRef.current;
+  };
+
+  // Clean up on unmount
+  useEffect(() => () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+  }, []);
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    const a = getAudio();
+    if (!a) return; // no src → no-op
+    if (a.paused) {
+      setLoading(true);
+      a.currentTime = 0;
+      a.play().catch(() => { setLoading(false); setPlaying(false); });
+    } else {
+      a.pause();
+    }
+  };
+
   const sz = size === 'lg' ? 'w-14 h-14' : size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
   const iconSz = size === 'lg' ? 'w-6 h-6' : size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  const disabled = !src;
+
   return (
     <button
       type="button"
-      onClick={() => { setPlaying((p) => !p); setTimeout(() => setPlaying(false), 1800); }}
-      className={`${sz} rounded-full bg-cyan-500/20 border border-cyan-400/50 hover:bg-cyan-500/40 hover:border-cyan-300 text-cyan-200 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_rgba(34,211,238,0.5)] group`}
-      aria-label={label || 'Play'}
+      onClick={toggle}
+      disabled={disabled}
+      className={`${sz} rounded-full ${disabled ? 'bg-slate-700/40 border-slate-600/40 text-slate-500 cursor-not-allowed' : 'bg-cyan-500/20 border-cyan-400/50 hover:bg-cyan-500/40 hover:border-cyan-300 text-cyan-200 hover:text-white hover:scale-110 hover:shadow-[0_0_20px_rgba(34,211,238,0.5)]'} ${playing ? 'ring-2 ring-orange-400/70 bg-orange-500/30 border-orange-400 text-white shadow-[0_0_20px_rgba(251,146,60,0.55)]' : ''} border flex items-center justify-center transition-all duration-300`}
+      aria-label={label || (playing ? 'Pause' : 'Play')}
+      title={disabled ? 'No audio available' : label}
       data-testid="phoneme-audio-play"
     >
-      {playing ? <Pause className={iconSz} /> : <Play className={`${iconSz} ml-0.5`} />}
+      {loading
+        ? <span className={`${iconSz} block rounded-full border-2 border-current border-t-transparent animate-spin`} />
+        : playing
+          ? <Pause className={iconSz} />
+          : <Play className={`${iconSz} ml-0.5`} />}
     </button>
   );
 };
@@ -186,6 +235,10 @@ const PhonemeCardPage = () => {
   const [showFrontView, setShowFrontView] = useState(false);
   const [showArticulatory, setShowArticulatory] = useState(false);
   const [animate, setAnimate] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+
+  // Resolve audio sources based on selected dialect
+  const audio = phoneme.audio?.[dialect] || phoneme.audio?.AmE || { isolated: null, examples: [null, null, null] };
 
   useEffect(() => {
     const t = setTimeout(() => setAnimate(true), 250);
@@ -220,6 +273,11 @@ const PhonemeCardPage = () => {
           100% { transform: translateX(28px); opacity: 0; }
         }
         .airflow-dot { animation: airflowDots 1.6s ease-in-out infinite; }
+
+        @keyframes wave {
+          0%, 100% { transform: scaleY(0.45); }
+          50%      { transform: scaleY(1); }
+        }
       `}</style>
 
       {/* Top bar */}
@@ -294,25 +352,50 @@ const PhonemeCardPage = () => {
               </button>
             </div>
 
+            {/* CENTER-TOP: IPA glyph itself acts as the master play target
+                (transparent button overlay; reveals subtle glow on hover, orange ring when playing) */}
+            <div className="absolute top-[6%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none">
+              <div className="opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+                <AudioPlayButton size="lg" src={audio.isolated} label={`Play /${phoneme.ipa}/ isolated`} onPlayingChange={setAudioPlaying} />
+              </div>
+              <span className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 transition-colors duration-300 ${audioPlaying ? 'text-orange-300' : 'text-cyan-300/50'}`}>
+                {audioPlaying ? 'Playing /ʊ/' : 'Hover · tap glyph to hear'}
+              </span>
+            </div>
+            {/* Invisible large click target over the IPA glyph area */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                // Forward the click to the master AudioPlayButton above
+                const masterBtn = e.currentTarget.parentElement.querySelector('[data-testid="phoneme-audio-play"]');
+                masterBtn?.click();
+              }}
+              className="absolute top-[7%] left-[46%] w-[12%] h-[22%] cursor-pointer focus:outline-none group"
+              aria-label={`Play /${phoneme.ipa}/ isolated phoneme`}
+              data-testid="phoneme-master-glyph-trigger"
+            >
+              <span className={`absolute inset-0 rounded-2xl transition-all duration-500 ${audioPlaying ? 'ring-2 ring-orange-400/70 shadow-[0_0_36px_rgba(251,146,60,0.55)]' : 'group-hover:ring-2 group-hover:ring-cyan-400/60 group-hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]'}`} />
+            </button>
             {/* TOP-CENTER: Airflow + Voicing indicators (clickable for sample audio) */}
             <div className="absolute top-[18%] right-[6%] sm:right-[16%] flex items-center gap-4">
-              <button type="button" className="flex flex-col items-center group" data-testid="phoneme-airflow-btn">
+              <div className="flex flex-col items-center" data-testid="phoneme-airflow-indicator">
                 <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider mb-1.5">Airflow</p>
-                <div className="relative h-7 w-16 flex items-center overflow-hidden">
+                <div className={`relative h-7 w-16 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-50'}`}>
                   {[0, 1, 2, 3, 4].map((i) => (
-                    <span key={i} className="airflow-dot absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" style={{ animationDelay: `${i * 0.32}s`, top: `${20 + (i % 2) * 12}%` }} />
+                    <span key={i} className="airflow-dot absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" style={{ animationDelay: `${i * 0.32}s`, animationDuration: audioPlaying ? '0.9s' : '1.6s', top: `${20 + (i % 2) * 12}%` }} />
                   ))}
                 </div>
-              </button>
-              <button type="button" className="flex flex-col items-center group" data-testid="phoneme-voicing-btn">
+              </div>
+              <div className="flex flex-col items-center" data-testid="phoneme-voicing-indicator">
                 <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider mb-1.5">Voicing</p>
                 <div className="flex items-end gap-0.5 h-7">
                   {[40, 80, 60, 100, 70, 90, 50, 75, 55].map((h, i) => (
-                    <span key={i} className="w-1 bg-cyan-300 rounded-full shadow-[0_0_4px_rgba(34,211,238,0.7)]" style={{ height: `${h}%`, animation: `wave 1.4s ease-in-out infinite`, animationDelay: `${i * 0.08}s` }} />
+                    <span key={i} className={`w-1 rounded-full transition-colors duration-300 ${audioPlaying ? 'bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.85)]' : 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.7)]'}`} style={{ height: `${h}%`, animation: `wave 1.4s ease-in-out infinite`, animationDelay: `${i * 0.08}s`, animationDuration: audioPlaying ? '0.7s' : '1.4s' }} />
                   ))}
                 </div>
-                <span className="text-[10px] text-cyan-200 font-bold mt-0.5">ON</span>
-              </button>
+                <span className={`text-[10px] font-bold mt-0.5 transition-colors ${audioPlaying ? 'text-orange-400' : 'text-cyan-200'}`}>ON</span>
+              </div>
             </div>
           </div>
 
@@ -321,7 +404,7 @@ const PhonemeCardPage = () => {
             <div className="grid sm:grid-cols-3 gap-4">
               {phoneme.exampleSentences.map((ex, i) => (
                 <div key={i} className="flex items-center gap-3" data-testid={`phoneme-example-${i}`}>
-                  <AudioPlayButton size="md" label={`Play "${ex.text}"`} />
+                  <AudioPlayButton size="md" src={audio.examples[i]} label={`Play "${ex.text}"`} onPlayingChange={setAudioPlaying} />
                   <p className="text-sm text-cyan-100 leading-tight">
                     {ex.text.split(' ').map((w, j) => {
                       const isHighlight = ex.highlights.some(h => w.toLowerCase().includes(h.toLowerCase()));
@@ -439,8 +522,8 @@ const PhonemeCardPage = () => {
                   </div>
                 )}
                 <div className="flex items-center gap-3 pt-2">
-                  <AudioPlayButton size="lg" label={`Play ${openHotspot.title} audio`} />
-                  <span className="text-xs text-cyan-300/60">Hear the articulation sample</span>
+                  <AudioPlayButton size="lg" src={audio.isolated} label={`Play /${phoneme.ipa}/ isolated`} onPlayingChange={setAudioPlaying} />
+                  <span className="text-xs text-cyan-300/60">Hear the {phoneme.displayIpa} articulation sample</span>
                 </div>
               </div>
             </>

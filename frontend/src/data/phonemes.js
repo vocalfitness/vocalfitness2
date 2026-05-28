@@ -192,11 +192,26 @@ export const PHONEME_U_FOOT = {
   vowelChartPosition: { x: 80, y: 22 },
 
   /**
-   * Future: audio sample URLs (AmE + RP, isolated + each example).
+   * Audio sample URLs (AmE + RP, isolated + each example).
+   * Phase 1: AmE only — /ʊ/ is "near identical" AmE/RP so RP reuses AmE for now.
    */
   audio: {
-    AmE: { isolated: null, examples: [null, null, null] },
-    RP:  { isolated: null, examples: [null, null, null] },
+    AmE: {
+      isolated: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/52c9efo5_u_singled_out.wav',
+      examples: [
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/ej28onls_put_the_book_down.wav',
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3imwgt72_look_at_your_foot.wav',
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/d7nzj8l3_could_you_push.wav',
+      ],
+    },
+    RP: {
+      isolated: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/52c9efo5_u_singled_out.wav',
+      examples: [
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/ej28onls_put_the_book_down.wav',
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3imwgt72_look_at_your_foot.wav',
+        'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/d7nzj8l3_could_you_push.wav',
+      ],
+    },
   },
 };
 
