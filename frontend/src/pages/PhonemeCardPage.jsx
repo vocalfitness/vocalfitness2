@@ -562,17 +562,22 @@ const PhonemeCardPage = () => {
 
       {/* ============== Front-view (Facial Muscle Activation) modal ============== */}
       <Dialog open={showFrontView} onOpenChange={setShowFrontView}>
-        <DialogContent className="max-w-5xl bg-slate-950 border border-cyan-500/30 text-cyan-50 p-0 overflow-hidden" data-testid="phoneme-front-view-modal">
-          <DialogHeader className="p-5 border-b border-cyan-500/20 bg-slate-900/40">
-            <DialogTitle className="text-cyan-50 text-xl font-black flex items-center gap-3">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] bg-slate-950 border border-cyan-500/30 text-cyan-50 p-0 overflow-hidden flex flex-col" data-testid="phoneme-front-view-modal">
+          <DialogHeader className="p-4 border-b border-cyan-500/20 bg-slate-900/40 flex-shrink-0">
+            <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
               <span className="text-orange-400">{phoneme.displayIpa}</span> · Facial Muscle Activation
             </DialogTitle>
           </DialogHeader>
-          <div className="grid lg:grid-cols-5 gap-0">
-            <div className="lg:col-span-3 bg-slate-950">
-              <img src={phoneme.assets.frontView} alt={`${phoneme.displayIpa} front view`} className="w-full h-auto" data-testid="phoneme-front-view-image" />
+          <div className="grid lg:grid-cols-5 gap-0 flex-1 overflow-hidden">
+            <div className="lg:col-span-3 bg-slate-950 flex items-center justify-center overflow-auto p-2">
+              <img
+                src={phoneme.assets.frontView}
+                alt={`${phoneme.displayIpa} front view`}
+                className="max-w-full max-h-full w-auto h-auto object-contain"
+                data-testid="phoneme-front-view-image"
+              />
             </div>
-            <div className="lg:col-span-2 p-6 space-y-4 overflow-y-auto max-h-[80vh]">
+            <div className="lg:col-span-2 p-5 space-y-3 overflow-y-auto border-t lg:border-t-0 lg:border-l border-cyan-500/20">
               <p className="text-[10px] text-cyan-300/70 uppercase tracking-widest font-bold">Muscle activation map</p>
               <p className="text-cyan-100/80 text-sm leading-relaxed">
                 Visualisation of which facial muscles activate when producing {phoneme.displayIpa}. Colour intensity reflects activation level.
@@ -598,14 +603,19 @@ const PhonemeCardPage = () => {
 
       {/* ============== Articulatory deep-dive modal ============== */}
       <Dialog open={showArticulatory} onOpenChange={setShowArticulatory}>
-        <DialogContent className="max-w-5xl bg-slate-950 border border-cyan-500/30 text-cyan-50 p-0 overflow-hidden" data-testid="phoneme-articulatory-modal">
-          <DialogHeader className="p-5 border-b border-cyan-500/20 bg-slate-900/40">
-            <DialogTitle className="text-cyan-50 text-xl font-black flex items-center gap-3">
+        <DialogContent className="max-w-[min(95vw,92vh)] w-auto p-0 bg-slate-950 border border-cyan-500/30 text-cyan-50 overflow-hidden flex flex-col" data-testid="phoneme-articulatory-modal">
+          <DialogHeader className="p-4 border-b border-cyan-500/20 bg-slate-900/40 flex-shrink-0">
+            <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
               <span className="text-orange-400">{phoneme.displayIpa}</span> · Articulatory Position — Deep Dive
             </DialogTitle>
           </DialogHeader>
-          <div className="bg-slate-950">
-            <img src={phoneme.assets.articulatory} alt={`${phoneme.displayIpa} articulatory position deep dive`} className="w-full h-auto" data-testid="phoneme-articulatory-image" />
+          <div className="bg-slate-950 flex items-center justify-center">
+            <img
+              src={phoneme.assets.articulatory}
+              alt={`${phoneme.displayIpa} articulatory position deep dive`}
+              className="block w-full h-auto max-h-[80vh] object-contain"
+              data-testid="phoneme-articulatory-image"
+            />
           </div>
         </DialogContent>
       </Dialog>
