@@ -17,6 +17,7 @@ export const PHONEME_U_FOOT = {
   assets: {
     sideView:       'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/tplmld7k__%CA%8A_%20Foot%20anatomy%2016_9_clean_steve_isolated.png',
     frontView:      'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5pyhoxyr_Front%20_%CA%8A_%20Foot%20AmE.png',
+    frontViewClean: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/jhm9rhll_Front%20_%CA%8A_%20Foot%20AmE%20%28cropped%29.png',
     articulatory:   'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/ga780377_%CA%8A%20Foot%20Dapper.png',
   },
 

@@ -305,6 +305,17 @@ const PhonemeCardPage = () => {
           0%, 100% { transform: scaleY(0.45); }
           50%      { transform: scaleY(1); }
         }
+
+        /* HUD-style scanner ring around the front-view thumbnail */
+        @keyframes hudRotateA { from { transform: rotate(0deg);   } to { transform: rotate(360deg);  } }
+        @keyframes hudRotateB { from { transform: rotate(360deg); } to { transform: rotate(0deg);    } }
+        @keyframes hudPulse {
+          0%,100% { box-shadow: 0 0 24px rgba(34,211,238,0.35), inset 0 0 18px rgba(34,211,238,0.18); }
+          50%     { box-shadow: 0 0 44px rgba(34,211,238,0.65), inset 0 0 28px rgba(34,211,238,0.30); }
+        }
+        .hud-ring-a { animation: hudRotateA 14s linear infinite; }
+        .hud-ring-b { animation: hudRotateB 22s linear infinite; }
+        .hud-pulse  { animation: hudPulse 3.6s ease-in-out infinite; }
       `}</style>
 
       {/* Top bar */}
@@ -382,19 +393,20 @@ const PhonemeCardPage = () => {
               </button>
             </div>
 
-            {/* TOP-RIGHT BELOW: Airflow + Voicing indicators (in clean empty space) */}
-            <div className="absolute top-[16%] right-[3%] sm:right-[4%] flex flex-col items-end gap-3 bg-slate-900/40 backdrop-blur-sm border border-cyan-500/20 rounded-2xl px-4 py-3 z-20">
+            {/* BOTTOM-RIGHT: Airflow + Voicing indicators (moved here — circle thumbnail occupies mid-right) */}
+            <div className="absolute bottom-[4%] right-[3%] sm:right-[4%] flex items-center gap-4 bg-slate-900/55 backdrop-blur-sm border border-cyan-500/20 rounded-2xl px-4 py-2.5 z-20">
               <div className="flex flex-col items-center" data-testid="phoneme-airflow-indicator">
                 <p className="text-[9px] text-cyan-300/70 uppercase tracking-wider mb-1 font-bold">Airflow</p>
-                <div className={`relative h-6 w-20 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-55'}`}>
+                <div className={`relative h-5 w-16 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-55'}`}>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <span key={i} className="airflow-dot absolute w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.9)]" style={{ animationDelay: `${i * 0.28}s`, animationDuration: audioPlaying ? '0.9s' : '1.7s', top: `${20 + (i % 2) * 14}%` }} />
                   ))}
                 </div>
               </div>
+              <div className="w-px h-8 bg-cyan-500/20" />
               <div className="flex flex-col items-center" data-testid="phoneme-voicing-indicator">
                 <p className="text-[9px] text-cyan-300/70 uppercase tracking-wider mb-1 font-bold">Voicing</p>
-                <div className="flex items-end gap-0.5 h-6">
+                <div className="flex items-end gap-0.5 h-5">
                   {[40, 80, 60, 100, 70, 90, 50, 75, 55, 70].map((h, i) => (
                     <span key={i} className={`w-1 rounded-full transition-colors duration-300 ${audioPlaying ? 'bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.85)]' : 'bg-cyan-300 shadow-[0_0_4px_rgba(34,211,238,0.7)]'}`} style={{ height: `${h}%`, animation: `wave 1.4s ease-in-out infinite`, animationDelay: `${i * 0.08}s`, animationDuration: audioPlaying ? '0.7s' : '1.4s' }} />
                   ))}
@@ -403,17 +415,58 @@ const PhonemeCardPage = () => {
               </div>
             </div>
 
-            {/* CLICKABLE FACE ZONE — opens facial muscle activation modal.
-                Covers Steve's face/cheek/jaw region. Subtle ring glow on hover. */}
+            {/* RIGHT-CENTER: Circular Front-View thumbnail with HUD scanner ring
+                Sleek floating portrait — click opens facial muscle activation modal */}
             <button
               type="button"
               onClick={() => setShowFrontView(true)}
-              className="absolute top-[14%] left-[36%] w-[28%] h-[45%] rounded-[45%] cursor-pointer focus:outline-none group z-10"
+              className="absolute right-[6%] top-[44%] -translate-y-1/2 group focus:outline-none z-30"
               data-testid="phoneme-front-view-trigger"
               aria-label="Open facial muscle activation map"
             >
-              <span className="absolute inset-0 rounded-[45%] transition-all duration-500 opacity-0 group-hover:opacity-100 ring-2 ring-cyan-400/70 shadow-[0_0_50px_rgba(34,211,238,0.45)]" />
-              <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/95 border border-cyan-500/50 text-cyan-100 text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-[0_0_24px_rgba(34,211,238,0.45)]">
+              {/* Outer HUD scanner ring — dashed, slow rotate */}
+              <div className="absolute inset-[-14%] rounded-full pointer-events-none hud-ring-a">
+                <div className="w-full h-full rounded-full border border-dashed border-cyan-400/30" />
+              </div>
+              {/* Inner HUD ring — counter-rotating with arc segments */}
+              <div className="absolute inset-[-6%] rounded-full pointer-events-none hud-ring-b">
+                <div className="w-full h-full rounded-full border-[2px] border-transparent"
+                     style={{
+                       borderTopColor: 'rgba(34,211,238,0.85)',
+                       borderRightColor: 'rgba(34,211,238,0.2)',
+                       borderBottomColor: 'transparent',
+                       borderLeftColor: 'rgba(34,211,238,0.4)',
+                       filter: 'drop-shadow(0 0 6px rgba(34,211,238,0.6))'
+                     }} />
+              </div>
+              {/* Subtle blurred glow behind */}
+              <div className="absolute inset-[-20%] rounded-full bg-cyan-400/12 blur-2xl pointer-events-none" />
+
+              {/* Main portrait disc */}
+              <div className="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 rounded-full overflow-hidden border-2 border-cyan-400/60 group-hover:border-orange-400 transition-all duration-500 group-hover:scale-105 hud-pulse">
+                <img
+                  src={phoneme.assets.frontViewClean || phoneme.assets.frontView}
+                  alt={`${phoneme.displayIpa} front-view portrait`}
+                  className="w-full h-full object-cover"
+                />
+                {/* Bottom darkening + label */}
+                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-2 text-center">
+                  <span className="text-[9px] sm:text-[10px] text-cyan-100/90 uppercase tracking-[0.22em] font-bold group-hover:text-orange-300 transition-colors">
+                    Front View
+                  </span>
+                </div>
+                {/* Click affordance — radial cyan pulse on hover */}
+                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                     style={{ background: 'radial-gradient(circle at center, rgba(34,211,238,0.18) 0%, transparent 60%)' }} />
+                {/* Center "click" icon — appears on hover */}
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-cyan-500/85 backdrop-blur-sm flex items-center justify-center opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 shadow-[0_0_28px_rgba(34,211,238,0.7)]">
+                  <Maximize2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </span>
+              </div>
+
+              {/* Tooltip below */}
+              <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/95 border border-cyan-500/50 text-cyan-100 text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-[0_0_24px_rgba(34,211,238,0.4)]">
                 Open facial muscle map
               </span>
             </button>
