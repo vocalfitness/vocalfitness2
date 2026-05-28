@@ -393,8 +393,8 @@ const PhonemeCardPage = () => {
               </button>
             </div>
 
-            {/* BOTTOM-RIGHT: Airflow + Voicing indicators (moved here — circle thumbnail occupies mid-right) */}
-            <div className="absolute bottom-[4%] right-[3%] sm:right-[4%] flex items-center gap-4 bg-slate-900/55 backdrop-blur-sm border border-cyan-500/20 rounded-2xl px-4 py-2.5 z-20">
+            {/* BOTTOM-RIGHT: Airflow + Voicing indicators (aligned vertically with circle above) */}
+            <div className="absolute bottom-[4%] right-[8%] sm:right-[9%] flex items-center gap-4 bg-slate-900/55 backdrop-blur-sm border border-cyan-500/20 rounded-2xl px-4 py-2.5 z-20">
               <div className="flex flex-col items-center" data-testid="phoneme-airflow-indicator">
                 <p className="text-[9px] text-cyan-300/70 uppercase tracking-wider mb-1 font-bold">Airflow</p>
                 <div className={`relative h-5 w-16 flex items-center overflow-hidden transition-opacity duration-300 ${audioPlaying ? 'opacity-100' : 'opacity-55'}`}>
@@ -415,12 +415,12 @@ const PhonemeCardPage = () => {
               </div>
             </div>
 
-            {/* RIGHT-CENTER: Circular Front-View thumbnail with HUD scanner ring
-                Sleek floating portrait — click opens facial muscle activation modal */}
+            {/* RIGHT-CENTER (aligned with Airflow/Voicing panel below):
+                Circular Front-View thumbnail with HUD scanner ring */}
             <button
               type="button"
               onClick={() => setShowFrontView(true)}
-              className="absolute right-[6%] top-[44%] -translate-y-1/2 group focus:outline-none z-30"
+              className="absolute right-[12%] top-[42%] -translate-y-1/2 group focus:outline-none z-30"
               data-testid="phoneme-front-view-trigger"
               aria-label="Open facial muscle activation map"
             >
