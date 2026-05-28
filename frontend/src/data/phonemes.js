@@ -170,8 +170,8 @@ export const PHONEME_U_FOOT = {
    * Each entry: word + standard IPA transcription (American English).
    */
   commonWords: [
-    { w: 'look',      ipa: '/lʊk/' },
-    { w: 'good',      ipa: '/ɡʊd/' },
+    { w: 'look',      ipa: '/lʊk/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/bgnv9oua_look.wav' },
+    { w: 'good',      ipa: '/ɡʊd/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/4aifney4_good.wav' },
     { w: 'would',     ipa: '/wʊd/' },
     { w: 'could',     ipa: '/kʊd/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qsu5hl0v_could.wav' },
     { w: 'should',    ipa: '/ʃʊd/' },
@@ -179,14 +179,14 @@ export const PHONEME_U_FOOT = {
     { w: 'woman',     ipa: '/ˈwʊmən/' },
     { w: 'took',      ipa: '/tʊk/' },
     { w: 'book',      ipa: '/bʊk/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/hc0wzyd4_book.wav' },
-    { w: 'pull',      ipa: '/pʊl/' },
+    { w: 'pull',      ipa: '/pʊl/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/cswb1dnp_pull.wav' },
     { w: 'full',      ipa: '/fʊl/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/etnn7m6y_full.wav' },
     { w: 'push',      ipa: '/pʊʃ/' },
     { w: 'cook',      ipa: '/kʊk/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/48kgdqeq_cook.wav' },
     { w: 'foot',      ipa: '/fʊt/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3xe7j2vy_foot.wav' },
     { w: 'wood',      ipa: '/wʊd/' },
     { w: 'bullet',    ipa: '/ˈbʊlɪt/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/g00d96d7_bullet.wav' },
-    { w: 'hook',      ipa: '/hʊk/' },
+    { w: 'hook',      ipa: '/hʊk/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/ux0lntdv_hook.wav' },
     { w: 'sugar',     ipa: '/ˈʃʊɡər/' },
     { w: 'wolf',      ipa: '/wʊlf/' },
     { w: 'stood',     ipa: '/stʊd/' },
@@ -198,7 +198,7 @@ export const PHONEME_U_FOOT = {
     { w: 'bush',      ipa: '/bʊʃ/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/ilx8zkea_bush.wav' },
     { w: 'footstep',  ipa: '/ˈfʊtstɛp/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/bpw8t79f_footstep.wav' },
     { w: 'bully',     ipa: '/ˈbʊli/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/4iswqknj_bully.wav' },
-    { w: 'hood',      ipa: '/hʊd/' },
+    { w: 'hood',      ipa: '/hʊd/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/cwz94d06_hood.wav' },
     { w: 'crook',     ipa: '/krʊk/', audio: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/08ch2b2g_crook.wav' },
   ],
 
