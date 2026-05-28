@@ -420,7 +420,7 @@ const PhonemeCardPage = () => {
             <button
               type="button"
               onClick={() => setShowFrontView(true)}
-              className="absolute right-[12%] top-[42%] -translate-y-1/2 group focus:outline-none z-30"
+              className="absolute right-[8%] sm:right-[9%] top-[42%] -translate-y-1/2 group focus:outline-none z-30"
               data-testid="phoneme-front-view-trigger"
               aria-label="Open facial muscle activation map"
             >
