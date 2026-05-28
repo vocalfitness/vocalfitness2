@@ -8,9 +8,10 @@
 
 ## Client Account (test client)
 - **Username**: `mario.rossi`
-- **Password**: `password`
+- **Password**: `VocalTest2026!`
 - **Login URL**: `/login`
 - **Access**: Members Area / client chat with admin
+- **Role**: `client`
 
 ## Backend
 - MongoDB: local, configured via `MONGO_URL` and `DB_NAME` in `/app/backend/.env`

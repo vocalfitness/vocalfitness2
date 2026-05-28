@@ -390,6 +390,43 @@ const MembersAreaPage = () => {
           </p>
         </div>
 
+        {/* LMS — Vocal Fitness Phonetic Lab (Phase 1 Preview) */}
+        <a
+          href="/lms/phoneme/u-foot"
+          className="group block mb-8 relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 hover:border-cyan-400 transition-all duration-500 hover:shadow-[0_0_40px_rgba(34,211,238,0.25)]"
+          data-testid="members-lms-cta"
+        >
+          {/* Scanline accent */}
+          <div className="pointer-events-none absolute inset-0 opacity-30" style={{
+            backgroundImage: 'linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px)',
+            backgroundSize: '100% 4px'
+          }} />
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            {/* Glyph badge */}
+            <div className="flex-shrink-0 w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-orange-400/10 border border-cyan-400/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+              <span className="text-4xl font-black text-cyan-200">/ʊ/</span>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] text-orange-400 uppercase tracking-[0.2em] font-bold">New · Phase 1 Preview</span>
+                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight mb-1.5">
+                {language === 'it' ? 'Vocal Fitness Phonetic Lab' : 'Vocal Fitness Phonetic Lab'}
+              </h3>
+              <p className="text-cyan-200/80 text-sm sm:text-base leading-relaxed mb-3">
+                {language === 'it'
+                  ? 'Esplora la scheda interattiva del fonema /ʊ/ — anatomia, prosodia, audio del Prof. Steve Dapper.'
+                  : 'Explore the interactive /ʊ/ phoneme card — anatomy, prosody, audio by Prof. Steve Dapper.'}
+              </p>
+              <div className="flex items-center gap-2 text-cyan-300 text-sm font-semibold group-hover:text-orange-300 transition-colors">
+                <span>{language === 'it' ? 'Apri la scheda' : 'Open the card'}</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </a>
+
         {/* Breadcrumb when in folder */}
         {selectedFolder && (
           <div className="mb-6 flex items-center gap-2 text-slate-400">

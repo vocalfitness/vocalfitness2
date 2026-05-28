@@ -86,6 +86,13 @@ const COPY = {
       body: 'University Professor of English Articulatory Phonetics at Università eCampus and scientific collaborator at the LFSAG Phonetics Laboratory of the University of Turin. Certified coach in biomechanics and body conditioning (University of Tampa, Florida, USA). Founder of the proprietary Vocal Fitness method for spoken English.',
       cta: 'Read full bio'
     },
+    demo: {
+      eyebrow: 'Try the method',
+      title: 'Inside the Phonetic Lab.',
+      sub: 'A live preview of how the method is delivered: an interactive phoneme card with anatomy hotspots, prosody indicators and Prof. Dapper\'s audio samples. Currently featuring the /ʊ/ phoneme (FOOT · BOOK · PUT).',
+      cta: 'Open the /ʊ/ interactive card',
+      hint: 'Public preview · no registration required'
+    },
     faq: {
       eyebrow: 'FAQ',
       title: 'Frequently asked questions',
@@ -174,6 +181,13 @@ const COPY = {
       title: 'Prof. Steve Dapper',
       body: 'Professore Universitario di Fonetica Articolatoria Inglese all\'Università eCampus e collaboratore scientifico presso il Laboratorio di Fonetica LFSAG dell\'Università di Torino. Certified coach in biomeccanica e condizionamento corporeo (Università di Tampa, Florida, USA). Fondatore del metodo proprietario Vocal Fitness per l\'inglese parlato.',
       cta: 'Leggi la bio completa'
+    },
+    demo: {
+      eyebrow: 'Prova il metodo',
+      title: 'Dentro il Phonetic Lab.',
+      sub: 'Un\'anteprima dal vivo di come viene erogato il metodo: una scheda fonema interattiva con hotspot anatomici, indicatori prosodici e gli audio sample del Prof. Dapper. Attualmente disponibile il fonema /ʊ/ (FOOT · BOOK · PUT).',
+      cta: 'Apri la scheda interattiva /ʊ/',
+      hint: 'Anteprima pubblica · nessuna registrazione richiesta'
     },
     faq: {
       eyebrow: 'FAQ',
@@ -448,6 +462,59 @@ const SpeakRight101Page = () => {
           <p className="text-center text-slate-600 italic mt-10 max-w-2xl mx-auto leading-relaxed" data-testid="sr101-comparison-cta">
             {t.comparison.cta}
           </p>
+        </div>
+      </section>
+
+      {/* DEMO — Phonetic Lab teaser */}
+      <section className="py-20 lg:py-28 bg-slate-950 relative overflow-hidden" data-testid="sr101-demo">
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px)',
+          backgroundSize: '100% 4px'
+        }} />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-orange-400/10 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-6 lg:px-8 max-w-6xl relative z-10">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <p className="text-cyan-300 text-[10px] uppercase tracking-[0.25em] font-bold">{t.demo.eyebrow}</p>
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight mb-5">
+                {t.demo.title}
+              </h2>
+              <p className="text-cyan-100/80 text-lg leading-relaxed mb-7">{t.demo.sub}</p>
+              <a
+                href="/lms/phoneme/u-foot"
+                className="inline-flex items-center gap-3 px-7 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-orange-500 hover:to-orange-600 text-white font-bold shadow-lg shadow-cyan-500/30 hover:shadow-orange-500/40 transition-all duration-500 hover:scale-105 group"
+                data-testid="sr101-demo-cta"
+              >
+                <span className="text-2xl">/ʊ/</span>
+                <span>{t.demo.cta}</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+              <p className="text-cyan-400/60 text-xs mt-4 italic">{t.demo.hint}</p>
+            </div>
+            <div className="relative">
+              <a
+                href="/lms/phoneme/u-foot"
+                className="block relative rounded-3xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-shadow duration-500 group"
+                data-testid="sr101-demo-preview-image"
+              >
+                <img
+                  src="https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/vznyakkp__%CA%8A_%20Foot%2016_9%20AmE.png"
+                  alt="Vocal Fitness Phonetic Lab — /ʊ/ FOOT preview"
+                  className="w-full h-auto group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+                <div className="absolute bottom-4 right-4 bg-cyan-500/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 group-hover:bg-orange-500 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  Live preview
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
