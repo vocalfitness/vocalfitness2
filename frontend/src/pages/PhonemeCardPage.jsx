@@ -673,12 +673,21 @@ const PhonemeCardPage = () => {
                             </span>
                           ))}
                         </p>
-                        {/* Subtle bottom hint when expanded */}
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="inline-flex w-5 h-5 rounded-full bg-cyan-500/25 border border-cyan-400/45 items-center justify-center hover:bg-cyan-500/45 transition-colors cursor-not-allowed" title="Audio coming soon">
-                            <Play className="w-2.5 h-2.5 text-cyan-200" />
-                          </span>
-                          <span className="text-[9px] text-cyan-300/50 uppercase tracking-wider italic">audio soon</span>
+                        {/* Audio playback when available, otherwise placeholder */}
+                        <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                          {item.audio ? (
+                            <>
+                              <AudioPlayButton src={item.audio} size="sm" label={`Play ${item.w}`} onPlayingChange={setAudioPlaying} />
+                              <span className="text-[9px] text-cyan-300/60 uppercase tracking-wider italic">tap to hear</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="inline-flex w-7 h-7 rounded-full bg-slate-700/30 border border-slate-600/40 items-center justify-center cursor-not-allowed" title="Audio coming soon">
+                                <Play className="w-2.5 h-2.5 text-slate-500" />
+                              </span>
+                              <span className="text-[9px] text-cyan-300/30 uppercase tracking-wider italic">audio soon</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -686,7 +695,7 @@ const PhonemeCardPage = () => {
                 );
               })}
             </div>
-            <p className="text-[10px] text-cyan-500/50 italic mt-3">Word audio recordings — coming with next phoneme update.</p>
+            <p className="text-[10px] text-cyan-500/50 italic mt-3">Some audio recordings available · more being added.</p>
           </div>
 
           {/* Mnemonic phrase */}
