@@ -3159,18 +3159,20 @@ def send_notification_email(recipient_email: str, sender_name: str, message_prev
         msg['From'] = smtp_user
         msg['To'] = recipient_email
         
-        preview = (message_preview[:150] + "...") if len(message_preview) > 150 else message_preview
+        # Render full message: escape HTML and preserve line breaks
+        from html import escape as _html_escape
+        full_message_html = _html_escape(message_preview or "").replace("\n", "<br>")
         
         html_body = f"""
         <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:20px;">
-        <div style="max-width:500px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
             <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:20px;text-align:center;">
                 <h2 style="color:#f59e0b;margin:0;">VocalFitness</h2>
             </div>
             <div style="padding:24px;">
                 <p style="color:#64748b;font-size:14px;">Hai ricevuto un nuovo {type_label.lower()} da <strong>{sender_name}</strong>:</p>
-                <div style="background:#f8fafc;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;">
-                    <p style="margin:0;color:#1e293b;">{preview}</p>
+                <div style="background:#f8fafc;border-left:4px solid #f59e0b;padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;">
+                    <p style="margin:0;color:#1e293b;white-space:pre-wrap;word-break:break-word;">{full_message_html}</p>
                 </div>
                 <a href="{os.environ.get('FRONTEND_URL', 'https://vocalfitness.org').rstrip('/')}/area-clienti" 
                    style="display:inline-block;background:#f59e0b;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">

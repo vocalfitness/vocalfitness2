@@ -12,6 +12,10 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+
+### 05/06/2026 — Fix Email Notification Truncation (P0)
+- [x] **Bugfix**: in `/app/backend/server.py::send_notification_email` (linea 3162) il `message_preview` veniva troncato a 150 caratteri con `[:150] + "..."`, nascondendo credenziali e link inviati dall'admin via pannello messaggi. Rimosso troncamento, escape HTML con `html.escape`, conversione `\n→<br>` e CSS `white-space:pre-wrap;word-break:break-word` per messaggi lunghi. Test di regressione in `/app/backend/tests/test_email_truncation.py` (3 test passati). Verifica E2E con `POST /api/admin/messages` su messaggio di 242 chars contenente credenziali → salvato e inviato integralmente.
+
 ### Funzionalità Pubbliche ✅
 - [x] Homepage con presentazione del metodo VocalFitness
 - [x] **Homepage redesign istituzionale B2B/scientifico** (07/02/2026, iter. 11) — Palette unificata WHITE + BLUE medical/scientific su tutto il sito (homepage + footer + navbar). 13 sezioni in EN/IT bilingue + Footer light + 4 video con shimmer loader.
