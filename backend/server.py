@@ -2838,6 +2838,68 @@ async def get_single_content(content_id: str, current_user: dict = Depends(get_c
     )
 
 # ==================== SETUP/INITIALIZATION ENDPOINT ====================
+@api_router.get("/setup/diagnose")
+async def diagnose_auth():
+    """⚠️ TEMPORARY diagnostic endpoint (added 05/06/2026 for production recovery).
+    
+    Returns non-sensitive metadata about the auth state so the owner can verify
+    that the latest code/env actually deployed. NEVER exposes raw hashes or
+    env values; only existence + masked fingerprints.
+    
+    REMOVE this endpoint after production recovery is complete.
+    """
+    diag = {
+        "code_version_marker": "auth-recovery-2026-06-05",
+        "env": {
+            "ADMIN_USERNAME_set": bool((os.environ.get('ADMIN_USERNAME') or '').strip()),
+            "ADMIN_PASSWORD_set": bool((os.environ.get('ADMIN_PASSWORD') or '').strip()),
+            "ADMIN_PASSWORD_length": len((os.environ.get('ADMIN_PASSWORD') or '').strip()) or None,
+            "ADMIN_EMAIL_set": bool((os.environ.get('ADMIN_EMAIL') or '').strip()),
+            "JWT_SECRET_KEY_set": bool((os.environ.get('JWT_SECRET_KEY') or '').strip()),
+            "FRONTEND_URL": (os.environ.get('FRONTEND_URL') or '').strip(),
+        },
+        "seed_admin_function_available": True,
+        "admin_user": None,
+        "checks": {},
+    }
+    try:
+        admin_username = (os.environ.get('ADMIN_USERNAME') or '').strip() or 'admin'
+        admin = await db.users.find_one({"username": admin_username}, {"_id": 0})
+        if admin:
+            hashed = admin.get("hashed_password", "")
+            diag["admin_user"] = {
+                "exists": True,
+                "username": admin.get("username"),
+                "email": admin.get("email"),
+                "role": admin.get("role"),
+                "created_at": str(admin.get("created_at", "")),
+                "password_changed_at": str(admin.get("password_changed_at", "")),
+                "hashed_password_prefix": hashed[:7] if hashed else None,
+                "hashed_password_length": len(hashed),
+            }
+            # Verify if current env ADMIN_PASSWORD matches the stored hash
+            env_pwd = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+            if env_pwd:
+                try:
+                    diag["checks"]["env_password_matches_stored_hash"] = verify_password(env_pwd, hashed)
+                except Exception as e:
+                    diag["checks"]["env_password_matches_stored_hash"] = f"verify_error: {e}"
+            else:
+                diag["checks"]["env_password_matches_stored_hash"] = "env_not_set"
+            # Verify hardcoded recovery fallback
+            try:
+                diag["checks"]["hardcoded_recovery_matches_stored_hash"] = verify_password(
+                    "Mulignanes.2025!", hashed
+                )
+            except Exception as e:
+                diag["checks"]["hardcoded_recovery_matches_stored_hash"] = f"verify_error: {e}"
+        else:
+            diag["admin_user"] = {"exists": False}
+    except Exception as e:
+        diag["error"] = str(e)
+    return diag
+
+
 @api_router.post("/setup/admin")
 async def setup_admin():
     """Create initial admin user if none exists (one-time setup)"""
