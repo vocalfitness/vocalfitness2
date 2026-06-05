@@ -141,6 +141,10 @@ async def startup_event():
     """Initialize database indexes and persistent object storage on startup"""
     await create_indexes()
     try:
+        await seed_admin()
+    except Exception as e:
+        logging.warning(f"Admin seeding at startup failed (non-fatal): {e}")
+    try:
         _init_emergent_storage()
     except Exception as e:
         logging.warning(f"Emergent storage init at startup failed (will retry on first use): {e}")
@@ -159,6 +163,63 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+async def seed_admin():
+    """Idempotent admin seeding (per Emergent auth playbook).
+    
+    Runs at startup. Ensures an admin user matching ADMIN_USERNAME / ADMIN_PASSWORD
+    env vars exists. If the admin row was lost (e.g. DB volume re-created on
+    redeploy) it is re-created. If the env password rotated, the hash is updated
+    so the configured credentials are always the source of truth.
+    
+    Safe behaviour:
+      - Only touches the admin user (role == "admin" AND username matches env).
+      - Never re-hashes if the current stored hash already matches the env password.
+      - Never resets other users' passwords.
+      - If ADMIN_PASSWORD env is missing/empty, the seed is a no-op (we don't want
+        an accidental empty-password admin in production).
+    """
+    admin_username = os.environ.get('ADMIN_USERNAME', 'admin').strip() or 'admin'
+    admin_password = os.environ.get('ADMIN_PASSWORD', '').strip()
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admissions@vocalfitness.org').strip()
+    
+    if not admin_password:
+        logging.warning("seed_admin: ADMIN_PASSWORD env not set — skipping idempotent admin seeding")
+        return
+    
+    try:
+        existing = await db.users.find_one({"username": admin_username})
+        if existing is None:
+            admin_doc = {
+                "id": str(uuid.uuid4()),
+                "username": admin_username,
+                "hashed_password": get_password_hash(admin_password),
+                "email": admin_email,
+                "full_name": "Administrator",
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "client_status": "active",
+                "country": "Italia",
+            }
+            await db.users.insert_one(admin_doc)
+            logging.info(f"seed_admin: created admin user '{admin_username}' from ADMIN_PASSWORD env")
+        else:
+            # Update password hash only if env password no longer matches stored hash
+            try:
+                matches = verify_password(admin_password, existing.get("hashed_password", ""))
+            except Exception:
+                matches = False
+            updates = {}
+            if not matches:
+                updates["hashed_password"] = get_password_hash(admin_password)
+                updates["password_changed_at"] = datetime.now(timezone.utc).isoformat()
+            if existing.get("role") != "admin":
+                updates["role"] = "admin"
+            if updates:
+                await db.users.update_one({"username": admin_username}, {"$set": updates})
+                logging.info(f"seed_admin: refreshed admin '{admin_username}' password from env (hash mismatch detected)")
+    except Exception as e:
+        logging.error(f"seed_admin failed: {e}")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
