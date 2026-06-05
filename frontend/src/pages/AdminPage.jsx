@@ -7,11 +7,13 @@ import {
   Save, X, Upload, CheckCircle, AlertCircle, HardDrive,
   Folder, Eye, EyeOff, UserCheck, Youtube, RefreshCw, ExternalLink,
   MessageSquare, Bell, Power, PowerOff, Send, Building2, User,
-  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter
+  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter, Mail
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { RichTextEditor, sanitizeRichHtml } from '../components/RichTextEditor';
+import { EmailPreviewModal } from '../components/EmailPreviewModal';
 
 // Translations for Admin Page
 const translations = {
@@ -358,6 +360,8 @@ const AdminPage = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatUser, setChatUser] = useState(null);
   const [newMessage, setNewMessage] = useState('');
+  const [newMessageHtml, setNewMessageHtml] = useState('');
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [msgType, setMsgType] = useState('text');
   const [msgMediaUrl, setMsgMediaUrl] = useState('');
   const [msgTaskDesc, setMsgTaskDesc] = useState('');
@@ -730,9 +734,15 @@ const AdminPage = () => {
   const handleSendMessage = async () => {
     if (!chatUser || (!newMessage.trim() && !msgMediaUrl && !msgTaskDesc)) return;
     try {
+      // Only attach content_html when we have actual rich formatting (not just a plain paragraph).
+      const richHtml = newMessageHtml || '';
+      const hasFormatting = /<(strong|em|u|a|ul|ol|li|h3|h4|br)\b/i.test(richHtml) || /<p>[^<]*<\/p>\s*<p>/i.test(richHtml);
+      const cleanHtml = hasFormatting ? sanitizeRichHtml(richHtml) : '';
+
       const payload = {
         recipient_id: chatUser.id,
         content: newMessage,
+        content_html: cleanHtml,
         message_type: msgType,
         media_url: msgMediaUrl,
         task_description: msgTaskDesc,
@@ -742,6 +752,7 @@ const AdminPage = () => {
       const res = await axios.post(`${backendUrl}/api/admin/messages`, payload, { headers: { Authorization: `Bearer ${token}` } });
       setChatMessages(prev => [...prev, res.data]);
       setNewMessage('');
+      setNewMessageHtml('');
       setMsgMediaUrl('');
       setMsgTaskDesc('');
       setMsgTaskDue('');
@@ -2027,7 +2038,14 @@ const AdminPage = () => {
                               {m.task_completed && <span className="text-green-300">({language === 'it' ? 'completato' : 'completed'})</span>}
                             </div>
                           )}
-                          {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
+                          {m.content_html ? (
+                            <div
+                              className="text-sm rich-msg [&_a]:text-amber-300 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-base [&_h3]:font-bold [&_p]:my-1"
+                              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(m.content_html) }}
+                            />
+                          ) : (
+                            m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                          )}
                           {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
                           {m.task_due_date && <p className="text-xs mt-1 opacity-70">Scadenza: {m.task_due_date}</p>}
                           
@@ -2097,11 +2115,35 @@ const AdminPage = () => {
                         <input type="date" value={msgTaskDue} onChange={e => setMsgTaskDue(e.target.value)} className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm" />
                       </div>
                     )}
-                    <div className="flex gap-2">
-                      <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" placeholder={language === 'it' ? 'Scrivi un messaggio...' : 'Write a message...'} data-testid="message-input" />
-                      <Button onClick={handleSendMessage} className="bg-emerald-600 hover:bg-emerald-700 px-4" data-testid="send-message-btn">
-                        <Send className="w-4 h-4" />
-                      </Button>
+                    <div className="space-y-2">
+                      <RichTextEditor
+                        value={newMessageHtml}
+                        onChange={setNewMessageHtml}
+                        onPlainTextChange={setNewMessage}
+                        placeholder={language === 'it' ? 'Scrivi un messaggio… (puoi formattare il testo, andare a capo, inserire link)' : 'Write a message… (rich text, line breaks and links supported)'}
+                        minHeight={120}
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowEmailPreview(true)}
+                          disabled={!newMessage.trim()}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          data-testid="email-preview-btn"
+                          title={language === 'it' ? "Anteprima dell'email che riceverà il cliente" : 'Preview the email the client will receive'}
+                        >
+                          <Mail className="w-4 h-4" />
+                          {language === 'it' ? 'Anteprima email' : 'Email preview'}
+                        </button>
+                        <Button
+                          onClick={handleSendMessage}
+                          className="bg-emerald-600 hover:bg-emerald-700 px-4"
+                          data-testid="send-message-btn"
+                        >
+                          <Send className="w-4 h-4 mr-1.5" />
+                          {language === 'it' ? 'Invia' : 'Send'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -2900,6 +2942,18 @@ const AdminPage = () => {
           </div>
         </div>
       )}
+
+      {/* ===== Email Preview Modal (admin → client) ===== */}
+      <EmailPreviewModal
+        isOpen={showEmailPreview}
+        onClose={() => setShowEmailPreview(false)}
+        contentHtml={newMessageHtml}
+        contentPlain={newMessage}
+        recipientEmail={chatUser?.email}
+        recipientName={chatUser?.full_name || chatUser?.username}
+        senderName={user?.full_name || 'VocalFitness Admin'}
+        messageType={msgType}
+      />
     </div>
   );
 };

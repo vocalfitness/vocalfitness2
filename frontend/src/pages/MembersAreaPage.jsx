@@ -11,6 +11,7 @@ import {
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { sanitizeRichHtml } from '../components/RichTextEditor';
 
 // Translations for Members Area
 const translations = {
@@ -773,7 +774,14 @@ const MembersAreaPage = () => {
                           {m.task_due_date && <span className="opacity-70">- {language === 'it' ? 'Scadenza' : 'Due'}: {m.task_due_date}</span>}
                         </div>
                       )}
-                      {m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
+                      {m.content_html ? (
+                        <div
+                          className="text-sm rich-msg [&_a]:text-amber-600 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h3]:text-base [&_h3]:font-bold [&_p]:my-1"
+                          dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(m.content_html) }}
+                        />
+                      ) : (
+                        m.content && <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                      )}
                       {m.task_description && <p className="text-sm mt-1 italic">{m.task_description}</p>}
                       
                       {/* Video - YouTube or direct */}

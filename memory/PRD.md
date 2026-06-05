@@ -16,6 +16,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ### 05/06/2026 — Fix Email Notification Truncation (P0)
 - [x] **Bugfix**: in `/app/backend/server.py::send_notification_email` (linea 3162) il `message_preview` veniva troncato a 150 caratteri con `[:150] + "..."`, nascondendo credenziali e link inviati dall'admin via pannello messaggi. Rimosso troncamento, escape HTML con `html.escape`, conversione `\n→<br>` e CSS `white-space:pre-wrap;word-break:break-word` per messaggi lunghi. Test di regressione in `/app/backend/tests/test_email_truncation.py` (3 test passati). Verifica E2E con `POST /api/admin/messages` su messaggio di 242 chars contenente credenziali → salvato e inviato integralmente.
 
+### 05/06/2026 — Rich Text Editor + Email Preview nel pannello admin messaggi
+- [x] **Rich Text Editor TipTap** (`/app/frontend/src/components/RichTextEditor.jsx`) integrato nella chat admin → cliente. Toolbar: Bold, Italic, Underline, Heading3, Liste puntate/numerate, Link (prompt con autoprefix `https://`), Clear formatting, Undo/Redo. Output HTML sanitizzato con DOMPurify (whitelist tag: p, br, strong, em, u, a, ul, ol, li, h3, h4, span). Multi-riga reale (non più input singola linea).
+- [x] **Email Preview Modal** (`/app/frontend/src/components/EmailPreviewModal.jsx`): mostra in un `<iframe sandbox="">` isolato il rendering esatto del template HTML che verrà inviato via Zoho SMTP (header brand, blockquote ambra, CTA "Area Riservata"). Header con Da/A/Oggetto auto-generato. Pulsante "Anteprima email" accanto al bottone Invia.
+- [x] **Backend backward-compatible**: `MessageCreate` ora include `content_html: str = ""` (opzionale). Se valorizzato, `send_notification_email` lo usa as-is dentro il template; altrimenti fallback su `content` plain con escape + nl2br. Persistito in MongoDB `messages.content_html`.
+- [x] **Frontend chat rendering** (sia `AdminPage.jsx` che `MembersAreaPage.jsx`): se `m.content_html` presente → rendering HTML sicuro con `sanitizeRichHtml` + `dangerouslySetInnerHTML`; altrimenti rendering plain text come prima.
+- [x] **Tests**: 6 test di regressione pytest in `/app/backend/tests/test_email_truncation.py` + `test_email_rich_html.py` (tutti PASS). Smoke E2E UI: login admin → tab Messaggi → conversazione Mario Rossi → editor visibile con toolbar, anteprima email apre modal con iframe e rendering corretto.
+
 ### Funzionalità Pubbliche ✅
 - [x] Homepage con presentazione del metodo VocalFitness
 - [x] **Homepage redesign istituzionale B2B/scientifico** (07/02/2026, iter. 11) — Palette unificata WHITE + BLUE medical/scientific su tutto il sito (homepage + footer + navbar). 13 sezioni in EN/IT bilingue + Footer light + 4 video con shimmer loader.

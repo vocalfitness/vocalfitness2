@@ -519,6 +519,7 @@ class StatusCheck(BaseModel):
 class MessageCreate(BaseModel):
     recipient_id: str  # User ID of the recipient
     content: str = ""
+    content_html: str = ""  # Optional sanitized rich-text HTML version of content (admin rich editor)
     message_type: str = "text"  # "text", "audio", "video", "task", "file"
     media_url: str = ""
     embed_code: str = ""
@@ -3134,8 +3135,14 @@ async def update_playlist_users(playlist_doc_id: str, data: AssignUsersRequest, 
 
 # ==================== MESSAGING ENDPOINTS ====================
 
-def send_notification_email(recipient_email: str, sender_name: str, message_preview: str, message_type: str = "text"):
-    """Send email notification for new message"""
+def send_notification_email(recipient_email: str, sender_name: str, message_preview: str, message_type: str = "text", message_html: str = ""):
+    """Send email notification for new message.
+    
+    If `message_html` is provided, it is rendered as-is inside the email body
+    (already produced by a trusted client-side rich text editor; we still wrap
+    it inside our branded template). Otherwise we fall back to escaping the
+    plain `message_preview` and converting newlines to <br>.
+    """
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
@@ -3159,9 +3166,12 @@ def send_notification_email(recipient_email: str, sender_name: str, message_prev
         msg['From'] = smtp_user
         msg['To'] = recipient_email
         
-        # Render full message: escape HTML and preserve line breaks
-        from html import escape as _html_escape
-        full_message_html = _html_escape(message_preview or "").replace("\n", "<br>")
+        # Render full message: prefer rich HTML (already sanitized by editor) ‒ fallback to escaped plain text
+        if message_html and message_html.strip():
+            full_message_html = message_html
+        else:
+            from html import escape as _html_escape
+            full_message_html = _html_escape(message_preview or "").replace("\n", "<br>")
         
         html_body = f"""
         <html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f5f5f5;padding:20px;">
@@ -3265,6 +3275,7 @@ async def send_admin_message(msg: MessageCreate, admin: dict = Depends(get_admin
         "sender_name": admin.get("full_name") or admin.get("username", "Admin"),
         "recipient_id": msg.recipient_id,
         "content": msg.content,
+        "content_html": msg.content_html,
         "message_type": msg.message_type,
         "media_url": msg.media_url,
         "embed_code": msg.embed_code,
@@ -3284,7 +3295,8 @@ async def send_admin_message(msg: MessageCreate, admin: dict = Depends(get_admin
         recipient.get("email", ""),
         admin.get("full_name") or "VocalFitness Admin",
         msg.content or msg.task_description or f"Nuovo {msg.message_type}",
-        msg.message_type
+        msg.message_type,
+        msg.content_html,
     )).start()
     
     return message_doc
@@ -3327,6 +3339,7 @@ async def send_member_message(msg: MessageCreate, current_user: dict = Depends(g
         "sender_name": current_user.get("full_name") or current_user.get("username", ""),
         "recipient_id": admin_user["id"],
         "content": msg.content,
+        "content_html": msg.content_html,
         "message_type": msg.message_type,
         "media_url": msg.media_url,
         "embed_code": msg.embed_code,
@@ -3346,7 +3359,8 @@ async def send_member_message(msg: MessageCreate, current_user: dict = Depends(g
         admin_user.get("email", ""),
         current_user.get("full_name") or current_user.get("username", "Cliente"),
         msg.content or f"Nuovo {msg.message_type}",
-        msg.message_type
+        msg.message_type,
+        msg.content_html,
     )).start()
     
     return message_doc
