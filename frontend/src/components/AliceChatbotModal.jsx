@@ -3,6 +3,7 @@ import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const AliceChatbotModal = ({ isOpen, onClose }) => {
   const { language } = useLanguage();
@@ -75,7 +76,7 @@ const AliceChatbotModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const backendUrl = BACKEND_URL;
       const response = await axios.post(`${backendUrl}/api/chat`, {
         session_id: sessionId,
         message: inputMessage,

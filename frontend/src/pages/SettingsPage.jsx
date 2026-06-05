@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { BACKEND_URL } from '../lib/backend';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const SettingsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = BACKEND_URL;
 
   // Redirect if not authenticated
   React.useEffect(() => {

@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import engagementTracker from '../utils/engagementTracker';
+import { BACKEND_URL } from '../lib/backend';
 
 const VideoModal = ({ isOpen, onClose, videoUrl }) => {
   const { language } = useLanguage();
@@ -127,7 +128,7 @@ const VideoModal = ({ isOpen, onClose, videoUrl }) => {
     setSubmitStatus(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      const backendUrl = BACKEND_URL;
       
       const payload = {
         name: formData.name,

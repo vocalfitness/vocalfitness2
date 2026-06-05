@@ -4,9 +4,10 @@ import { X, ChevronRight, ChevronLeft, Check, Briefcase, GraduationCap, Globe2, 
 import { Button } from './ui/button';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const TOTAL_STEPS = 5;
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 const COPY = {
   en: {

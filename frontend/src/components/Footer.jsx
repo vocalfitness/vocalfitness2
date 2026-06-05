@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, ExternalLink, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -10,7 +11,7 @@ const Footer = () => {
   const [newsletterStatus, setNewsletterStatus] = useState(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = BACKEND_URL;
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();

@@ -3,6 +3,7 @@ import { X, Send, CheckCircle, AlertCircle, User, Mail, Phone, MessageSquare } f
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
 import engagementTracker from '../utils/engagementTracker';
+import { BACKEND_URL } from '../lib/backend';
 
 const ContactFormModal = ({ isOpen, onClose, discount = null }) => {
   // Track when modal is opened
@@ -42,7 +43,7 @@ const ContactFormModal = ({ isOpen, onClose, discount = null }) => {
     setSubmitStatus(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      const backendUrl = BACKEND_URL;
       
       const payload = {
         ...formData,

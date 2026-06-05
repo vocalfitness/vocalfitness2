@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { mockData } from '../data/mock';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import { BACKEND_URL } from '../lib/backend';
 
 const TestimonialsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -19,7 +20,7 @@ const TestimonialsSection = () => {
     const fetchTestimonials = async () => {
       try {
         setLoading(true);
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+        const backendUrl = BACKEND_URL;
         // Fetch ALL testimonials without language filter to show all important testimonials
         const response = await axios.get(`${backendUrl}/api/testimonials`);
         

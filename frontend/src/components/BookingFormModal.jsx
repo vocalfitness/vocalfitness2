@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import engagementTracker from '../utils/engagementTracker';
+import { BACKEND_URL } from '../lib/backend';
 
 const BookingFormModal = ({ isOpen, onClose }) => {
   const { language } = useLanguage();
@@ -197,7 +198,7 @@ const BookingFormModal = ({ isOpen, onClose }) => {
     setSubmitStatus(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      const backendUrl = BACKEND_URL;
       
       const payload = {
         ...formData,

@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RichTextEditor, sanitizeRichHtml } from '../components/RichTextEditor';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
+import { BACKEND_URL } from '../lib/backend';
 
 // Translations for Admin Page
 const translations = {
@@ -387,7 +388,7 @@ const AdminPage = () => {
     setCrmSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = BACKEND_URL;
 
   // Redirect if not admin
   useEffect(() => {

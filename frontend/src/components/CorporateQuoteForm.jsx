@@ -3,6 +3,7 @@ import { X, Building2, Send, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const CorporateQuoteForm = ({ isOpen, onClose }) => {
   const { language } = useLanguage();
@@ -184,7 +185,7 @@ const CorporateQuoteForm = ({ isOpen, onClose }) => {
     setSubmitError('');
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const backendUrl = BACKEND_URL;
       await axios.post(`${backendUrl}/api/corporate-quote`, {
         ...formData,
         language

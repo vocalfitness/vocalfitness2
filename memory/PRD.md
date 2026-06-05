@@ -16,6 +16,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ### 05/06/2026 — Fix Email Notification Truncation (P0)
 - [x] **Bugfix**: in `/app/backend/server.py::send_notification_email` (linea 3162) il `message_preview` veniva troncato a 150 caratteri con `[:150] + "..."`, nascondendo credenziali e link inviati dall'admin via pannello messaggi. Rimosso troncamento, escape HTML con `html.escape`, conversione `\n→<br>` e CSS `white-space:pre-wrap;word-break:break-word` per messaggi lunghi. Test di regressione in `/app/backend/tests/test_email_truncation.py` (3 test passati). Verifica E2E con `POST /api/admin/messages` su messaggio di 242 chars contenente credenziali → salvato e inviato integralmente.
 
+### 05/06/2026 — Production login fix: strip "www." subdomain client-side (P0)
+- [x] **Bug root cause**: il bundle frontend deployato in produzione era buildato con `REACT_APP_BACKEND_URL=https://www.vocalfitness.org`. La edge Cloudflare risponde con `HTTP 308 Permanent Redirect` da `www.` a senza-`www.` per tutti i path. Il browser, su un redirect 308 cross-origin di una POST, perde il body silenziosamente → ogni chiamata API falliva con "Errore di login" mentre il backend non vedeva neanche la richiesta.
+- [x] **Fix client-side**: creato `/app/frontend/src/lib/backend.js` con `BACKEND_URL = REACT_APP_BACKEND_URL.replace(/^https:\/\/www\./, 'https://')`. Tutti i 14 file che leggevano `process.env.REACT_APP_BACKEND_URL` ora importano `BACKEND_URL` da `lib/backend`. Il fix è automatico: anche se l'env var Emergent rimane con `www.`, il runtime client la normalizza.
+- [x] File aggiornati: `context/AuthContext.js`, `pages/{Settings,Admin,Login,MembersArea}Page.jsx`, `components/{OnboardingWizard,VideoModal,TestimonialsSection,ContactFormModal,CorporateQuoteForm,LevelTestModal,ClientsSection,Footer,BookingFormModal,AliceChatbotModal}.jsx`.
+- [x] Smoke test preview: login admin/VocalFitness2026! → "Benvenuto, Administrator!" → redirect a `/area-clienti` ✓.
+- 🚨 **Azione utente**: redeploy produzione → il login admin tornerà a funzionare in browser.
+
 ### 05/06/2026 — Idempotent admin seeding (P0 production auth recovery)
 - [x] **Implementato `seed_admin()` all'avvio backend** (`/app/backend/server.py`) come da playbook auth Emergent. Comportamento idempotente: crea admin se manca, aggiorna hash se `ADMIN_PASSWORD` env è diverso da quello in DB, no-op se matcha, skip totale se env vuoto. Mai tocca utenti non-admin.
 - [x] Aggiunte env vars: `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`, `JWT_SECRET_KEY` in `/app/backend/.env`.

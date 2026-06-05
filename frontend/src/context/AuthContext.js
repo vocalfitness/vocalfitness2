@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const AuthContext = createContext(null);
 
@@ -16,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('vf_token'));
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = BACKEND_URL;
 
   useEffect(() => {
     const validateToken = async () => {

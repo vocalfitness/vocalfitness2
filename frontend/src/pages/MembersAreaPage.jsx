@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { sanitizeRichHtml } from '../components/RichTextEditor';
+import { BACKEND_URL } from '../lib/backend';
 
 // Translations for Members Area
 const translations = {
@@ -71,7 +72,7 @@ const MembersAreaPage = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const chatEndRef = useRef(null);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = BACKEND_URL;
 
   // Redirect if not authenticated
   useEffect(() => {

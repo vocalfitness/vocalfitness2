@@ -4,6 +4,7 @@ import { Lock, User, Eye, EyeOff, ArrowLeft, Loader2, Sparkles } from 'lucide-re
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { BACKEND_URL } from '../lib/backend';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const LoginPage = () => {
     setMagicState('verifying');
     const exchange = async () => {
       try {
-        const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/magic`, { token: magic });
+        const res = await axios.post(`${BACKEND_URL}/api/auth/magic`, { token: magic });
         const { access_token, user } = res.data;
         if (typeof setAuth === 'function') {
           setAuth(access_token, user);

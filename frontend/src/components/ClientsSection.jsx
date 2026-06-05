@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Building2, Award, GraduationCap } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
+import { BACKEND_URL } from '../lib/backend';
 
 const ClientsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -17,7 +18,7 @@ const ClientsSection = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+        const backendUrl = BACKEND_URL;
         const response = await axios.get(`${backendUrl}/api/clients?featured=true`);
         
         if (response.data && response.data.clients) {
