@@ -12,6 +12,14 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/06/2026 — Phonetic Lab audio performance fix (P1)
+- [x] **Bug**: clienti segnalano caricamento lento/assente degli audio nella Phoneme Card. Causa: 39 file `.wav` non compressi (~200KB ciascuno = ~8MB totali) su CDN Cloudfront Emergent, **senza header `Cache-Control`**. Su connessioni lente, ogni click sui play-button scaricava il file da zero (TTFB 0.2–3s).
+- [x] **Fix client-side**: implementato `useEffect` background preloader in `PhonemeCardPage.jsx`. Dopo 600ms dal mount, lancia 4 fetch paralleli in `cache: 'force-cache'` per popolare la HTTP cache del browser con TUTTI gli audio (isolated, examples, mnemonic, 30 common words). Quando l'utente clicca un play-button, l'audio è già su disco → istantaneo.
+- [x] Cambiato `Audio.preload` da `'none'` a `'auto'` + aggiunti event listeners `canplay` e check `readyState >= 3` per evitare spinner falsi.
+- [x] AbortController su unmount → cancella i fetch pendenti se l'utente lascia la pagina prima del completamento.
+- [x] Verifica E2E preview: aprendo `/lms/phoneme/u-foot`, dopo 10s tutti i 39 file audio scaricati in background; click sul play → riproduzione immediata.
+- Future P3: ri-uploadare audio in `.mp3` 192kbps (8MB → ~1.5MB).
+
 
 ### 05/06/2026 — Fix Email Notification Truncation (P0)
 - [x] **Bugfix**: in `/app/backend/server.py::send_notification_email` (linea 3162) il `message_preview` veniva troncato a 150 caratteri con `[:150] + "..."`, nascondendo credenziali e link inviati dall'admin via pannello messaggi. Rimosso troncamento, escape HTML con `html.escape`, conversione `\n→<br>` e CSS `white-space:pre-wrap;word-break:break-word` per messaggi lunghi. Test di regressione in `/app/backend/tests/test_email_truncation.py` (3 test passati). Verifica E2E con `POST /api/admin/messages` su messaggio di 242 chars contenente credenziali → salvato e inviato integralmente.

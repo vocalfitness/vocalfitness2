@@ -167,11 +167,15 @@ const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
   const getAudio = () => {
     if (!audioRef.current && src) {
       const a = new Audio(src);
-      a.preload = 'none';
+      // 'auto' lets the browser fetch the audio in the background as soon as
+      // the element is created. Combined with the page-level preloader, this
+      // means by the time the user clicks play, the bytes are already cached.
+      a.preload = 'auto';
       a.addEventListener('ended', () => { setPlaying(false); onPlayingChange?.(false); });
       a.addEventListener('pause', () => { setPlaying(false); onPlayingChange?.(false); });
       a.addEventListener('playing', () => { setLoading(false); setPlaying(true); onPlayingChange?.(true); });
       a.addEventListener('waiting', () => setLoading(true));
+      a.addEventListener('canplay', () => setLoading(false));
       a.addEventListener('error', () => { setLoading(false); setPlaying(false); onPlayingChange?.(false); });
       audioRef.current = a;
     }
@@ -192,7 +196,9 @@ const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
     const a = getAudio();
     if (!a) return; // no src → no-op
     if (a.paused) {
-      setLoading(true);
+      // Show spinner immediately if data isn't fully buffered yet.
+      // readyState >= 3 (HAVE_FUTURE_DATA) means we can start instantly.
+      if (a.readyState < 3) setLoading(true);
       a.currentTime = 0;
       a.play().catch(() => { setLoading(false); setPlaying(false); });
     } else {
@@ -272,6 +278,66 @@ const PhonemeCardPage = () => {
     const t = setTimeout(() => setAnimate(true), 250);
     return () => clearTimeout(t);
   }, []);
+
+  // ============================================================
+  // Background audio preloader — warms the HTTP cache so users
+  // experience near-instant playback on click. Without this, each
+  // WAV (~200KB) is fetched on first click → 0.5–3s perceived lag
+  // on slow connections. Uses fetch() (no decoding overhead) and
+  // a small concurrency window (4 parallel) so we don't saturate
+  // the user's bandwidth while they read the card.
+  // ============================================================
+  useEffect(() => {
+    const collectUrls = () => {
+      const urls = new Set();
+      const a = phoneme.audio?.[dialect] || phoneme.audio?.AmE || {};
+      if (a.isolated) urls.add(a.isolated);
+      (a.examples || []).forEach(u => u && urls.add(u));
+      if (phoneme.mnemonic?.audio) urls.add(phoneme.mnemonic.audio);
+      (phoneme.commonWords || []).forEach(w => w.audio && urls.add(w.audio));
+      return [...urls];
+    };
+
+    const urls = collectUrls();
+    if (urls.length === 0) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    // Delay the start so it doesn't compete with critical page rendering
+    const startTimer = setTimeout(async () => {
+      const CONCURRENCY = 4;
+      let cursor = 0;
+      const worker = async () => {
+        while (!cancelled && cursor < urls.length) {
+          const url = urls[cursor++];
+          try {
+            // HEAD won't populate the browser audio cache reliably — use GET.
+            // The response is consumed but the bytes end up in the HTTP cache,
+            // so the subsequent <audio>.play() reads them from disk cache.
+            const res = await fetch(url, {
+              signal: controller.signal,
+              cache: 'force-cache',
+              credentials: 'omit',
+            });
+            // Drain the body so the cache entry is committed
+            if (res.ok && res.body) {
+              await res.blob().catch(() => {});
+            }
+          } catch (_) {
+            // network errors are non-fatal — playback will just go slower if user clicks
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+      controller.abort();
+    };
+  }, [phoneme, dialect]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-cyan-50 overflow-x-hidden">
