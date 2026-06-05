@@ -176,16 +176,30 @@ async def seed_admin():
       - Only touches the admin user (role == "admin" AND username matches env).
       - Never re-hashes if the current stored hash already matches the env password.
       - Never resets other users' passwords.
-      - If ADMIN_PASSWORD env is missing/empty, the seed is a no-op (we don't want
-        an accidental empty-password admin in production).
+    
+    ⚠️ TEMPORARY PRODUCTION RECOVERY (added 05/06/2026):
+    To unblock the production owner who cannot edit secrets from the Emergent
+    deploy UI, ADMIN_PASSWORD now falls back to a known recovery password.
+    REMOVE THIS FALLBACK as soon as the owner has logged in and changed the
+    admin password from the admin panel.
     """
-    admin_username = os.environ.get('ADMIN_USERNAME', 'admin').strip() or 'admin'
-    admin_password = os.environ.get('ADMIN_PASSWORD', '').strip()
-    admin_email = os.environ.get('ADMIN_EMAIL', 'admissions@vocalfitness.org').strip()
+    admin_username = (os.environ.get('ADMIN_USERNAME') or '').strip() or 'admin'
+    # TEMPORARY: keep this fallback only until production env vars can be set.
+    # After the owner logs in and updates the password via /change-password,
+    # replace the fallback with '' so the seed becomes a no-op when env is missing.
+    admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip() or 'Mulignanes.2025!'
+    admin_email = (os.environ.get('ADMIN_EMAIL') or '').strip() or 'admissions@vocalfitness.org'
+    using_fallback = not (os.environ.get('ADMIN_PASSWORD') or '').strip()
     
     if not admin_password:
         logging.warning("seed_admin: ADMIN_PASSWORD env not set — skipping idempotent admin seeding")
         return
+    
+    if using_fallback:
+        logging.warning(
+            "seed_admin: ADMIN_PASSWORD env not set — using TEMPORARY hardcoded recovery password. "
+            "Change the admin password from the admin panel and set ADMIN_PASSWORD in env, then remove this fallback."
+        )
     
     try:
         existing = await db.users.find_one({"username": admin_username})

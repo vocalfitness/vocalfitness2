@@ -120,10 +120,28 @@ def test_rotates_hash_when_password_diverges(patched_seed, fake_db, monkeypatch)
     assert "password_changed_at" in fake_db._store["admin"]
 
 
-def test_skips_when_admin_password_env_empty(patched_seed, fake_db, monkeypatch):
+def test_uses_recovery_fallback_when_admin_password_env_empty(patched_seed, fake_db, monkeypatch):
+    """⚠️ TEMPORARY behaviour (production recovery 05/06/2026):
+    When ADMIN_PASSWORD env is missing, the seed now falls back to a hardcoded
+    recovery password instead of skipping. This unblocks production owners who
+    cannot edit secrets from the Emergent deploy UI.
+    
+    REMOVE this test and restore `test_skips_when_admin_password_env_empty`
+    once the fallback is removed from seed_admin().
+    """
+    import sys
+    sys.path.insert(0, "/app/backend")
+    from server import verify_password
     monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    monkeypatch.setenv("ADMIN_USERNAME", "admin")
+    
     asyncio.run(patched_seed())
-    assert "admin" not in fake_db._store
+    
+    # Admin must be created even without env var, using the hardcoded fallback
+    assert "admin" in fake_db._store
+    admin = fake_db._store["admin"]
+    # Hardcoded recovery password is "Mulignanes.2025!" — keep in sync with server.seed_admin
+    assert verify_password("Mulignanes.2025!", admin["hashed_password"]) is True
 
 
 def test_does_not_touch_other_users(patched_seed, fake_db, monkeypatch):
