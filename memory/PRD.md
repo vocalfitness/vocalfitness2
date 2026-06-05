@@ -16,6 +16,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ### 05/06/2026 — Fix Email Notification Truncation (P0)
 - [x] **Bugfix**: in `/app/backend/server.py::send_notification_email` (linea 3162) il `message_preview` veniva troncato a 150 caratteri con `[:150] + "..."`, nascondendo credenziali e link inviati dall'admin via pannello messaggi. Rimosso troncamento, escape HTML con `html.escape`, conversione `\n→<br>` e CSS `white-space:pre-wrap;word-break:break-word` per messaggi lunghi. Test di regressione in `/app/backend/tests/test_email_truncation.py` (3 test passati). Verifica E2E con `POST /api/admin/messages` su messaggio di 242 chars contenente credenziali → salvato e inviato integralmente.
 
+### 05/06/2026 — Idempotent admin seeding (P0 production auth recovery)
+- [x] **Implementato `seed_admin()` all'avvio backend** (`/app/backend/server.py`) come da playbook auth Emergent. Comportamento idempotente: crea admin se manca, aggiorna hash se `ADMIN_PASSWORD` env è diverso da quello in DB, no-op se matcha, skip totale se env vuoto. Mai tocca utenti non-admin.
+- [x] Aggiunte env vars: `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`, `JWT_SECRET_KEY` in `/app/backend/.env`.
+- [x] 5 test pytest in `/app/backend/tests/test_seed_admin.py` (tutti PASS): create/no-op/rotate/skip-if-unset/never-touch-other-users.
+- [x] Verifica E2E in preview: seed crea/no-op correttamente, rotate testato manualmente (login con vecchia password rifiutato, con nuova OK).
+- 🚨 **Azione utente in produzione**: settare `ADMIN_PASSWORD=Mulignanes.2025!` (o password preferita) nelle env Emergent e redeployare → admin garantito al boot. Procedura completa in `/app/memory/test_credentials.md`.
+
 ### 05/06/2026 — Rich Text Editor + Email Preview nel pannello admin messaggi
 - [x] **Rich Text Editor TipTap** (`/app/frontend/src/components/RichTextEditor.jsx`) integrato nella chat admin → cliente. Toolbar: Bold, Italic, Underline, Heading3, Liste puntate/numerate, Link (prompt con autoprefix `https://`), Clear formatting, Undo/Redo. Output HTML sanitizzato con DOMPurify (whitelist tag: p, br, strong, em, u, a, ul, ol, li, h3, h4, span). Multi-riga reale (non più input singola linea).
 - [x] **Email Preview Modal** (`/app/frontend/src/components/EmailPreviewModal.jsx`): mostra in un `<iframe sandbox="">` isolato il rendering esatto del template HTML che verrà inviato via Zoho SMTP (header brand, blockquote ambra, CTA "Area Riservata"). Header con Da/A/Oggetto auto-generato. Pulsante "Anteprima email" accanto al bottone Invia.
