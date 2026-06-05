@@ -32,28 +32,15 @@
 - Tests: `/app/backend/tests/test_seed_admin.py` (5 tests).
 
 ## PRODUCTION recovery procedure (vocalfitness.org)
-
-### ⚠️ TEMPORARY hardcoded fallback (added 05/06/2026)
-Until the owner can set production env vars from the Emergent deploy UI, `seed_admin()` 
-falls back to a hardcoded recovery password when `ADMIN_PASSWORD` env is missing:
-- Username: `admin`
-- Password: `Mulignanes.2025!`
-
-**Steps the production owner must follow once logged in:**
-1. Login at `https://vocalfitness.org/login` with the recovery credentials above.
-2. **Change the admin password immediately** from the admin panel (Profile → Change Password).
-3. Re-create lost client accounts (e.g. `aciofani`) from the admin panel.
-4. Ask the agent to **REMOVE the hardcoded fallback** from `seed_admin()` in `/app/backend/server.py`
-   (search for the "TEMPORARY PRODUCTION RECOVERY" block) and redeploy.
-
-### Long-term (post-recovery)
-Once the Emergent UI allows editing secrets, set these env vars in production:
-- `ADMIN_USERNAME=admin`
-- `ADMIN_PASSWORD=<chosen-secure-password>`
-- `ADMIN_EMAIL=admissions@vocalfitness.org`
-- `JWT_SECRET_KEY=<random-long-string-NEVER-rotate-after-first-set>`
-
-Then the seed becomes env-driven (idempotent: no-op if password matches, refresh on rotation).
+If admin login stops working in production:
+1. Set in Emergent production env vars:
+   - `ADMIN_USERNAME=admin`
+   - `ADMIN_PASSWORD=<desired-admin-password>`
+   - `ADMIN_EMAIL=admissions@vocalfitness.org`
+   - `JWT_SECRET_KEY=<random-long-string-NEVER-rotate-after-first-set>`
+2. Redeploy.
+3. Backend startup will refresh the admin hash to match the env. Login with the env password.
+4. Re-create lost client accounts from the admin panel (clients are NOT auto-seeded by design).
 
 ## Notes
 - Onboarding Wizard (iteration 11) submits to `POST /api/booking` and stores extra structured fields:
