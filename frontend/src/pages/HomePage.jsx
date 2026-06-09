@@ -597,7 +597,7 @@ const HomePage = () => {
   }, []);
 
   const assets = {
-    heroVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/inqu5ja0_4ed65995-f476-4620-915c-b4cd221710c3.mp4',
+    heroVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/8id2qukm_57.1-invideo-seedance_2_0.mp4',
     methodVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/p81ta6dy_765b1576-8124-4e61-8245-17c4b8783504.mp4',
     integrationVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/7dms3cea_849bf25e-793e-43a4-b188-09197516b84b.mp4',
     contextVideo: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5h0rillj_a1175e9c-c731-46a7-bd5f-90a9591257fe.mp4',
