@@ -524,7 +524,7 @@ const SpeakRight101Page = () => {
             <div className="lg:col-span-1">
               <div className="rounded-3xl overflow-hidden shadow-xl border-2 border-white">
                 <img
-                  src="https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/2g3bdky8_steve_dapper_science_vibe.png"
+                  src="https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/rnb654p3_35.2-invideo-nanobanana_2.png"
                   alt="Professor Steve Dapper"
                   className="w-full h-auto object-cover"
                   data-testid="sr101-instructor-image"
