@@ -151,7 +151,7 @@ export const VocalLabEmbed = ({
           <label className="vocal-lab-engine__field">
             <span className="vocal-lab-engine__field-label">Velo palatino</span>
             <input type="range" className="vocal-lab-engine__slider"
-                   min="0" max="1" step="0.01" defaultValue="0" data-vl-velum />
+                   min="0" max="0.6" step="0.01" defaultValue="0" data-vl-velum />
           </label>
 
           <div className="vocal-lab-engine__field vocal-lab-engine__field--switch">

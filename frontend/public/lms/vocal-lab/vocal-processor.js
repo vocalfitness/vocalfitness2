@@ -1,26 +1,25 @@
 /**
- * vocal-processor.js — High-performance DSP engine running inside an
- * AudioWorkletProcessor. Implements a 1D Kelly-Lochbaum digital waveguide
- * model of the vocal tract with a coupled nasal side-branch, localized
- * friction noise injection at a configurable constriction, and a hybrid
- * glottal source (synthetic LF-style pulse OR a looped voice-clone sample
- * with cubic interpolation pitch-shift).
+ * vocal-processor.js — High-performance DSP engine for the Phonetics Lab.
  *
- * Communication with the main thread:
- *   ─ AudioParam (a-rate / k-rate): frequency, tenseness, voicing, noiseAmount
- *   ─ port.postMessage({ type, data }):
- *        'setAreas'        Float32Array(44)  — target cross-sections
- *        'setVelum'        Number 0..1      — nasal coupling
- *        'setConstriction' Integer 0..43    — friction injection index
- *        'setVoiceClone'   Float32Array | null  — looped voice sample
- *        'setVoiceCloneRefFreq' Number     — sample base pitch in Hz
+ * Architecture (Pink Trombone style, properly fixed):
+ *   • 44 1D digital waveguide tract sections (Kelly-Lochbaum scattering)
+ *   • 28 nasal side-branch sections, coupled at index 20 via a STABLE
+ *     3-port junction using impedance-weighted scattering (energy-bounded)
+ *   • Synthetic glottis: LF-style pulse + aspiration noise blend, with
+ *     tenseness controlling open quotient and breathiness mix
+ *   • Localized turbulence injection at constriction when noiseAmount > 0
+ *   • Global 0.999 damping per step to prevent unbounded resonances
  *
- * This file is loaded as a worklet module: addModule('/lms/vocal-lab/vocal-processor.js')
+ * Hybrid voice-clone glottis (OPT-IN ONLY): if a Float32Array is sent
+ * via `setVoiceClone`, the synthetic glottis is replaced with a
+ * pitch-shifted loop of the sample. This is intentionally OFF for the
+ * default phonetics lessons — the synthesized glottis sounds organic
+ * and is exactly what physical-modeling synths like Pink Trombone use.
  */
 
-const TRACT_N      = 44;   // glottis (0) → lips (TRACT_N-1)
-const NASAL_N      = 28;   // velum (0) → nostrils (NASAL_N-1)
-const NASAL_JUNCT  = 20;   // tract index where nasal branch attaches
+const TRACT_N      = 44;
+const NASAL_N      = 28;
+const NASAL_JUNCT  = 20;
 
 class VocalProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
@@ -35,66 +34,60 @@ class VocalProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
 
-    // ── Main tract: forward (R) and backward (L) travelling pressures ─
+    // ── Main tract waveguide buffers ────────────────────────────────
     this.R = new Float32Array(TRACT_N);
     this.L = new Float32Array(TRACT_N);
     this.newR = new Float32Array(TRACT_N);
     this.newL = new Float32Array(TRACT_N);
 
-    // Cross-sectional areas (current + target for smooth morphing)
     this.A       = new Float32Array(TRACT_N).fill(1.0);
     this.targetA = new Float32Array(TRACT_N).fill(1.0);
-
-    // Reflection coefficients at every junction (TRACT_N+1)
     this.reflection = new Float32Array(TRACT_N + 1);
 
-    // ── Nasal side branch (closed at the nostrils acts like a tube) ──
+    // ── Nasal side branch ──────────────────────────────────────────
     this.nR    = new Float32Array(NASAL_N);
     this.nL    = new Float32Array(NASAL_N);
     this.newNR = new Float32Array(NASAL_N);
     this.newNL = new Float32Array(NASAL_N);
-    this.nA    = new Float32Array(NASAL_N).fill(0.7);
+    // Realistic nasal cross-sections: narrow then widening to nostrils
+    this.nA    = new Float32Array(NASAL_N);
+    for (let i = 0; i < NASAL_N; i++) {
+      const t = i / (NASAL_N - 1);
+      this.nA[i] = 0.4 + 1.2 * t;   // 0.4 → 1.6 cm²
+    }
     this.nReflection = new Float32Array(NASAL_N + 1);
     this._buildNasalReflections();
 
-    // Velum coupling factor (0=closed, 1=fully open)
     this.velum = 0.0;
     this.targetVelum = 0.0;
 
-    // Boundary reflection coefficients
-    this.glottisRefl = 0.75;   // strong reflection at glottis
-    this.lipRefl     = -0.85;  // radiation at lips
+    // Boundary reflections
+    this.glottisRefl = 0.75;
+    this.lipRefl     = -0.85;
 
-    // ── Glottis source state ─────────────────────────────────────────
-    this.glottisPhase = 0;          // synthetic LF pulse phase 0..1
-    this.lastFrequency = 130;
+    // ── Glottis synthesis state ─────────────────────────────────────
+    this.glottisPhase = 0;
+    this.aspirationLP = 0;      // 1-pole LP state for bandlimited noise
 
-    // Voice clone source (Float32Array of one or many cycles)
+    // Optional voice-clone source (OFF by default)
     this.voiceClone = null;
     this.voiceCloneRefFreq = 120;
-    this.voiceClonePos = 0;         // fractional position
+    this.voiceClonePos = 0;
 
-    // Friction injection
+    // Friction injection state
     this.constrictionIdx = 30;
-    this.fricBuf = new Float32Array(8);  // simple FIR-like averaging buffer
-    this.fricBufIdx = 0;
+    this.fricLP = 0;
 
-    // Lip radiation low-pass state
+    // Output filters
     this.lipOut = 0;
-    // DC blocker state
+    this.nasalOut = 0;
     this.dcX = 0; this.dcY = 0;
-
-    // Output post-filter (gentle 1-pole low-pass to tame aliasing)
     this.outLP = 0;
 
-    // Initial reflection table
     this._computeReflections();
-
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  //  Message handling
   // ──────────────────────────────────────────────────────────────────
   _onMessage(msg) {
     if (!msg || !msg.type) return;
@@ -106,40 +99,32 @@ class VocalProcessor extends AudioWorkletProcessor {
         }
         break;
       }
-      case 'setVelum': {
-        this.targetVelum = Math.max(0, Math.min(1, +msg.data || 0));
+      case 'setVelum':
+        this.targetVelum = Math.max(0, Math.min(0.6, +msg.data || 0));  // cap at 0.6 for stability
         break;
-      }
       case 'setConstriction': {
         const v = msg.data | 0;
         if (v >= 0 && v < TRACT_N) this.constrictionIdx = v;
         break;
       }
-      case 'setVoiceClone': {
+      case 'setVoiceClone':
         if (!msg.data) { this.voiceClone = null; this.voiceClonePos = 0; }
         else {
-          // Expect a Float32Array (transferable)
           this.voiceClone = msg.data instanceof Float32Array ? msg.data : new Float32Array(msg.data);
           this.voiceClonePos = 0;
         }
         break;
-      }
-      case 'setVoiceCloneRefFreq': {
+      case 'setVoiceCloneRefFreq':
         this.voiceCloneRefFreq = Math.max(40, +msg.data || 120);
         break;
-      }
-      case 'setBoundary': {
+      case 'setBoundary':
         if (typeof msg.data?.glottis === 'number') this.glottisRefl = msg.data.glottis;
         if (typeof msg.data?.lip === 'number')     this.lipRefl     = msg.data.lip;
         break;
-      }
     }
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  //  Reflection tables — Kelly-Lochbaum
-  //  r_i = (A_i - A_{i+1}) / (A_i + A_{i+1})
-  // ──────────────────────────────────────────────────────────────────
+  // Standard Kelly-Lochbaum reflection table (Pink Trombone convention)
   _computeReflections() {
     const A = this.A, r = this.reflection;
     r[0] = this.glottisRefl;
@@ -152,103 +137,116 @@ class VocalProcessor extends AudioWorkletProcessor {
 
   _buildNasalReflections() {
     const A = this.nA, r = this.nReflection;
-    r[0] = 0.0;   // junction reflection is recomputed live per-sample
+    r[0] = 0.0;  // junction handled separately
     for (let i = 1; i < NASAL_N; i++) {
       const s = A[i - 1] + A[i];
       r[i] = s > 1e-6 ? (A[i - 1] - A[i]) / s : 0;
     }
-    r[NASAL_N] = -0.85;  // radiation at nostrils
+    r[NASAL_N] = -0.85;
   }
 
   // ──────────────────────────────────────────────────────────────────
-  //  Glottal source — hybrid (synthetic OR voice clone)
+  //  Glottis: hybrid LF-pulse + aspiration noise
   // ──────────────────────────────────────────────────────────────────
-  _glottisSample(freq, tenseness, voicing) {
+  _glottisSample(freq, tenseness, voicing, noiseSample) {
+    // Voice-clone branch — OPT-IN
     if (this.voiceClone && this.voiceClone.length > 4) {
-      // Pitch-shift the looped clone via cubic interpolation
       const rate = freq / this.voiceCloneRefFreq;
       this.voiceClonePos += rate;
       const L = this.voiceClone.length;
       while (this.voiceClonePos >= L) this.voiceClonePos -= L;
       while (this.voiceClonePos < 0)  this.voiceClonePos += L;
-
       const i1 = Math.floor(this.voiceClonePos);
       const t  = this.voiceClonePos - i1;
-      const i0 = (i1 - 1 + L) % L;
-      const i2 = (i1 + 1) % L;
-      const i3 = (i1 + 2) % L;
-      const s0 = this.voiceClone[i0], s1 = this.voiceClone[i1],
-            s2 = this.voiceClone[i2], s3 = this.voiceClone[i3];
-      // Catmull-Rom cubic
-      const a0 = -0.5 * s0 + 1.5 * s1 - 1.5 * s2 + 0.5 * s3;
-      const a1 = s0 - 2.5 * s1 + 2.0 * s2 - 0.5 * s3;
-      const a2 = -0.5 * s0 + 0.5 * s2;
-      const a3 = s1;
-      const samp = ((a0 * t + a1) * t + a2) * t + a3;
-      return samp * voicing;
+      const s1 = this.voiceClone[i1];
+      const s2 = this.voiceClone[(i1 + 1) % L];
+      return (s1 + (s2 - s1) * t) * voicing * 0.7;
     }
 
-    // Synthetic LF-style asymmetric pulse with tenseness-controlled shape
+    // ── Synthetic LF-style pulse ─────────────────────────────────
     const inc = freq / sampleRate;
     this.glottisPhase += inc;
     while (this.glottisPhase >= 1) this.glottisPhase -= 1;
     const p = this.glottisPhase;
-    const Te = 0.55 + 0.15 * (1 - tenseness);  // open-quotient
+
+    // Open-quotient & peak position controlled by tenseness
+    const Te = 0.4 + 0.25 * (1 - tenseness);    // ~0.4–0.65
+    const Tp = 0.6 * Te;
     let v;
-    if (p < Te) {
-      const x = p / Te;
-      const power = 1.4 + (1 - tenseness) * 1.2;
-      v = Math.sin(Math.PI * x);
-      v = Math.sign(v) * Math.pow(Math.abs(v), power);
+    if (p < Tp) {
+      const x = p / Tp;
+      v = -Math.cos(Math.PI * x) * 0.5 + 0.5;     // smooth opening
+    } else if (p < Te) {
+      const x = (p - Tp) / (Te - Tp);
+      // Sharp closing peak — sharper when tense
+      v = Math.cos(Math.PI * 0.5 * x);
+      v = Math.sign(v) * Math.pow(Math.abs(v), 1 + 0.8 * tenseness);
     } else {
-      // return phase — exponential decay (negative)
-      const x = (p - Te) / (1 - Te);
-      v = -Math.exp(-x * 6) * 0.55 * (1 - x);
+      // Closed phase: zero with slight return-to-zero decay artifact
+      v = 0;
     }
-    return v * voicing;
+    // Differentiate-ish to get pulse-like derivative shape
+    v = v * 2 - 1;   // center around 0 with amplitude ±1
+
+    // Aspiration noise (bandlimited via 1-pole LP)
+    this.aspirationLP += 0.4 * (noiseSample - this.aspirationLP);
+    const breath = this.aspirationLP * (1 - tenseness) * 0.45;
+
+    return (v * tenseness + breath) * voicing * 0.55;
   }
 
   // ──────────────────────────────────────────────────────────────────
-  //  Single tract step at sample rate
+  //  Single tract step (sample rate)
+  //
+  //  Algorithm taken from Pink Trombone (Neil Thapen, 2017), with the
+  //  3-port nasal junction implemented using the IMPEDANCE-weighted
+  //  scattering equation (stable, energy-bounded):
+  //
+  //      p_junc = 2 (Z_a·in_a + Z_b·in_b + Z_c·in_c) / (Z_a+Z_b+Z_c)
+  //      out_x  = p_junc − in_x          for each port x
+  //
+  //  Z_x is the wave impedance ∝ 1/A_x.
   // ──────────────────────────────────────────────────────────────────
   _step(glottalIn, fricNoise) {
     const R = this.R, L = this.L, newR = this.newR, newL = this.newL;
     const refl = this.reflection;
 
-    // ── Glottis input injection: combine incoming L wave with source
-    const glottisJunc = refl[0] * L[0] + (1 - refl[0]) * glottalIn;
-    // (newR[0] becomes the right-going pressure leaving the glottis)
-    // Internal scattering across tract junctions
-    newR[0] = glottisJunc;
+    // Glottis injection at left boundary (Pink Trombone style)
+    newR[0] = L[0] * this.glottisRefl + glottalIn;
+
+    // Internal scattering across all tract junctions
     for (let i = 1; i < TRACT_N; i++) {
       const r = refl[i];
-      // Scattering: outgoing = incoming + r * (incoming_other - incoming)
       const w = r * (R[i - 1] + L[i]);
-      newR[i] = R[i - 1] - w;
-      newL[i - 1] = L[i] + w;
+      newR[i]     = R[i - 1] - w;
+      newL[i - 1] = L[i]     + w;
     }
-    // Lip end
-    const lipR = refl[TRACT_N];
-    newL[TRACT_N - 1] = lipR * R[TRACT_N - 1];
+    // Lip radiation (right boundary)
+    newL[TRACT_N - 1] = R[TRACT_N - 1] * this.lipRefl;
 
-    // ── Nasal coupling at junction NASAL_JUNCT ────────────────────────
+    // ── Nasal coupling via 3-port impedance-weighted junction ────
     if (this.velum > 0.001) {
-      const A_oral_l = this.A[NASAL_JUNCT - 1];
-      const A_oral_r = this.A[NASAL_JUNCT];
-      const A_nasal  = this.nA[0] * this.velum;
-      const sum = A_oral_l + A_oral_r + A_nasal;
-      if (sum > 1e-6) {
-        const inOral_l = R[NASAL_JUNCT - 1];
-        const inOral_r = L[NASAL_JUNCT];
-        const inNasal  = this.nL[0];
-        // 3-port lossless junction (Kelly-Lochbaum generalized)
-        const w = 2 * (A_oral_l * inOral_l + A_oral_r * inOral_r + A_nasal * inNasal) / sum;
-        newR[NASAL_JUNCT]     = w - inOral_l - inOral_r;       // into oral right side
-        newL[NASAL_JUNCT - 1] = w - inOral_l - inNasal;         // into oral left side
-        this.newNR[0]         = w - inOral_r - inNasal;         // into nasal
-      } else {
-        this.newNR[0] = 0;
-      }
+      // Effective nasal port area scales with velum opening
+      const A_n_eff = Math.max(0.005, this.nA[0] * this.velum);
+      const A_l    = Math.max(0.005, this.A[NASAL_JUNCT - 1]);
+      const A_r    = Math.max(0.005, this.A[NASAL_JUNCT]);
+
+      // Impedances (proportional to 1/area; constants cancel in ratio)
+      const Z_l = 1 / A_l;
+      const Z_r = 1 / A_r;
+      const Z_n = 1 / A_n_eff;
+      const Zsum = Z_l + Z_r + Z_n;
+
+      const in_l = R[NASAL_JUNCT - 1];   // arriving from oral left
+      const in_r = L[NASAL_JUNCT];       // arriving from oral right
+      const in_n = this.nL[0];           // arriving from nasal branch
+
+      const p_junc = 2 * (Z_l * in_l + Z_r * in_r + Z_n * in_n) / Zsum;
+
+      // Overwrite the 3 outgoing waves at the junction
+      newR[NASAL_JUNCT]     = p_junc - in_l;  // continuing rightward
+      newL[NASAL_JUNCT - 1] = p_junc - in_r;  // going back leftward
+      this.newNR[0]         = p_junc - in_n;  // into nasal branch
 
       // Nasal branch internal scattering
       const nR = this.nR, nL = this.nL;
@@ -256,42 +254,56 @@ class VocalProcessor extends AudioWorkletProcessor {
       for (let i = 1; i < NASAL_N; i++) {
         const r = nRefl[i];
         const w = r * (nR[i - 1] + nL[i]);
-        this.newNR[i] = nR[i - 1] - w;
-        this.newNL[i - 1] = nL[i] + w;
+        this.newNR[i]     = nR[i - 1] - w;
+        this.newNL[i - 1] = nL[i]     + w;
       }
-      this.newNL[NASAL_N - 1] = nRefl[NASAL_N] * nR[NASAL_N - 1];
+      this.newNL[NASAL_N - 1] = nR[NASAL_N - 1] * nRefl[NASAL_N];
 
-      // Commit nasal arrays
-      const tmpNR = this.nR; this.nR = this.newNR; this.newNR = tmpNR;
-      const tmpNL = this.nL; this.nL = this.newNL; this.newNL = tmpNL;
+      // Commit nasal buffers (in-place swap, no GC)
+      let tmp;
+      tmp = this.nR; this.nR = this.newNR; this.newNR = tmp;
+      tmp = this.nL; this.nL = this.newNL; this.newNL = tmp;
+
+      // Global damping on nasal waves (Pink Trombone: 0.999 per step)
+      for (let i = 0; i < NASAL_N; i++) { this.nR[i] *= 0.999; this.nL[i] *= 0.999; }
+    } else {
+      // Velum closed: drain residual nasal waves quickly
+      for (let i = 0; i < NASAL_N; i++) { this.nR[i] *= 0.96; this.nL[i] *= 0.96; }
     }
 
-    // ── Localized friction injection at constrictionIdx ───────────────
+    // ── Localized friction injection (band-limited noise) ────────
     if (fricNoise !== 0) {
       const idx = this.constrictionIdx;
-      // Gain inversely proportional to local area: tighter = louder
       const A_local = Math.max(0.005, this.A[idx]);
-      const gain = Math.min(8, 0.4 / A_local);
-      const inject = fricNoise * gain * 0.25;
+      // Gain grows as constriction tightens (typical fricative behavior)
+      const gain = Math.min(6, 0.35 / A_local);
+      this.fricLP += 0.5 * (fricNoise - this.fricLP);
+      const inject = this.fricLP * gain * 0.4;
       newR[idx] += inject;
       newL[idx] -= inject;
     }
 
-    // Commit main waveguide arrays (swap references — zero allocation)
-    const tmpR = this.R; this.R = this.newR; this.newR = tmpR;
-    const tmpL = this.L; this.L = this.newL; this.newL = tmpL;
+    // Commit main waveguide arrays
+    let tmp;
+    tmp = this.R; this.R = this.newR; this.newR = tmp;
+    tmp = this.L; this.L = this.newL; this.newL = tmp;
 
-    // ── Output = lip radiation + nasal radiation ─────────────────────
+    // Pink-Trombone-style global damping (0.999 per sample)
+    for (let i = 0; i < TRACT_N; i++) { this.R[i] *= 0.9995; this.L[i] *= 0.9995; }
+
+    // ── Output: lip + nasal radiation ────────────────────────────
     const lipSample = this.R[TRACT_N - 1] + this.L[TRACT_N - 1];
-    // 1-pole low-pass to emulate lip radiation
-    this.lipOut += 0.55 * (lipSample - this.lipOut);
+    this.lipOut += 0.5 * (lipSample - this.lipOut);
 
-    let nasalSample = 0;
+    let nasalOutRaw = 0;
     if (this.velum > 0.001) {
-      nasalSample = (this.nR[NASAL_N - 1] + this.nL[NASAL_N - 1]) * this.velum;
+      nasalOutRaw = (this.nR[NASAL_N - 1] + this.nL[NASAL_N - 1]);
+      this.nasalOut += 0.5 * (nasalOutRaw - this.nasalOut);
+    } else {
+      this.nasalOut *= 0.9;
     }
 
-    let out = this.lipOut + nasalSample * 0.6;
+    let out = this.lipOut + this.nasalOut * this.velum * 0.8;
 
     // DC blocker
     const y = out - this.dcX + 0.995 * this.dcY;
@@ -299,16 +311,13 @@ class VocalProcessor extends AudioWorkletProcessor {
     this.dcY = y;
     out = y;
 
-    // Soft saturation to prevent runaway resonances
-    out = Math.tanh(out * 1.4);
+    // Soft limiter
+    out = Math.tanh(out * 1.1);
 
-    // Gentle post-LP
     this.outLP += 0.7 * (out - this.outLP);
     return this.outLP;
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  //  Main process callback (128 frames per call)
   // ──────────────────────────────────────────────────────────────────
   process(_inputs, outputs, parameters) {
     const out = outputs[0][0];
@@ -319,7 +328,7 @@ class VocalProcessor extends AudioWorkletProcessor {
     const voicing = parameters.voicing[0];
     const noiseAmt = parameters.noiseAmount[0];
 
-    // Smooth area & velum morphing toward targets (~10ms time-constant)
+    // Smooth area & velum morphing (~10 ms)
     const morphAlpha = 0.02;
     for (let i = 0; i < TRACT_N; i++) {
       this.A[i] += (this.targetA[i] - this.A[i]) * morphAlpha;
@@ -329,17 +338,10 @@ class VocalProcessor extends AudioWorkletProcessor {
 
     for (let s = 0; s < out.length; s++) {
       const f = freqArr.length > 1 ? freqArr[s] : freqArr[0];
-      const glot = this._glottisSample(f, tenseness, voicing);
-
-      // Friction noise (slightly band-limited)
-      let n = (Math.random() * 2 - 1);
-      this.fricBuf[this.fricBufIdx] = n;
-      this.fricBufIdx = (this.fricBufIdx + 1) & 7;
-      let smoothed = 0;
-      for (let k = 0; k < 8; k++) smoothed += this.fricBuf[k];
-      smoothed *= 0.125;
-      const noiseSample = smoothed * noiseAmt;
-
+      // Single shared white-noise sample feeds both aspiration and friction
+      const wn = (Math.random() * 2 - 1);
+      const glot = this._glottisSample(f, tenseness, voicing, wn);
+      const noiseSample = wn * noiseAmt;
       out[s] = this._step(glot, noiseSample);
     }
     return true;
