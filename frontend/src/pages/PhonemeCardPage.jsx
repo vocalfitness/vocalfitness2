@@ -6,8 +6,9 @@ import { Button } from '../components/ui/button';
 import { PHONEMES } from '../data/phonemes';
 import {
   ArrowLeft, Play, Volume2, Mic2, AudioWaveform, Activity, Info,
-  Maximize2, X, Pause, ChevronRight, GraduationCap, BookOpen, Sparkles
+  Maximize2, X, Pause, ChevronRight, GraduationCap, BookOpen, Sparkles, FlaskConical
 } from 'lucide-react';
+import { VocalLabEmbed } from '../components/VocalLabEmbed';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -789,6 +790,21 @@ const PhonemeCardPage = () => {
                 <p className="text-cyan-100/75 text-sm italic max-w-2xl">{phoneme.mnemonic.note}</p>
               </div>
             </div>
+          </div>
+
+          {/* ─── Phonetics Lab interactive vocal synthesizer ─── */}
+          <div className="lg:col-span-12 mt-2" data-testid="phoneme-vocal-lab-section">
+            <div className="flex items-center gap-2 mb-3">
+              <FlaskConical className="w-4 h-4 text-amber-400" />
+              <p className="text-[10px] text-amber-400 uppercase tracking-widest font-bold">
+                Laboratorio interattivo · Vocal Tract Synthesizer
+              </p>
+            </div>
+            <VocalLabEmbed profileId={phoneme.id} />
+            <p className="text-[10px] text-cyan-500/50 italic mt-3 text-center">
+              Sintetizzatore basato su modello fisico del tratto vocale (1D digital waveguide, Kelly-Lochbaum).
+              Esplora come la posizione della lingua, l'arrotondamento delle labbra e il velo palatino modificano il suono.
+            </p>
           </div>
 
         </div>

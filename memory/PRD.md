@@ -12,6 +12,17 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/06/2026 — LMS Phonetics Lab: interactive Vocal Tract Synthesizer (P1)
+- [x] **Engine DSP standalone** (`/app/frontend/public/lms/vocal-lab/`):
+  - `vocal-processor.js` — AudioWorkletProcessor con waveguide Kelly-Lochbaum 44 sezioni + branca nasale 28 sezioni accoppiata al velum, friction injection localizzata, glottal source ibrido (LF-pulse sintetica O sample voice-clone con interpolazione cubica Catmull-Rom per pitch-shift).
+  - `vocal-framework.js` — classe `VocalLabEngine` con lifecycle (`init`/`loadPhoneme`/`destroy`), Canvas2D sagittale Bézier, touch/mouse + Gaussian smoothing 5-tap, audio-unlock overlay, profile morphing, message throttling.
+  - `index.html` — demo standalone con 5 profili di riferimento (FOOT, FLEECE, FATHER, /s/ fricativa, /m/ nasale), CSS scoped sotto `.vocal-lab-engine__*` (zero-leak BEM).
+- [x] **React integration** (`/app/frontend/src/components/VocalLabEmbed.jsx`): wrapper che carica dynamic lo script framework una sola volta, mounta DOM scoped, mappa `profileId` prop a `engine.loadPhoneme()`, teardown automatico su unmount. Profili condivisi in `/app/frontend/src/data/vocalLabProfiles.js`.
+- [x] **Embed nella `PhonemeCardPage.jsx`**: sezione "LABORATORIO INTERATTIVO" tra mnemonic e bottom-note. Profilo auto-selezionato in base a `phoneme.id` (es. `/lms/phoneme/u-foot` → carica `u-foot`).
+- [x] Smoke E2E preview: AudioContext attivo running 44.1kHz, AudioWorkletNode caricato, tract sagittale renderizzato, switch profile funzionante (FOOT → FLEECE → /s/), zero errori legati all'engine.
+- Future P2: integrazione ElevenLabs voice clone per glottal source con voce del professore Steve Dapper (campo `voiceClone.url` già supportato dall'engine).
+- Future P3: schede admin per generare nuovi profili JSON dal pannello (LMS Phase 2 CMS).
+
 ### 05/06/2026 — Phonetic Lab audio performance fix (P1)
 - [x] **Bug**: clienti segnalano caricamento lento/assente degli audio nella Phoneme Card. Causa: 39 file `.wav` non compressi (~200KB ciascuno = ~8MB totali) su CDN Cloudfront Emergent, **senza header `Cache-Control`**. Su connessioni lente, ogni click sui play-button scaricava il file da zero (TTFB 0.2–3s).
 - [x] **Fix client-side**: implementato `useEffect` background preloader in `PhonemeCardPage.jsx`. Dopo 600ms dal mount, lancia 4 fetch paralleli in `cache: 'force-cache'` per popolare la HTTP cache del browser con TUTTI gli audio (isolated, examples, mnemonic, 30 common words). Quando l'utente clicca un play-button, l'audio è già su disco → istantaneo.
