@@ -17,7 +17,7 @@ import { BACKEND_URL } from '../lib/backend';
  *   → frequency 120 Hz, tenseness 0.55, intensity 0.85.
  */
 
-const IFRAME_URL = '/lms/vocal-lab/pink-trombone-frame.html';
+const IFRAME_URL = '/lms/vocal-lab/pink-trombone-original.html';
 
 const VOWEL_TARGETS = [
   { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE', freq: 138, tense: 0.85, intensity: 0.85 },
@@ -277,9 +277,9 @@ const styles = `
   }
   .phonetics-lab-wrapper__hint span { color: var(--plw-accent); font-weight:600; }
   .phonetics-lab-wrapper__iframe {
-    width: 100%; min-height: 520px;
+    width: 100%; aspect-ratio: 1 / 1; min-height: 560px;
     border: 0; border-radius: 12px;
-    background: #0b1220;
+    background: #ffffff;
     display: block;
   }
 `;

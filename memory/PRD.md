@@ -12,13 +12,13 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
-### 15/06/2026 — Pink Trombone autentico integrato in iframe (P0 — RISOLTO)
-- [x] **Bundle ufficiale `zakaton/Pink-Trombone`** (`/app/frontend/public/lms/vocal-lab/pink-trombone.min.js` + `pink-trombone-worklet-processor.min.js`).
-- [x] **Patch worklet path**: il min.js originale referenzia `./script/audio/nodes/pinkTrombone/processors/WorkletProcessor.js` (bug del rollup config upstream) — patchato a `./pink-trombone-worklet-processor.min.js` co-locato.
-- [x] **`pink-trombone-frame.html`** riscritto seguendo la sequenza ufficiale: attendere evento `load` del custom element → user gesture (gate "Avvia") → `setAudioContext()` → `enableUI()` → `startUI()` → `connect(destination)` → `audioContext.resume()`.
-- [x] **postMessage bridge**: i messaggi `pt:set-params` dal parent vengono accodati fino a quando il synth è pronto, poi applicati via `parameters.<name>.value` (frequency Hz, tenseness 0-1, intensity 0-1, loudness 0-1). Handshake `pt:ready` notifica al wrapper React.
-- [x] **Wrapper React `PinkTromboneEmbed.jsx`** mantiene il trapezio vocalico IPA SVG nativo (clic + drag continuo) e l'ascolto della voce di riferimento (ElevenLabs) come overlay esterni all'iframe.
-- [x] **Verifica E2E preview**: sezione sagittale autentica (nasal cavity, oral cavity, lip, IPA touch points), 2 canvas, UI `pronto`, click su `/æ/` aggiorna postura.
+### 15/06/2026 — Pink Trombone autentico (Neil Thapen v1.1) integrato in iframe (P0 — RISOLTO)
+- [x] **Bundle ufficiale Neil Thapen** scaricato direttamente da `https://dood.al/pinktrombone/` (MIT License, Copyright 2017 Neil Thapen). Single-file HTML (~1900 LOC) con due `<canvas>` (tractCanvas + backCanvas), audio system con `ScriptProcessorNode`, UI/Glottis/Tract/TractUI inline.
+- [x] **File**: `/app/frontend/public/lms/vocal-lab/pink-trombone-original.html`. La gestione responsive è già nativa nel codice (`UI.shapeToFitScreen()` chiamato a ogni redraw).
+- [x] **Modifiche minime**: rimosso BOM/CRLF, normalizzato `<head>`, aggiunto un **EmbedBridge** al fondo che (1) chiama `AudioSystem.audioContext.resume()` al primo gesto utente, (2) espone postMessage API `pt:set-params` → `Glottis.UIFrequency / UITenseness / loudness`, (3) emette handshake `pt:ready` al parent.
+- [x] **Rimosso** il fork minore `zakaton/Pink-Trombone` (UI ridotta a 3 pulsanti). Cancellati i file inutilizzati `pink-trombone-frame.html`, `pink-trombone.min.js`, `pink-trombone-worklet-processor.min.js`, `vocal-framework.js`, `vocal-processor.js`, `index.html`.
+- [x] **`PinkTromboneEmbed.jsx`** punta al nuovo iframe (`/lms/vocal-lab/pink-trombone-original.html`), background bianco, aspect-ratio 1/1.
+- [x] **Verifica E2E preview**: UI Neil Thapen autentica renderizzata con tutte le etichette ("nasal cavity", "hard palate", "soft palate", "oral cavity", "throat", "lip", "nasals", "stops", "fricatives", "tongue control", "voicebox control", "pitch", "about", "always voice", "pitch wobble"). Click su /æ/ del trapezio React → applica `freq:132, tense:0.55` verificati nei globali iframe. `audioContext.state === 'running'`.
 
 
 
