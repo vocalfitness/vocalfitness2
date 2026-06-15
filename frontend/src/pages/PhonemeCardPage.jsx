@@ -9,6 +9,7 @@ import {
   Maximize2, X, Pause, ChevronRight, GraduationCap, BookOpen, Sparkles, FlaskConical
 } from 'lucide-react';
 import { VocalLabEmbed } from '../components/VocalLabEmbed';
+import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -797,13 +798,14 @@ const PhonemeCardPage = () => {
             <div className="flex items-center gap-2 mb-3">
               <FlaskConical className="w-4 h-4 text-amber-400" />
               <p className="text-[10px] text-amber-400 uppercase tracking-widest font-bold">
-                Laboratorio interattivo · Vocal Tract Synthesizer
+                Laboratorio interattivo · Pink Trombone Vocal Tract
               </p>
             </div>
-            <VocalLabEmbed profileId={phoneme.id} />
+            <PinkTromboneEmbed phonemeId={phoneme.id} />
             <p className="text-[10px] text-cyan-500/50 italic mt-3 text-center">
-              Sintetizzatore basato su modello fisico del tratto vocale (1D digital waveguide, Kelly-Lochbaum).
-              Esplora come la posizione della lingua, l'arrotondamento delle labbra e il velo palatino modificano il suono.
+              Modello fisico originale di Neil Thapen (MIT). Esplora come la posizione di lingua,
+              palato, velo e labbra modifica il suono in tempo reale, oppure clicca un simbolo IPA
+              sul trapezio per impostare la postura corretta.
             </p>
           </div>
 

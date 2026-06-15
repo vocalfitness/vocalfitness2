@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Pink Trombone — Vocal Tract</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #0b1220;
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    pink-trombone {
+      display: block;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    pink-trombone canvas, pink-trombone svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <pink-trombone></pink-trombone>
+
+  <script type="module" src="./pink-trombone.min.js"></script>
+  <script type="module">
+    // Wait for the custom element to be defined, then expose a small
+    // postMessage bridge so the React parent can drive parameters.
+    await customElements.whenDefined('pink-trombone');
+    const el = document.querySelector('pink-trombone');
+
+    // Initial posture: /ʊ/ FOOT (lax close-mid back rounded)
+    try {
+      el.frequency = 120;
+      el.tenseness = 0.55;
+      el.intensity = 0.85;
+      if ('loudness' in el) el.loudness = 0.85;
+    } catch (_) {}
+
+    function apply(p) {
+      try {
+        if (typeof p.frequency === 'number') el.frequency = p.frequency;
+        if (typeof p.tenseness === 'number') el.tenseness = p.tenseness;
+        if (typeof p.intensity === 'number') el.intensity = p.intensity;
+        if (typeof p.loudness  === 'number' && 'loudness' in el) el.loudness = p.loudness;
+      } catch (_) {}
+    }
+
+    window.addEventListener('message', (ev) => {
+      const d = ev.data || {};
+      if (d && d.type === 'pt:set-params' && d.params) apply(d.params);
+    });
+
+    // Notify the parent the iframe is ready
+    parent?.postMessage({ type: 'pt:ready' }, '*');
+  </script>
+</body>
+</html>
