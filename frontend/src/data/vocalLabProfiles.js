@@ -28,7 +28,13 @@ export const VOCAL_LAB_PROFILES = {
       { index: 26, area: 0.45, spread: 3.5 },   // tongue body raised back
       { index: 41, area: 0.55, spread: 2.0 },   // lip rounding
     ],
-    // voiceClone: { url: '/lms/vocal-lab/samples/steve_loop.wav', refFreq: 118 },
+    // ElevenLabs voice clone of Steve Dapper used as glottal source.
+    // Generated via /api/admin/elevenlabs/tts — pitch-shifted in real time
+    // inside the AudioWorklet (Catmull-Rom cubic interpolation).
+    voiceClone: {
+      url: '/api/uploads/elevenlabs/glottal_u_foot_mIrm7gNC_1781555727.mp3',
+      refFreq: 120,
+    },
   },
 
   // ─── /iː/ FLEECE (tense close front unrounded) ────────────────

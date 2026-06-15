@@ -7,13 +7,14 @@ import {
   Save, X, Upload, CheckCircle, AlertCircle, HardDrive,
   Folder, Eye, EyeOff, UserCheck, Youtube, RefreshCw, ExternalLink,
   MessageSquare, Bell, Power, PowerOff, Send, Building2, User,
-  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter, Mail
+  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter, Mail, AudioLines
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RichTextEditor, sanitizeRichHtml } from '../components/RichTextEditor';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
+import { ElevenLabsStudio } from '../components/ElevenLabsStudio';
 import { BACKEND_URL } from '../lib/backend';
 
 // Translations for Admin Page
@@ -1161,6 +1162,9 @@ const AdminPage = () => {
           <Button onClick={() => { setActiveTab('leads'); fetchLeads(); }} className={activeTab === 'leads' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-leads">
             <Inbox className="w-4 h-4 mr-2" /> {language === 'it' ? 'Lead Inbox' : 'Lead Inbox'}{leads.length ? ` (${leads.length})` : ''}
           </Button>
+          <Button onClick={() => setActiveTab('audio-studio')} className={activeTab === 'audio-studio' ? 'bg-amber-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-audio-studio">
+            <AudioLines className="w-4 h-4 mr-2" /> Audio Studio
+          </Button>
         </div>
 
         {/* Storage Stats */}
@@ -1539,6 +1543,10 @@ const AdminPage = () => {
         )}
 
         {/* ===================== LEAD INBOX TAB ===================== */}
+        {activeTab === 'audio-studio' && (
+          <ElevenLabsStudio token={token} language={language} />
+        )}
+
         {activeTab === 'leads' && (
           <div data-testid="leads-panel">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

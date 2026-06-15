@@ -12,6 +12,20 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 15/06/2026 — ElevenLabs Voice Clone integrato come glottal source (P1)
+- [x] **Backend**: 2 endpoint admin in `/app/backend/server.py`:
+  - `GET /api/admin/elevenlabs/voices` — lista voci sul account ElevenLabs collegato
+  - `POST /api/admin/elevenlabs/tts` — genera TTS con voice clone, salva su Emergent Object Storage (`elevenlabs/<hint>_<voice>_<ts>.mp3`), ritorna URL pubblico
+- [x] **Env vars** in `/app/backend/.env`: `ELEVENLABS_API_KEY`, `ELEVENLABS_DEFAULT_VOICE_ID=mIrm7gNCglTAXk0xhryV` (voice clone di Steve Dapper)
+- [x] **SDK installato**: `elevenlabs==2.53.0` (`eleven_multilingual_v2` model, supporto IPA tag)
+- [x] **Admin UI** `/app/frontend/src/components/ElevenLabsStudio.jsx` con tab "Audio Studio" in AdminPage:
+  - selettore voce (default già impostato), textarea, preset rapidi (glottal /ʊ/, /iː/, /ɑː/, schwa)
+  - slider stabilità/similarity/style, formato MP3/PCM, filename hint
+  - player anteprima, copy URL, download, snippet auto-generato per `vocalLabProfiles.js`
+- [x] **Profilo `u-foot`** in `vocalLabProfiles.js` aggiornato con `voiceClone.url` puntato all'audio Steve Dapper appena generato (refFreq: 120Hz).
+- [x] **Verifica E2E preview**: il VocalLabEngine carica il file ElevenLabs, lo decodifica, lo passa al worklet che lo loopa con pitch-shift Catmull-Rom in real-time. Network log conferma fetch del glottal_u_foot mp3.
+- ⚠️ **Sicurezza**: la API key è stata condivisa in chat — utente notificato per rotazione.
+
 ### 05/06/2026 — LMS Phonetics Lab: interactive Vocal Tract Synthesizer (P1)
 - [x] **Engine DSP standalone** (`/app/frontend/public/lms/vocal-lab/`):
   - `vocal-processor.js` — AudioWorkletProcessor con waveguide Kelly-Lochbaum 44 sezioni + branca nasale 28 sezioni accoppiata al velum, friction injection localizzata, glottal source ibrido (LF-pulse sintetica O sample voice-clone con interpolazione cubica Catmull-Rom per pitch-shift).
