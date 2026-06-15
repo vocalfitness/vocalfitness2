@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Pink Trombone — Vocal Tract</title>
+  <script src="./pink-trombone.min.js" type="module"></script>
   <style>
     html, body {
       margin: 0; padding: 0;
       background: #0b1220;
       color: #e2e8f0;
-      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh;
       overflow: hidden;
+    }
+    #stage {
+      position: relative;
+      width: 100%;
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
     }
@@ -21,46 +27,159 @@
       max-width: 640px;
       margin: 0 auto;
     }
+    /* The internal UI uses absolutely positioned canvases on top of a
+       container element. Make sure these scale within the iframe. */
     pink-trombone canvas, pink-trombone svg {
       max-width: 100% !important;
       height: auto !important;
+      display: block;
+    }
+    /* Gesture-required overlay. AudioContext + AudioWorklet cannot start
+       without a user gesture; we satisfy this with a click. */
+    #gate {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 14px;
+      background: radial-gradient(ellipse at center, rgba(245,158,11,0.10), transparent 60%), #0b1220;
+      z-index: 50; cursor: pointer;
+      transition: opacity .35s ease;
+    }
+    #gate.hide { opacity: 0; pointer-events: none; }
+    #gate h2 {
+      margin: 0; font-size: 18px; font-weight: 600;
+      color: #f59e0b; letter-spacing: 0.02em;
+    }
+    #gate p {
+      margin: 0; font-size: 13px; color: #94a3b8;
+      max-width: 340px; text-align: center; line-height: 1.5;
+    }
+    #gate button {
+      appearance: none; border: 0; cursor: pointer;
+      background: #f59e0b; color: #0f172a;
+      padding: 12px 28px; border-radius: 999px;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      box-shadow: 0 6px 20px rgba(245,158,11,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    #gate button:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(245,158,11,0.5); }
+    #error {
+      position: absolute; left: 12px; right: 12px; bottom: 12px;
+      background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.4);
+      color: #fda4af; padding: 10px 14px; border-radius: 10px;
+      font-size: 12px; line-height: 1.4; display: none; z-index: 60;
     }
   </style>
 </head>
 <body>
-  <pink-trombone></pink-trombone>
+  <div id="stage">
+    <pink-trombone UI></pink-trombone>
 
-  <script type="module" src="./pink-trombone.min.js"></script>
+    <div id="gate" role="button" tabindex="0" aria-label="Avvia Pink Trombone">
+      <h2>Tratto vocale interattivo</h2>
+      <p>Tocca per avviare il modello acustico Pink Trombone. L'audio richiede un gesto utente per partire (policy del browser).</p>
+      <button id="start-btn" type="button" data-testid="pt-start-btn">▶  Avvia</button>
+    </div>
+    <div id="error" data-testid="pt-error"></div>
+  </div>
+
   <script type="module">
-    // Wait for the custom element to be defined, then expose a small
-    // postMessage bridge so the React parent can drive parameters.
-    await customElements.whenDefined('pink-trombone');
-    const el = document.querySelector('pink-trombone');
+    /**
+     * Boot sequence for the authentic zakaton/Pink-Trombone web component.
+     *  1) Wait for <pink-trombone> to be defined and dispatch its "load" event.
+     *  2) Require a user gesture (click on #gate) to satisfy AudioContext policy.
+     *  3) Call setAudioContext() → enableUI() → startUI() → connect(destination).
+     *  4) Expose a postMessage bridge so the React parent can drive parameters
+     *     (frequency, tenseness, intensity, loudness) safely via AudioParam.value.
+     */
+    const errBox = document.getElementById('error');
+    const gate   = document.getElementById('gate');
+    const startBtn = document.getElementById('start-btn');
+    const showError = (msg) => {
+      errBox.textContent = msg;
+      errBox.style.display = 'block';
+      try { parent?.postMessage({ type: 'pt:error', message: msg }, '*'); } catch (_) {}
+    };
 
-    // Initial posture: /ʊ/ FOOT (lax close-mid back rounded)
-    try {
-      el.frequency = 120;
-      el.tenseness = 0.55;
-      el.intensity = 0.85;
-      if ('loudness' in el) el.loudness = 0.85;
-    } catch (_) {}
+    const ptEl = document.querySelector('pink-trombone');
+    let ready = false;
 
-    function apply(p) {
-      try {
-        if (typeof p.frequency === 'number') el.frequency = p.frequency;
-        if (typeof p.tenseness === 'number') el.tenseness = p.tenseness;
-        if (typeof p.intensity === 'number') el.intensity = p.intensity;
-        if (typeof p.loudness  === 'number' && 'loudness' in el) el.loudness = p.loudness;
-      } catch (_) {}
-    }
-
-    window.addEventListener('message', (ev) => {
-      const d = ev.data || {};
-      if (d && d.type === 'pt:set-params' && d.params) apply(d.params);
+    // The <pink-trombone> element dispatches a non-bubbling "load" event from
+    // its connectedCallback. We must wait for that before calling setAudioContext.
+    const waitForLoad = new Promise((resolve) => {
+      let done = false;
+      const onLoad = () => { if (!done) { done = true; resolve(); } };
+      ptEl.addEventListener('load', onLoad, { once: true });
+      // Fallback: the element may already be defined when this script runs.
+      customElements.whenDefined('pink-trombone').then(() => {
+        // Give the element one microtask to finish its connectedCallback.
+        Promise.resolve().then(() => { if (!done) { done = true; resolve(); } });
+      });
     });
 
-    // Notify the parent the iframe is ready
-    parent?.postMessage({ type: 'pt:ready' }, '*');
+    const safeSetParam = (path, value) => {
+      try {
+        if (!ptEl.parameters) return;
+        const parts = path.split('.');
+        let p = ptEl.parameters;
+        for (const k of parts) { if (p == null) return; p = p[k]; }
+        if (p && typeof p.value !== 'undefined') {
+          p.value = Number(value);
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    const applyParams = (params) => {
+      if (!ready || !params) return;
+      if (typeof params.frequency === 'number') safeSetParam('frequency', params.frequency);
+      if (typeof params.tenseness === 'number') safeSetParam('tenseness', params.tenseness);
+      if (typeof params.intensity === 'number') safeSetParam('intensity', params.intensity);
+      if (typeof params.loudness  === 'number') safeSetParam('loudness',  params.loudness);
+    };
+
+    // Queue parent messages received before the synth is ready.
+    const pending = [];
+    window.addEventListener('message', (ev) => {
+      const d = ev.data || {};
+      if (d.type === 'pt:set-params' && d.params) {
+        if (ready) applyParams(d.params);
+        else pending.push(d.params);
+      }
+    });
+
+    const boot = async () => {
+      try {
+        await waitForLoad;
+        // setAudioContext() returns the loadPromise from the worklet processor.
+        const ctxPromise = ptEl.setAudioContext();
+        const pt = await ctxPromise;
+        ptEl.enableUI();
+        ptEl.startUI();
+        ptEl.connect(ptEl.audioContext.destination);
+        // Resume context (it may be suspended after autoplay policy).
+        if (ptEl.audioContext.state === 'suspended') {
+          await ptEl.audioContext.resume();
+        }
+        // The worklet processor needs to be started.
+        if (pt && typeof pt.start === 'function') {
+          try { pt.start(); } catch (_) {}
+        }
+        ready = true;
+        gate.classList.add('hide');
+        // Apply default /ʊ/ posture once parameters exist.
+        applyParams({ frequency: 120, tenseness: 0.55, intensity: 0.85, loudness: 0.85 });
+        // Flush queued messages from the parent.
+        while (pending.length) applyParams(pending.shift());
+        try { parent?.postMessage({ type: 'pt:ready' }, '*'); } catch (_) {}
+      } catch (err) {
+        console.error('[pink-trombone] init failed', err);
+        showError('Impossibile avviare il motore audio: ' + (err && err.message ? err.message : err));
+      }
+    };
+
+    startBtn.addEventListener('click', boot, { once: true });
+    gate.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); boot(); }
+    });
   </script>
 </body>
 </html>

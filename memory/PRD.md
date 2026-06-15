@@ -12,6 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 15/06/2026 — Pink Trombone autentico integrato in iframe (P0 — RISOLTO)
+- [x] **Bundle ufficiale `zakaton/Pink-Trombone`** (`/app/frontend/public/lms/vocal-lab/pink-trombone.min.js` + `pink-trombone-worklet-processor.min.js`).
+- [x] **Patch worklet path**: il min.js originale referenzia `./script/audio/nodes/pinkTrombone/processors/WorkletProcessor.js` (bug del rollup config upstream) — patchato a `./pink-trombone-worklet-processor.min.js` co-locato.
+- [x] **`pink-trombone-frame.html`** riscritto seguendo la sequenza ufficiale: attendere evento `load` del custom element → user gesture (gate "Avvia") → `setAudioContext()` → `enableUI()` → `startUI()` → `connect(destination)` → `audioContext.resume()`.
+- [x] **postMessage bridge**: i messaggi `pt:set-params` dal parent vengono accodati fino a quando il synth è pronto, poi applicati via `parameters.<name>.value` (frequency Hz, tenseness 0-1, intensity 0-1, loudness 0-1). Handshake `pt:ready` notifica al wrapper React.
+- [x] **Wrapper React `PinkTromboneEmbed.jsx`** mantiene il trapezio vocalico IPA SVG nativo (clic + drag continuo) e l'ascolto della voce di riferimento (ElevenLabs) come overlay esterni all'iframe.
+- [x] **Verifica E2E preview**: sezione sagittale autentica (nasal cavity, oral cavity, lip, IPA touch points), 2 canvas, UI `pronto`, click su `/æ/` aggiorna postura.
+
+
+
 ### 15/06/2026 — ElevenLabs Voice Clone integrato come glottal source (P1)
 - [x] **Backend**: 2 endpoint admin in `/app/backend/server.py`:
   - `GET /api/admin/elevenlabs/voices` — lista voci sul account ElevenLabs collegato
