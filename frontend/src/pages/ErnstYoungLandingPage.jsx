@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
 import { BACKEND_URL } from '../lib/backend';
+import VideoWithLoader from '../components/VideoWithLoader';
 
 /* =========================================================================
  *  ErnstYoungLandingPage
@@ -38,13 +39,16 @@ const useReveal = () => {
   return [ref, show];
 };
 
-// ---------- Assets reused from existing brand pages ----------------------
+// ---------- Assets reused from the public homepage (vocalfitness.org) ---
+//  Source of truth: /app/frontend/src/pages/HomePage.jsx (lines 600-605).
+//  Keeping them identical guarantees full brand coherence between the
+//  homepage and the EY proposal landing page.
 const VIDEOS = {
-  hero:     'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/qo5q7c4c_ad501a89-967e-48e3-99fd-4f1d12412ba5.mp4',
-  method:   'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/mo03g0sv_849bf25e-793e-43a4-b188-09197516b84b.mp4',
+  hero:   'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/8id2qukm_57.1-invideo-seedance_2_0.mp4',
+  method: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3w338a4f_56.1-invideo-seedance_2_0.mp4',
 };
 const IMAGES = {
-  dapper:   'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/lil21e7s__mg_2586.PNG',
+  dapper: 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/rnb654p3_35.2-invideo-nanobanana_2.png',
 };
 const PROPOSAL_PDF = 'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/aytlq3w2_proposta_commerciale_E%26Y_Layla_Cannizzaro.pdf';
 
@@ -249,6 +253,7 @@ const ErnstYoungLandingPage = () => {
         @keyframes ey-float      { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-14px);} }
         @keyframes ey-grad-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
         @keyframes ey-pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,.35);} 70% { box-shadow: 0 0 0 18px rgba(59,130,246,0);} 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0);} }
+        @keyframes shimmer       { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         .ey-reveal-up { animation: ey-slide-up .7s ease-out both; }
         .ey-reveal-l  { animation: ey-slide-l  .7s ease-out both; }
         .ey-reveal-r  { animation: ey-slide-r  .7s ease-out both; }
@@ -396,7 +401,13 @@ const ErnstYoungLandingPage = () => {
 
           <div className={`relative hidden lg:block ${heroIn ? 'ey-reveal-l ey-delay-1' : 'opacity-0'}`}>
             <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white/60 ey-pulse">
-              <video src={VIDEOS.hero} autoPlay loop muted playsInline className="w-full h-[460px] object-cover" />
+              <VideoWithLoader
+                src={VIDEOS.hero}
+                aria-label="Sessione live VocalFitness — anteprima del metodo"
+                className="w-full h-[460px] object-cover"
+                wrapperClassName="h-[460px]"
+                data-testid="ey-hero-video"
+              />
             </div>
             <div className="absolute -bottom-5 -left-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl ey-float">
               <Play className="w-4 h-4 inline mr-2" />
@@ -566,7 +577,13 @@ const ErnstYoungLandingPage = () => {
         <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
           <div className={`hidden lg:block ${methodIn ? 'ey-reveal-r' : 'opacity-0'}`}>
             <div className="rounded-3xl overflow-hidden shadow-2xl">
-              <video src={VIDEOS.method} autoPlay loop muted playsInline className="w-full h-[480px] object-cover" />
+              <VideoWithLoader
+                src={VIDEOS.method}
+                aria-label="Dimostrazione del metodo VocalFitness"
+                className="w-full h-[480px] object-cover"
+                wrapperClassName="h-[480px]"
+                data-testid="ey-method-video"
+              />
             </div>
           </div>
           <div className={methodIn ? 'ey-reveal-l ey-delay-1' : 'opacity-0'}>

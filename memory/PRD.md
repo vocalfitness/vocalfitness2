@@ -12,7 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
-### 24/06/2026 — Email-to-recipient PDF send + diagnostica blank page (P1 — DONE)
+### 24/06/2026 — Allineamento assets EY ↔ homepage (P0 — DONE)
+- [x] **VIDEOS & IMAGES**: sostituiti gli URL placeholder con quelli identici alla homepage (`/app/frontend/src/pages/HomePage.jsx` linee 600-605):
+  - `VIDEOS.hero` → `8id2qukm_57.1-invideo-seedance_2_0.mp4`
+  - `VIDEOS.method` → `3w338a4f_56.1-invideo-seedance_2_0.mp4`
+  - `IMAGES.dapper` → `rnb654p3_35.2-invideo-nanobanana_2.png`
+- [x] **Componente `VideoWithLoader`** estratto da `HomePage.jsx` in `/app/frontend/src/components/VideoWithLoader.jsx` (~70 LOC): IntersectionObserver con rootMargin 200px, shimmer skeleton + spinner, fade-out su `onCanPlay`/`onLoadedData`, autoplay-friendly defaults (muted, playsInline, loop, preload="metadata"). Ora usato sia in HomePage che in ErnstYoungLandingPage.
+- [x] **Keyframe `shimmer`** aggiunto allo `<style>` block della EY page (era scoped solo all\u2019HomePage prima).
+- [x] **Lint clean**, build production (`yarn build`) attesa: 0 warning.
+
+
 - [x] **Backend**: nuovo endpoint `POST /api/proposals/send-by-email` in `/app/backend/server.py`. Scarica il PDF della proposta da `customer-assets.emergentagent.com` via `httpx`, lo allega via `MIMEApplication`, invia tramite Zoho SMTP al destinatario con BCC opzionale a `steve@vocalfitness.org`. Validazione email lato server (regex). Audit log in collection `proposal_sends`. Risposta mai espone dettagli SMTP (errore generico 503).
 - [x] **PROPOSAL_PDFS registry** in `server.py`: mappa `page_slug → {url, filename, title, page_url}` per estendere facilmente l\u2019endpoint ad altre proposte future.
 - [x] **Frontend `ErnstYoungLandingPage.jsx`**: nuova sezione **"Ricevi la Proposta"** con due card affiancate:
