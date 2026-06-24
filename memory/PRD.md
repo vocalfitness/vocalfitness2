@@ -12,6 +12,18 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 24/06/2026 — Email-to-recipient PDF send + diagnostica blank page (P1 — DONE)
+- [x] **Backend**: nuovo endpoint `POST /api/proposals/send-by-email` in `/app/backend/server.py`. Scarica il PDF della proposta da `customer-assets.emergentagent.com` via `httpx`, lo allega via `MIMEApplication`, invia tramite Zoho SMTP al destinatario con BCC opzionale a `steve@vocalfitness.org`. Validazione email lato server (regex). Audit log in collection `proposal_sends`. Risposta mai espone dettagli SMTP (errore generico 503).
+- [x] **PROPOSAL_PDFS registry** in `server.py`: mappa `page_slug → {url, filename, title, page_url}` per estendere facilmente l\u2019endpoint ad altre proposte future.
+- [x] **Frontend `ErnstYoungLandingPage.jsx`**: nuova sezione **"Ricevi la Proposta"** con due card affiancate:
+  - **Opzione 1 · Scarica subito il PDF** (blu): bottone diretto al PDF.
+  - **Opzione 2 · Ricevila via email** (ambra, badge "CONSIGLIATO"): form con nome (facoltativo) + email aziendale → POST `/api/proposals/send-by-email`. States: idle/sending/sent/error con UI dedicata (loader, success card, error inline).
+- [x] **Refactor URL helper**: rimosso il regex custom inline (`/^https?:\/\/www\./`) sostituendolo con l\u2019helper centralizzato `BACKEND_URL` da `lib/backend.js` — stessa logica del resto del sito, evita drift.
+- [x] **Production build**: `yarn build` completa con `EXIT:0`, zero warning, bundle main.*.js include la stringa "Cannizzaro" → la pagina EY è correttamente bundled. Le rotte `/speak-right-ey` e `/proposta-ey` sono entrambe registrate in `App.js`.
+- ⚠️ **Pagina bianca su produzione**: la preview funziona correttamente. Probabile causa: deploy con versione precedente del codice (prima delle ultime correzioni URL helper). Soluzione consigliata: **ridepoyare** dal pannello Emergent per pushare il bundle aggiornato.
+
+
+
 ### 24/06/2026 — Banner di conferma lettura + tracking proposta EY (P1 — DONE)
 - [x] **Backend**: nuovi endpoint in `/app/backend/server.py`:
   - `POST /api/proposals/track-open` (pubblico) — registra ogni apertura della landing page con `page`, `ref`, `referrer`, `client_tz`, IP (X-Forwarded-For aware), User-Agent, timestamp UTC. Collection MongoDB: `proposal_opens`. Ritorna `opened_at` canonico + `sequence` per la coppia (page, ref).

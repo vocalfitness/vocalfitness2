@@ -4,9 +4,10 @@ import {
   ArrowRight, Calendar, Check, Mail, Download, Mic2, Crown, Users, Layers,
   GraduationCap, Star, Award, Play, MessageCircle, Building2, Globe,
   BarChart3, Clock, FileCheck, Sparkles, ShieldCheck, ChevronRight, UserCircle2,
-  CheckCircle2
+  CheckCircle2, Send, AlertCircle, Loader2
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
+import { BACKEND_URL } from '../lib/backend';
 
 /* =========================================================================
  *  ErnstYoungLandingPage
@@ -140,6 +141,45 @@ const ErnstYoungLandingPage = () => {
   const [recipient, setRecipient] = useState(DEFAULT_RECIPIENT);
   const [openInfo, setOpenInfo] = useState(null); // { opened_at, sequence }
 
+  // Send-by-email form state
+  const [emailInput, setEmailInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [sendStatus, setSendStatus] = useState('idle'); // 'idle' | 'sending' | 'sent' | 'error'
+  const [sendError, setSendError] = useState('');
+
+  const handleSendByEmail = async (e) => {
+    e.preventDefault();
+    if (sendStatus === 'sending') return;
+    const email = (emailInput || '').trim();
+    if (!/^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(email)) {
+      setSendStatus('error');
+      setSendError('Inserisci un indirizzo email valido');
+      return;
+    }
+    setSendStatus('sending');
+    setSendError('');
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/proposals/send-by-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          name: (nameInput || '').trim() || null,
+          page: 'proposta-ey',
+          ref: recipient.ref || null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Invio non riuscito');
+      }
+      setSendStatus('sent');
+    } catch (err) {
+      setSendStatus('error');
+      setSendError(err.message || 'Errore di rete, riprova fra qualche istante.');
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
     const r = getRecipientFromQuery();
@@ -150,9 +190,8 @@ const ErnstYoungLandingPage = () => {
     // We only ping when the visitor arrives through a tracked link (?ref=…)
     // so anonymous browsing does not pollute the audit log.
     if (r.personalised && r.ref) {
-      const apiBase = (process.env.REACT_APP_BACKEND_URL || '').replace(/^https?:\/\/www\./, m => m.replace('www.', ''));
       const clientTz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '');
-      fetch(`${apiBase}/api/proposals/track-open`, {
+      fetch(`${BACKEND_URL}/api/proposals/track-open`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -643,6 +682,158 @@ const ErnstYoungLandingPage = () => {
               <p className="text-slate-600 leading-relaxed">
                 La presente proposta è valida per <strong className="text-slate-900">60 giorni</strong> dalla data di emissione (24 Giugno 2026).
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- 7b. RICEVI LA PROPOSTA (download + email) -------- */}
+      <section className="py-24 bg-gradient-to-b from-slate-50 via-white to-slate-50" data-testid="ey-receive-section">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="text-blue-600 font-semibold mb-3 uppercase tracking-[0.18em] text-xs">Ricevi la Proposta</p>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-3">Una copia per te, subito.</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Scarica il documento ora o ricevilo direttamente nella tua casella di posta — la versione PDF è identica a quella firmata dal Prof. Steve Dapper.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* --- Card 1: Download diretto --- */}
+            <div className="relative rounded-3xl border border-slate-200 bg-white p-8 shadow-xl ey-lift" data-testid="ey-download-card">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
+                  <Download className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Opzione 1</p>
+                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Scarica subito il PDF</h3>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Apertura immediata nel browser, salvataggio locale, condivisione interna con il team HR di EY. Nessuna registrazione richiesta.
+              </p>
+              <ul className="space-y-2 mb-7">
+                {['Documento ufficiale firmato', 'Apertura istantanea', 'Salva e condividi liberamente'].map((it, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
+                    <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" strokeWidth={3} />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                onClick={() => window.open(PROPOSAL_PDF, '_blank')}
+                size="lg"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-6 text-base shadow-lg hover:shadow-blue-500/30 transition-all duration-300 group"
+                data-testid="ey-download-pdf-btn"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Scarica proposta PDF
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
+
+            {/* --- Card 2: Invio via email --- */}
+            <div className="relative rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-50/60 to-orange-50/40 p-8 shadow-xl ey-lift" data-testid="ey-email-card">
+              <span className="absolute top-4 right-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider shadow">
+                <Sparkles className="w-3 h-3" /> Consigliato
+              </span>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                  <Mail className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Opzione 2</p>
+                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Ricevila via email</h3>
+                </div>
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed mb-6">
+                Ti inviamo subito una copia PDF in allegato, con tutti i dettagli dei tre tier e le credenziali del Prof. Dapper. Pratica da inoltrare al tuo team o agli altri stakeholder EY.
+              </p>
+
+              {sendStatus === 'sent' ? (
+                <div
+                  className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 flex items-start gap-3"
+                  role="status"
+                  data-testid="ey-email-success"
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-emerald-900">Proposta inviata!</p>
+                    <p className="text-sm text-emerald-800 mt-0.5">
+                      Controlla la tua casella <span className="font-semibold">{emailInput}</span>. Se non la vedi entro pochi minuti, dai un&rsquo;occhiata anche nello spam.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setSendStatus('idle'); setEmailInput(''); setNameInput(''); }}
+                      className="mt-3 text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
+                      data-testid="ey-email-reset"
+                    >
+                      Invia a un altro indirizzo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSendByEmail} className="space-y-3" data-testid="ey-email-form">
+                  <div>
+                    <label htmlFor="ey-name" className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Nome (facoltativo)</label>
+                    <input
+                      id="ey-name"
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      placeholder="Es. Layla Cannizzaro"
+                      maxLength={120}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-slate-900"
+                      data-testid="ey-email-name-input"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ey-email" className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Email aziendale<span className="text-amber-600">*</span></label>
+                    <input
+                      id="ey-email"
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="nome.cognome@it.ey.com"
+                      required
+                      maxLength={180}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-slate-900"
+                      data-testid="ey-email-input"
+                    />
+                  </div>
+                  {sendStatus === 'error' && sendError && (
+                    <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm" data-testid="ey-email-error">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{sendError}</span>
+                    </div>
+                  )}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={sendStatus === 'sending'}
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-6 text-base shadow-lg hover:shadow-amber-500/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                    data-testid="ey-email-send-btn"
+                  >
+                    {sendStatus === 'sending' ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Invio in corso…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 mr-2" />
+                        Inviami la proposta via email
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-[11px] text-slate-500 leading-relaxed text-center pt-1">
+                    Utilizziamo il tuo indirizzo solo per inviarti il PDF e per essere ricontattato dal Prof. Dapper su questa proposta. Nessun newsletter.
+                  </p>
+                </form>
+              )}
             </div>
           </div>
         </div>
