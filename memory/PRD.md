@@ -12,6 +12,19 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 24/06/2026 — Banner di conferma lettura + tracking proposta EY (P1 — DONE)
+- [x] **Backend**: nuovi endpoint in `/app/backend/server.py`:
+  - `POST /api/proposals/track-open` (pubblico) — registra ogni apertura della landing page con `page`, `ref`, `referrer`, `client_tz`, IP (X-Forwarded-For aware), User-Agent, timestamp UTC. Collection MongoDB: `proposal_opens`. Ritorna `opened_at` canonico + `sequence` per la coppia (page, ref).
+  - `GET /api/admin/proposals/opens?page=…&ref=…&limit=…` (admin-only) — restituisce il log opens filtrabile, newest-first.
+- [x] **Frontend `ErnstYoungLandingPage.jsx`**:
+  - Ping fire-and-forget al mount **solo se** la visita arriva con `?ref=<slug>` (no inquinamento del log per browsing anonimo).
+  - Banner verde "**Documento aperto · 24 giugno 2026 alle 09:30**" con pulsing dot, check icon e badge "Visita n° X" se `sequence > 1`. Timestamp formattato in italiano con `Intl.DateTimeFormat('it-IT')` nel timezone del visitatore.
+  - Errori silenziosi: il fallimento del ping non rompe mai la UX.
+- [x] **Verifica E2E**: `curl POST /api/proposals/track-open` ritorna `{id, sequence}` correttamente, banner visibile in preview con visita n° 5, admin endpoint elenca tutti gli opens con IP/UA reali (admin auth funzionante).
+- [x] **Estensibilità**: per nuovi destinatari basta aggiungere chiavi a `RECIPIENTS` in cima al file e usare `?ref=<slug>`.
+
+
+
 ### 24/06/2026 — Landing page dedicata Ernst & Young Italia (P1 — DONE)
 - [x] **Nuova pagina** `/app/frontend/src/pages/ErnstYoungLandingPage.jsx` (~440 LOC) basata sul template della Medtronic Landing, ma riscritta in **italiano** per la proposta commerciale a EY Italia (attn. Layla Cannizzaro, Team HR & Formazione).
 - [x] **Rotte registrate** in `App.js`: `/speak-right-ey` e `/proposta-ey` (entrambe puntano alla stessa pagina).

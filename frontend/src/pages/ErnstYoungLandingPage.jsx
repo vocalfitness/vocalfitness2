@@ -3,7 +3,8 @@ import { Button } from '../components/ui/button';
 import {
   ArrowRight, Calendar, Check, Mail, Download, Mic2, Crown, Users, Layers,
   GraduationCap, Star, Award, Play, MessageCircle, Building2, Globe,
-  BarChart3, Clock, FileCheck, Sparkles, ShieldCheck, ChevronRight, UserCircle2
+  BarChart3, Clock, FileCheck, Sparkles, ShieldCheck, ChevronRight, UserCircle2,
+  CheckCircle2
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
 
@@ -137,10 +138,36 @@ const ErnstYoungLandingPage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [recipient, setRecipient] = useState(DEFAULT_RECIPIENT);
+  const [openInfo, setOpenInfo] = useState(null); // { opened_at, sequence }
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setRecipient(getRecipientFromQuery());
+    const r = getRecipientFromQuery();
+    setRecipient(r);
+
+    // Fire-and-forget read receipt ping → backend logs the open and returns
+    // the canonical timestamp + sequence number for the (page, ref) tuple.
+    // We only ping when the visitor arrives through a tracked link (?ref=…)
+    // so anonymous browsing does not pollute the audit log.
+    if (r.personalised && r.ref) {
+      const apiBase = (process.env.REACT_APP_BACKEND_URL || '').replace(/^https?:\/\/www\./, m => m.replace('www.', ''));
+      const clientTz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '');
+      fetch(`${apiBase}/api/proposals/track-open`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: 'proposta-ey',
+          ref: r.ref,
+          referrer: (document.referrer || '').slice(0, 512),
+          client_tz: clientTz,
+        }),
+        keepalive: true,
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (data) setOpenInfo(data); })
+        .catch(() => { /* silent: tracking failure must never break UX */ });
+    }
+
     const onScroll = () => setScrollY(window.scrollY);
     const onMouse  = (e) => setMouse({ x: e.clientX, y: e.clientY });
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -150,6 +177,20 @@ const ErnstYoungLandingPage = () => {
       window.removeEventListener('mousemove', onMouse);
     };
   }, []);
+
+  // Format the read-receipt timestamp in Italian, in the user's own tz.
+  const formattedOpenedAt = (() => {
+    if (!openInfo || !openInfo.opened_at) return '';
+    try {
+      const d = new Date(openInfo.opened_at);
+      return new Intl.DateTimeFormat('it-IT', {
+        day: '2-digit', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }).format(d);
+    } catch {
+      return '';
+    }
+  })();
 
   const [heroRef, heroIn]       = useReveal();
   const [premRef, premIn]       = useReveal();
@@ -251,6 +292,30 @@ const ErnstYoungLandingPage = () => {
                   Personalizzata per <span className="font-bold">{recipient.name}</span> · EY Italia
                 </span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              </div>
+            )}
+
+            {openInfo && formattedOpenedAt && (
+              <div
+                className={`flex items-center gap-2.5 mb-5 px-4 py-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 max-w-md ${heroIn ? 'ey-reveal-up ey-delay-1' : 'opacity-0'}`}
+                role="status"
+                data-testid="ey-read-confirmation"
+                title={`Apertura n° ${openInfo.sequence}`}
+              >
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                <p className="text-xs md:text-sm text-emerald-900 leading-tight">
+                  <span className="font-semibold">Documento aperto</span>
+                  <span className="text-emerald-800/80"> · {formattedOpenedAt}</span>
+                  {openInfo.sequence > 1 && (
+                    <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                      visita n° {openInfo.sequence}
+                    </span>
+                  )}
+                </p>
               </div>
             )}
 

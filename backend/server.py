@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, BackgroundTasks, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -727,6 +727,82 @@ async def get_status_checks():
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     
     return status_checks
+
+
+# =========================================================================
+# Proposal Open Tracking
+# -------------------------------------------------------------------------
+# Records each time a dedicated proposal landing page (e.g. /proposta-ey)
+# is opened. Used to confirm receipt to the seller (Steve) and to attach a
+# subtle "read confirmation" banner in the recipient's hero section.
+# Public endpoint by design — fire-and-forget from the client.
+# =========================================================================
+class ProposalOpenCreate(BaseModel):
+    page: str          # e.g. "proposta-ey"
+    ref: Optional[str] = None  # e.g. "layla"
+    referrer: Optional[str] = None
+    client_tz: Optional[str] = None
+
+class ProposalOpenResponse(BaseModel):
+    id: str
+    page: str
+    ref: Optional[str]
+    opened_at: datetime
+    sequence: int
+
+@api_router.post("/proposals/track-open", response_model=ProposalOpenResponse)
+async def track_proposal_open(payload: ProposalOpenCreate, request: Request):
+    """Record one open of a proposal landing page. Returns the canonical
+    opened_at timestamp (server-side) and the sequence number for the same
+    (page, ref) tuple — so the client can render 'aperto la 3ª volta'."""
+    ua = request.headers.get("user-agent", "")[:512]
+    # Best-effort client IP — honours X-Forwarded-For from the K8s ingress.
+    xff = request.headers.get("x-forwarded-for", "")
+    client_ip = (xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")) or ""
+
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "page": payload.page,
+        "ref": (payload.ref or None),
+        "referrer": (payload.referrer or "")[:512],
+        "client_tz": (payload.client_tz or "")[:64],
+        "user_agent": ua,
+        "client_ip": client_ip,
+        "opened_at": now.isoformat(),
+    }
+    await db.proposal_opens.insert_one(doc)
+
+    # Sequence number for this (page, ref) — counts events up to and including this one.
+    seq_filter = {"page": payload.page}
+    if payload.ref:
+        seq_filter["ref"] = payload.ref
+    sequence = await db.proposal_opens.count_documents(seq_filter)
+
+    return ProposalOpenResponse(
+        id=doc["id"],
+        page=doc["page"],
+        ref=doc["ref"],
+        opened_at=now,
+        sequence=sequence,
+    )
+
+@api_router.get("/admin/proposals/opens")
+async def list_proposal_opens(
+    page: Optional[str] = None,
+    ref: Optional[str] = None,
+    limit: int = 200,
+    _admin: dict = Depends(get_admin_user),
+):
+    """Admin: list recent proposal opens, newest first. Optional filters."""
+    q = {}
+    if page:
+        q["page"] = page
+    if ref:
+        q["ref"] = ref
+    items = await db.proposal_opens.find(q, {"_id": 0}).sort("opened_at", -1).to_list(max(1, min(limit, 1000)))
+    return {"total": len(items), "items": items}
+
 
 # Testimonials Endpoints
 @api_router.get("/testimonials")
