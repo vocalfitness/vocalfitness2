@@ -12,6 +12,20 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 24/06/2026 — Landing page dedicata Ernst & Young Italia (P1 — DONE)
+- [x] **Nuova pagina** `/app/frontend/src/pages/ErnstYoungLandingPage.jsx` (~440 LOC) basata sul template della Medtronic Landing, ma riscritta in **italiano** per la proposta commerciale a EY Italia (attn. Layla Cannizzaro, Team HR & Formazione).
+- [x] **Rotte registrate** in `App.js`: `/speak-right-ey` e `/proposta-ey` (entrambe puntano alla stessa pagina).
+- [x] **Architettura tre tier** verbatim dal PDF allegato (`proposta_commerciale_E&Y_Layla_Cannizzaro.pdf`):
+  - Level 1 · Executive Elite (oro/ambra, premium accent): Modulo Base €1.920 / Advanced €2.240 — in presenza one-to-one
+  - Level 2 · Blended Performance (blu corporate): Core Team €3.800 / Division €6.500 — live video & hybrid
+  - Level 3 · Digital Enterprise Scaling (indigo/viola): Small €190 / Medium €140 / Large flat — self-study con scontistica volumi
+- [x] **Sezioni**: Hero (con video + recipient card "Layla Cannizzaro"), Target Pills banner (Partner/C-Suite/Executive Director/Senior Manager/Consultant/Staff), Premessa Metodologica CEFR, Architettura Offerta 3 tier (centrepiece), Method strip SpeakRight 101, Bio Prof. Steve Dapper (3 card dark theme), Note Editoriali (Materiali Inclusi + Validità 60gg), Final CTA, Footer con sede Roveredo GR.
+- [x] **Brand coherence con vocalfitness.org**: stessa palette (slate/blue/indigo gradients), stesso pattern animazioni scroll-triggered, stessi Button shadcn, stesse icone lucide-react, stesso video hero di brand. Accento ambra/oro su Level 1 per differenziare la tier executive premium senza usare marchi EY.
+- [x] **CTA**: "Programma chiamata con il Prof. Dapper" → `CorporateQuoteForm` modal · "Scarica proposta PDF" → URL dell\u2019artifact uploaded dall\u2019utente.
+- [x] **Verifica visuale preview**: tutte le sezioni render correttamente, 3 tier visibili con pricing accurato, bio Dapper in italiano funzionante, no errori lint/console.
+
+
+
 ### 15/06/2026 — Pink Trombone autentico (Neil Thapen v1.1) integrato in iframe (P0 — RISOLTO)
 - [x] **Bundle ufficiale Neil Thapen** scaricato direttamente da `https://dood.al/pinktrombone/` (MIT License, Copyright 2017 Neil Thapen). Single-file HTML (~1900 LOC) con due `<canvas>` (tractCanvas + backCanvas), audio system con `ScriptProcessorNode`, UI/Glottis/Tract/TractUI inline.
 - [x] **File**: `/app/frontend/public/lms/vocal-lab/pink-trombone-original.html`. La gestione responsive è già nativa nel codice (`UI.shapeToFitScreen()` chiamato a ogni redraw).

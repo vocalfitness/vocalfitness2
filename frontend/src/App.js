@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import ResourcesPage from "./pages/ResourcesPage";
 import CorporateTrainingPage from "./pages/CorporateTrainingPage";
 import MedtronicLandingPage from "./pages/MedtronicLandingPage";
+import ErnstYoungLandingPage from "./pages/ErnstYoungLandingPage";
 import SpeakRight101Page from "./pages/SpeakRight101Page";
 import PhonemeCardPage from "./pages/PhonemeCardPage";
 import LoginPage from "./pages/LoginPage";
@@ -25,6 +26,8 @@ function App() {
               <Route path="/risorse" element={<ResourcesPage />} />
               <Route path="/corporate-training" element={<CorporateTrainingPage />} />
               <Route path="/speak-right-medtronic" element={<MedtronicLandingPage />} />
+              <Route path="/speak-right-ey" element={<ErnstYoungLandingPage />} />
+              <Route path="/proposta-ey" element={<ErnstYoungLandingPage />} />
               <Route path="/speak-right-101" element={<SpeakRight101Page />} />
               <Route path="/lms/phoneme/:id" element={<PhonemeCardPage />} />
               <Route path="/lms/phoneme" element={<PhonemeCardPage />} />
