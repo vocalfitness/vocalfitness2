@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button';
 import {
   ArrowRight, Calendar, Check, Mail, Download, Mic2, Crown, Users, Layers,
   GraduationCap, Star, Award, Play, MessageCircle, Building2, Globe,
-  BarChart3, Clock, FileCheck, Sparkles, ShieldCheck, ChevronRight
+  BarChart3, Clock, FileCheck, Sparkles, ShieldCheck, ChevronRight, UserCircle2
 } from 'lucide-react';
 import CorporateQuoteForm from '../components/CorporateQuoteForm';
 
@@ -110,14 +110,37 @@ const TIERS = [
 
 const TARGET_PILLS = ['Partner', 'C-Suite', 'Executive Director', 'Senior Manager', 'Consultant', 'Staff'];
 
+// ---------- Personalisation: ?ref=<slug> → custom recipient block --------
+// Lets us send tracked, named links (e.g. /proposta-ey?ref=layla) that
+// display a "Personalizzata per X" badge in the hero — without exposing
+// EY's internal org chart in any way.
+const RECIPIENTS = {
+  layla:    { name: 'Layla Cannizzaro', role: 'Team Risorse Umane & Formazione · EY Italia' },
+  hr:       { name: 'Team HR & Formazione', role: 'EY Italia' },
+};
+const DEFAULT_RECIPIENT = { name: 'Layla Cannizzaro', role: 'Team Risorse Umane & Formazione · EY Italia' };
+
+const getRecipientFromQuery = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = (params.get('ref') || '').toLowerCase().trim();
+    if (ref && RECIPIENTS[ref]) return { ...RECIPIENTS[ref], personalised: true, ref };
+    return { ...DEFAULT_RECIPIENT, personalised: false, ref: '' };
+  } catch (_) {
+    return { ...DEFAULT_RECIPIENT, personalised: false, ref: '' };
+  }
+};
+
 // =========================================================================
 const ErnstYoungLandingPage = () => {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [recipient, setRecipient] = useState(DEFAULT_RECIPIENT);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    setRecipient(getRecipientFromQuery());
     const onScroll = () => setScrollY(window.scrollY);
     const onMouse  = (e) => setMouse({ x: e.clientX, y: e.clientY });
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -217,6 +240,20 @@ const ErnstYoungLandingPage = () => {
               <span className="w-8 h-[2px] bg-blue-600"></span>
               Proposta Commerciale Esecutiva · 24 Giugno 2026
             </p>
+
+            {recipient.personalised && (
+              <div
+                className={`inline-flex items-center gap-2.5 mb-5 px-4 py-2 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 shadow-sm ${heroIn ? 'ey-reveal-up' : 'opacity-0'}`}
+                data-testid="ey-personalised-badge"
+              >
+                <UserCircle2 className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-semibold tracking-wide text-amber-900">
+                  Personalizzata per <span className="font-bold">{recipient.name}</span> · EY Italia
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              </div>
+            )}
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-[1.05]">
               <span className="bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 bg-clip-text text-transparent">
                 Protocolli Specialistici di Pronuncia e Executive&nbsp;Presence
@@ -227,8 +264,8 @@ const ErnstYoungLandingPage = () => {
 
             <div className={`bg-white/85 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 mb-8 shadow-xl ${heroIn ? 'ey-reveal-up ey-delay-1' : 'opacity-0'}`}>
               <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Alla cortese attenzione di</p>
-              <p className="text-2xl font-bold text-slate-800 mb-1">Layla Cannizzaro</p>
-              <p className="text-slate-600">Team Risorse Umane &amp; Formazione · EY Italia</p>
+              <p className="text-2xl font-bold text-slate-800 mb-1" data-testid="ey-recipient-name">{recipient.name}</p>
+              <p className="text-slate-600" data-testid="ey-recipient-role">{recipient.role}</p>
             </div>
 
             <div className={`flex flex-wrap gap-3 ${heroIn ? 'ey-reveal-up ey-delay-2' : 'opacity-0'}`}>
