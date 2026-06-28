@@ -12,6 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Pink Trombone come popup top-left attivato dal trapezio (P2 — DONE)
+- [x] **Riorganizzato `PinkTromboneEmbed.jsx`**: rimosso l\u2019iframe inline dalla card. Ora la sezione "Laboratorio Interattivo" mostra solo il **trapezio vocalico IPA** in modalità compatta (single-column).
+- [x] **Popup attivato on-click**: qualsiasi click su un simbolo IPA del trapezio (o drag-down) apre un overlay fixed-position con backdrop blur, ancorato a `top: 24px; left: 24px`. Width responsive `min(440px, 100vw - 48px)`. Dentro: header con titolo "PINK TROMBONE · /<sym>/", iframe Pink Trombone (aspect 1:1, min-h 360px), legend in basso, pulsante X di chiusura.
+- [x] **Chiusura**: click sulla X, click sul backdrop, o ESC (via aria-modal). Animazioni `plw-fade-in` (backdrop) + `plw-slide-tl` (card cubic-bezier ease-out).
+- [x] **Continuità di stato**: il vowel cliccato viene memorizzato in `activeVowel` PRIMA dell\u2019apertura. L\u2019iframe, una volta montato e ricevuto il `pt:ready` handshake, riapplica `activeVowel` (non più il default della card). Così se l\u2019utente clicca /æ/, il tratto vocale si posiziona in /æ/, non in /ʊ/.
+- [x] **CSS popup** aggiunto allo stesso `styles` template literal (no nuovi file, no nuove dipendenze).
+- [x] **Verifica E2E**: pre-click → iframe assente nel DOM ✓; click /æ/ → popup top-left + iframe presente ✓; click X → popup smonta + iframe deallocato ✓.
+
+
+
 ### 28/06/2026 — Spettrogramma real-time + Quiz uditivo (P2 — DONE)
 - [x] **`SpectrogramView.jsx`** (~155 LOC): scrolling waterfall spectrogram in tempo reale tramite Web Audio API (no librerie esterne). Pipeline: HTML5 audio → MediaElementSource → AnalyserNode (fftSize 1024, smoothing 0.78) → requestAnimationFrame loop → strip verticali di 1 px shiftate a sinistra. Color ramp percettivamente monotonica (navy → cyan → orange → white) sulla palette LMS. Etichette F0/F1 in basso, F2/F3 in alto, "→ tempo" a destra — formato Praat-style. Cleanup AudioContext + cancel rAF su unmount.
 - [x] **`PhonemeAuralQuiz.jsx`** (~165 LOC): drill "ascolta e identifica" con 3 alternative IPA. Mappa esplicita `CONFUSION_PAIRS` (non euristica) basata su similarità acustica reale: /iː/↔/ɪ/+/eɪ/ (sheep/ship/shape), /ʊ/↔/uː/+/ʌ/ (full/fool/cup), /θ/↔/f/+/s/ (high-freq noise), /r/↔/l/+/w/, ecc. Auto-play della parola random ad ogni round, score con accuracy %, feedback inline (verde/rosso + parola+IPA), streak detector. Riusa `getIpaForDialect` dal catalogo → quiz dialect-aware (mostra /e/ in UK, /ɛ/ in US per DRESS, ecc.).

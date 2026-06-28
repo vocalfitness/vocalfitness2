@@ -50,6 +50,13 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
   const [activeVowel, setActiveVowel] = useState(defaultTarget.sym);
   const [refPlaying, setRefPlaying] = useState(false);
   const [error, setError] = useState('');
+  const [tractOpen, setTractOpen] = useState(false);
+
+  // Open the popup as a side-effect of any interaction on the trapezoid.
+  // Calling this redundantly (e.g. on every drag-move) is safe — React
+  // bails out of state updates that don't change the value.
+  const openTract = () => setTractOpen(true);
+  const closeTract = () => setTractOpen(false);
 
   const sendParams = useCallback((params) => {
     const win = iframeRef.current?.contentWindow;
@@ -67,18 +74,23 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
     setActiveVowel(target.sym);
   }, [sendParams]);
 
-  // Listen for "ready" handshake from the iframe
+  // Listen for "ready" handshake from the iframe. When the popup is first
+  // opened by clicking a vowel target, the iframe has not yet mounted, so
+  // the earlier applyVowel postMessage is dropped. Once ready, re-apply the
+  // latest user selection (activeVowel) so the tract immediately reflects
+  // the clicked phoneme instead of resetting to the card default.
   useEffect(() => {
     const onMsg = (ev) => {
       const d = ev.data;
       if (d && d.type === 'pt:ready') {
         setIframeReady(true);
-        applyVowel(defaultTarget);
+        const current = VOWEL_TARGETS.find(v => v.sym === activeVowel) || defaultTarget;
+        applyVowel(current);
       }
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, [applyVowel, defaultTarget]);
+  }, [applyVowel, defaultTarget, activeVowel]);
 
   useEffect(() => () => {
     if (refAudioRef.current) { try { refAudioRef.current.pause(); } catch { /* noop */ } refAudioRef.current = null; }
@@ -137,17 +149,16 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
         <div className="phonetics-lab-wrapper__error" data-testid="phonetics-lab-error">{error}</div>
       )}
 
-      <div className="phonetics-lab-wrapper__grid">
+      <div className="phonetics-lab-wrapper__grid phonetics-lab-wrapper__grid--compact">
         <div className="phonetics-lab-wrapper__chart-col">
           <p className="phonetics-lab-wrapper__legend">
-            Trapezio vocalico IPA. <b>Clicca un simbolo</b> per impostare la postura,
-            oppure <b>trascina</b> per morfare continuamente. Il tratto vocale a fianco
-            reagirà istantaneamente.
+            Trapezio vocalico IPA. <b>Clicca un simbolo</b> per aprire il tratto vocale
+            interattivo (popup) e impostare la postura. <b>Trascina</b> per morfare in continuo.
           </p>
           <svg
             viewBox="0 0 220 180"
             className="phonetics-lab-wrapper__chart"
-            onMouseDown={(e) => { handleChartDrag(e); e.currentTarget._dragging = true; }}
+            onMouseDown={(e) => { openTract(); handleChartDrag(e); e.currentTarget._dragging = true; }}
             onMouseMove={(e) => { if (e.currentTarget._dragging) handleChartDrag(e); }}
             onMouseUp={(e) => { e.currentTarget._dragging = false; }}
             onMouseLeave={(e) => { e.currentTarget._dragging = false; }}
@@ -167,7 +178,7 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
               return (
                 <g
                   key={v.sym}
-                  onClick={(ev) => { ev.stopPropagation(); applyVowel(v); }}
+                  onClick={(ev) => { ev.stopPropagation(); openTract(); applyVowel(v); }}
                   className={`phonetics-lab-wrapper__target ${active ? 'is-active' : ''}`}
                   data-testid={`vowel-target-${v.sym}`}
                 >
@@ -180,26 +191,48 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
           </svg>
           <p className="phonetics-lab-wrapper__hint">
             Modello: <span>Pink Trombone</span> (Neil Thapen, MIT)
-            {iframeReady ? ' · ✓ pronto' : ' · caricamento…'}
+            {iframeReady ? ' · ✓ pronto' : ' · iframe non ancora caricato'}
           </p>
-        </div>
-
-        <div className="phonetics-lab-wrapper__tract-col">
-          <p className="phonetics-lab-wrapper__legend">
-            Sezione sagittale interattiva. <b>Tocca o trascina</b> direttamente sul tratto
-            vocale (lingua, palato, velo, labbra). L&apos;audio si attiva al primo tocco.
-          </p>
-          <iframe
-            ref={iframeRef}
-            src={IFRAME_URL}
-            title="Pink Trombone interactive vocal tract"
-            className="phonetics-lab-wrapper__iframe"
-            data-testid="phonetics-lab-iframe"
-            sandbox="allow-scripts allow-same-origin"
-            loading="lazy"
-          />
         </div>
       </div>
+
+      {/* ============= Pink Trombone popup (top-left, draggable backdrop) ============= */}
+      {tractOpen && (
+        <div
+          className="phonetics-lab-popup"
+          role="dialog"
+          aria-modal="true"
+          data-testid="phonetics-lab-popup"
+          onClick={(e) => { if (e.target === e.currentTarget) closeTract(); }}
+        >
+          <div className="phonetics-lab-popup__card">
+            <div className="phonetics-lab-popup__head">
+              <span className="phonetics-lab-popup__title">
+                Pink Trombone · <span className="phonetics-lab-popup__ipa">/{activeVowel}/</span>
+              </span>
+              <button
+                type="button"
+                className="phonetics-lab-popup__close"
+                onClick={closeTract}
+                aria-label="Chiudi tratto vocale"
+                data-testid="phonetics-lab-popup-close"
+              >×</button>
+            </div>
+            <iframe
+              ref={iframeRef}
+              src={IFRAME_URL}
+              title="Pink Trombone interactive vocal tract"
+              className="phonetics-lab-popup__iframe"
+              data-testid="phonetics-lab-iframe"
+              sandbox="allow-scripts allow-same-origin"
+            />
+            <p className="phonetics-lab-popup__legend">
+              Sezione sagittale interattiva — tocca / trascina su lingua, palato, velo, labbra.
+              L&rsquo;audio si attiva al primo tocco.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -288,6 +321,63 @@ const styles = `
     border: 0; border-radius: 12px;
     background: #ffffff;
     display: block;
+  }
+  .phonetics-lab-wrapper__grid--compact {
+    grid-template-columns: minmax(280px, 460px);
+    justify-content: center;
+  }
+
+  /* ---- Top-left popup that hosts the Pink Trombone iframe ---- */
+  .phonetics-lab-popup {
+    position: fixed; inset: 0; z-index: 70;
+    background: rgba(2, 6, 12, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 24px;
+    animation: plw-fade-in .25s ease-out;
+  }
+  @keyframes plw-fade-in { from { opacity:0; } to { opacity:1; } }
+  @keyframes plw-slide-tl { from { opacity:0; transform: translate(-12px,-12px) scale(.96); } to { opacity:1; transform:none; } }
+  .phonetics-lab-popup__card {
+    position: absolute; top: 24px; left: 24px;
+    width: min(440px, calc(100vw - 48px));
+    max-height: calc(100vh - 48px);
+    background: #ffffff; border-radius: 16px;
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,0.55), 0 0 0 1px rgba(245,158,11,0.35);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    animation: plw-slide-tl .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .phonetics-lab-popup__head {
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 10px; padding: 10px 14px;
+    background: linear-gradient(180deg, #0b1220, #111c2e);
+    color: #e2e8f0; border-bottom: 1px solid rgba(245,158,11,0.35);
+  }
+  .phonetics-lab-popup__title {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #cbd5e1;
+  }
+  .phonetics-lab-popup__ipa {
+    font-family:"Charis SIL", Georgia, serif; font-size: 16px;
+    color: var(--plw-accent); font-weight: 700; text-transform: none; letter-spacing: 0;
+  }
+  .phonetics-lab-popup__close {
+    appearance: none; border: 0; background: rgba(255,255,255,0.08); color: #fff;
+    width: 28px; height: 28px; border-radius: 999px;
+    cursor: pointer; font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s ease, transform .1s ease;
+  }
+  .phonetics-lab-popup__close:hover { background: rgba(244,63,94,0.7); transform: scale(1.06); }
+  .phonetics-lab-popup__iframe {
+    width: 100%; aspect-ratio: 1/1; min-height: 360px;
+    border: 0; background: #ffffff; display: block;
+  }
+  .phonetics-lab-popup__legend {
+    margin: 0; padding: 8px 14px 12px;
+    font-size: 11px; color: #475569; line-height: 1.5;
+    background: #f8fafc; border-top: 1px solid #e2e8f0;
   }
 `;
 
