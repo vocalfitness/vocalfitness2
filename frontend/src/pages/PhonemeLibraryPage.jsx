@@ -5,7 +5,12 @@ import {
   Lock, ChevronRight, Volume2, Globe, Layers, Crown
 } from 'lucide-react';
 import { PHONEMES } from '../data/phonemes';
-import { PHONEME_CATALOGUE as CATALOGUE, hasPremiumAccess } from '../data/phonemeCatalogue';
+import {
+  PHONEME_CATALOGUE as CATALOGUE,
+  hasPremiumAccess,
+  getIpaForDialect,
+  getInventoryTotals,
+} from '../data/phonemeCatalogue';
 import useDialect from '../hooks/useDialect';
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL } from '../lib/backend';
@@ -65,6 +70,10 @@ const ListenButton = ({ src, label = 'Listen', testId }) => {
 const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLockedClick }) => {
   const isoAudio = phoneme.audio?.[dialect]?.isolated || phoneme.audio?.AmE?.isolated;
   const isPremium = entry.access === 'premium';
+  const displayIpa = getIpaForDialect(entry, dialect);
+  const altIpa = (dialect === 'AmE' && entry.ipa !== displayIpa) ? entry.ipa
+                : (dialect === 'RP'  && entry.ipaUS && entry.ipaUS !== displayIpa) ? entry.ipaUS
+                : null;
 
   const handleClick = (e) => {
     if (locked) {
@@ -126,16 +135,21 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
         {/* IPA + lexical set */}
         <div className="mt-6 mb-4 relative z-10">
           <p className="text-5xl md:text-6xl font-black text-white leading-none tracking-tight">
-            /{phoneme.ipa}/
+            /{displayIpa}/
           </p>
           <p className="mt-2 text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">
             {entry.subtitle}
-            {phoneme.subcategory && (
+            {(entry.subgroup || phoneme.subcategory) && (
               <span className="ml-2 text-slate-500 normal-case tracking-normal text-[11px]">
-                · {phoneme.subcategory.replace('-', ' ')}
+                · {(entry.subgroup || phoneme.subcategory).replace(/-/g, ' ')}
               </span>
             )}
           </p>
+          {altIpa && (
+            <p className="mt-1 text-[10px] uppercase tracking-widest text-slate-500">
+              {dialect === 'AmE' ? 'RP' : 'US'}: <span className="font-mono text-slate-300">/{altIpa}/</span>
+            </p>
+          )}
         </div>
 
         {/* Example words */}
@@ -171,33 +185,66 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
 };
 
 // ------- Locked placeholder card -----------------------------------------
-const LockedCard = ({ entry, group, index }) => (
-  <div
-    className="relative block cursor-not-allowed"
-    data-testid={`phoneme-library-locked-${entry.id}`}
-    style={{ animationDelay: `${index * 60}ms` }}
-  >
-    <div className={`relative h-full rounded-3xl border border-dashed ${group.border} bg-slate-900/40 backdrop-blur-sm p-6 overflow-hidden opacity-65 transition-opacity hover:opacity-90`}>
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-bold text-slate-500">
-          <Lock className="w-3 h-3" />
-          in preparazione · {group.label}
-        </span>
-      </div>
-      <p className="mt-6 mb-1 text-5xl md:text-6xl font-black text-slate-500 leading-none tracking-tight">
-        /{entry.ipa}/
-      </p>
-      <p className="mt-2 mb-5 text-xs uppercase tracking-[0.22em] text-slate-600 font-semibold">
-        {entry.subtitle}
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {(entry.words || []).map((w, i) => (
-          <span key={i} className="px-2.5 py-1 rounded-full bg-slate-900/30 border border-slate-800 text-xs text-slate-500">{w}</span>
-        ))}
+const LockedCard = ({ entry, group, dialect, index }) => {
+  const displayIpa = getIpaForDialect(entry, dialect);
+  const altIpa = (dialect === 'AmE' && entry.ipa && entry.ipa !== displayIpa) ? entry.ipa
+                : (dialect === 'RP'  && entry.ipaUS && entry.ipaUS !== displayIpa) ? entry.ipaUS
+                : null;
+  const mergedNote = (dialect === 'AmE' && entry.mergedInUS) ? 'merged with PALM /ɑ/ in GA'
+                    : (dialect === 'RP'  && entry.mergedInUK) ? 'merged in RP'
+                    : null;
+  return (
+    <div
+      className="relative block cursor-not-allowed"
+      data-testid={`phoneme-library-locked-${entry.id}`}
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className={`relative h-full rounded-3xl border border-dashed ${group.border} bg-slate-900/40 backdrop-blur-sm p-6 overflow-hidden opacity-75 transition-opacity hover:opacity-95`}>
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-bold text-slate-500">
+            <Lock className="w-3 h-3" />
+            in preparazione · {group.label}
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/60 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Crown className="w-3 h-3" />
+            Premium
+          </span>
+        </div>
+        <p className="mt-6 mb-1 text-5xl md:text-6xl font-black text-slate-400 leading-none tracking-tight">
+          /{displayIpa}/
+        </p>
+        <p className="mt-2 mb-1 text-xs uppercase tracking-[0.22em] text-slate-500 font-semibold">
+          {entry.subtitle}
+          {entry.subgroup && (
+            <span className="ml-2 text-slate-600 normal-case tracking-normal text-[11px]">
+              · {entry.subgroup.replace(/-/g, ' ')}
+            </span>
+          )}
+        </p>
+        {altIpa && (
+          <p className="mb-2 text-[10px] uppercase tracking-widest text-slate-600">
+            {dialect === 'AmE' ? 'RP' : 'US'}: <span className="font-mono text-slate-500">/{altIpa}/</span>
+          </p>
+        )}
+        {mergedNote && (
+          <p className="mb-4 text-[10px] uppercase tracking-widest text-amber-700/70 font-semibold">
+            ⚠ {mergedNote}
+          </p>
+        )}
+        {entry.manner && (
+          <p className="mb-3 text-[11px] text-slate-500 leading-snug italic">
+            {entry.manner}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-1.5">
+          {(entry.words || []).map((w, i) => (
+            <span key={i} className="px-2.5 py-1 rounded-full bg-slate-900/30 border border-slate-800 text-xs text-slate-500">{w}</span>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ------- Global dialect toggle (US ⇄ UK) ---------------------------------
 const DialectToggle = ({ dialect, onChange }) => (
@@ -248,11 +295,7 @@ const PhonemeLibraryPage = () => {
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const stats = useMemo(() => {
-    const published = CATALOGUE.filter(e => e.status === 'published').length;
-    const upcoming  = CATALOGUE.length - published;
-    return { published, upcoming, total: CATALOGUE.length };
-  }, []);
+  const stats = useMemo(() => getInventoryTotals(), []);
 
   const filtered = useMemo(
     () => groupFilter === 'all' ? CATALOGUE : CATALOGUE.filter(e => e.group === groupFilter),
@@ -311,13 +354,20 @@ const PhonemeLibraryPage = () => {
           {/* Stats */}
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10" data-testid="library-stats">
             <div className="text-center">
-              <p className="text-3xl md:text-4xl font-black text-white">{stats.published}</p>
-              <p className="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold">card pubblicate</p>
+              <p className="text-3xl md:text-4xl font-black text-white">{dialect === 'AmE' ? stats.ga : stats.rp}</p>
+              <p className="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold">
+                fonemi {dialect === 'AmE' ? 'GA' : 'RP'}
+              </p>
             </div>
             <div className="w-px h-10 bg-slate-800" />
             <div className="text-center">
-              <p className="text-3xl md:text-4xl font-black text-white">{stats.upcoming}</p>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">in arrivo</p>
+              <p className="text-3xl md:text-4xl font-black text-emerald-300">{stats.published}</p>
+              <p className="text-[10px] uppercase tracking-widest text-emerald-200/70 font-bold">card pubblicate</p>
+            </div>
+            <div className="w-px h-10 bg-slate-800" />
+            <div className="text-center">
+              <p className="text-3xl md:text-4xl font-black text-slate-300">{stats.upcoming}</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">in produzione</p>
             </div>
             <div className="w-px h-10 bg-slate-800" />
             <div className="text-center">
@@ -328,6 +378,10 @@ const PhonemeLibraryPage = () => {
               <p className="text-[10px] uppercase tracking-widest text-orange-200/70 font-bold">variante selezionata</p>
             </div>
           </div>
+
+          <p className="mt-6 text-[11px] uppercase tracking-[0.22em] text-slate-500" data-testid="library-inventory-note">
+            Inventario completo · UK RP: {stats.rp} segmenti · US GA: {stats.ga} segmenti
+          </p>
         </div>
       </section>
 
@@ -384,7 +438,7 @@ const PhonemeLibraryPage = () => {
             }
             return (
               <div key={entry.id} className="lib-card-enter h-full" style={{ animationDelay: `${i * 50}ms` }}>
-                <LockedCard entry={entry} group={group} index={i} />
+                <LockedCard entry={entry} group={group} dialect={dialect} index={i} />
               </div>
             );
           })}

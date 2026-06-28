@@ -12,6 +12,25 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Inventario IPA completo (44 RP / 43 GA) — accademicamente rigoroso (P1 — DONE)
+- [x] **`phonemeCatalogue.js` riscritto** con i 44 segmenti dell\u2019inglese standard secondo Wells (1982), Cruttenden (2014), Ladefoged & Johnson (2011):
+  - **12 monofthongi** (7 brevi + 5 lunghe) — KIT, DRESS, TRAP, STRUT, LOT, FOOT, COMMA, FLEECE, PALM, THOUGHT, GOOSE, NURSE
+  - **8 ditthongi** (5 chiudenti + 3 centrali) — FACE, PRICE, CHOICE, MOUTH, GOAT, NEAR, SQUARE, CURE
+  - **24 consonanti** — 6 occlusive, 2 affricate, 9 fricative, 3 nasali, 4 approssimanti
+- [x] **Distinzione varietale**: ogni entry porta `ipa` (RP base) + `ipaUS` quando il GA differisce. Esempi notevoli: DRESS `/e/` RP → `/ɛ/` GA; LOT `/ɒ/` RP → `/ɑ/` GA (con flag `mergedInUS: true` → merge con PALM); GOAT `/əʊ/` RP → `/oʊ/` GA; centrali `/ɪə eə ʊə/` RP → r-coloured `/ɪr ɛr ʊr/` GA; NURSE `/ɜː/` RP → `/ɝ/` GA.
+- [x] **Wells lexical sets** usati come `subtitle` (FLEECE, KIT, FOOT, PALM, …); `subgroup` con classificazione fonetica fine (short-monophthong, closing-fronting, centring, plosive, affricate, fricative, nasal, approximant); per le consonanti `manner` con descrizione articolatoria completa (es. "voiceless post-alveolar fricative").
+- [x] **Helper `getInventoryTotals()`**: calcola correttamente 44 RP / 43 GA tenendo conto dei merger pedagogici (oggi solo LOT in GA).
+- [x] **Library page dialect-aware**:
+  - Stat headline mostra **44 FONEMI RP** o **43 FONEMI GA** in funzione del toggle attivo
+  - Inventory note in fondo: "Inventario completo · UK RP: 44 segmenti · US GA: 43 segmenti"
+  - Filtri aggiornati automaticamente: Vocali 12 · Dittonghi 8 · Consonanti 24
+  - Ogni card mostra l\u2019IPA della variante selezionata + nota cross-dialettale ("US: /ɛ/" / "RP: /e/")
+  - LOT card mostra warning ambra "⚠ MERGED WITH PALM /ɑ/ IN GA" quando la variante US è attiva
+  - Le 42 card "in preparazione" mostrano correttamente IPA, lexical set, sottocategoria fonetica, manner di articolazione (per consonanti), badge Premium
+- [x] **Verifica visiva**: tutti i 44 segmenti renderizzati su griglia 4 colonne. Toggle US/UK ricalcola istantaneamente la statistica e le IPA. Le 2 card già pubblicate (FOOT free, FLEECE premium) mantengono i loro badge distintivi.
+
+
+
 ### 28/06/2026 — Audio v2 (slower/natural) + Card nav + Paywall premium (P0+P1 — DONE)
 - [x] **Audio v2 — pacing più lento e naturale**: nuovo script `/app/backend/tests/regenerate_phoneme_audio_v2.py` ha rigenerato i 35 file ElevenLabs per /iː/ con:
   - **Text padding**: ogni parola wrappata con `   word.  ...` (leading silence + trailing decay), frasi con ellissi interne (`See... the green tree.`), fonema isolato come `...   eeeeeeee   ...`
