@@ -12,6 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Phoneme Library + global US/UK dialect toggle (P1 — DONE)
+- [x] **Nuova rotta `/lms/phonemes`** con `/app/frontend/src/pages/PhonemeLibraryPage.jsx` (~340 LOC): hub pubblico che precede le card individuali. Hero con titolo, stats (2 disponibili / 18 in arrivo / variante corrente), filtri (Tutti/Vocali/Dittonghi/Consonanti), griglia responsive 1/2/3/4 colonne con mini-card published (IPA, lexical set, sottocategoria fonologica, 3 parole d\u2019esempio, mini play button per audio isolato del dialetto selezionato) e card "in preparazione" greyed-out con lucchetto. CTA finale "Prima volta? Inizia da /ʊ/ FOOT".
+- [x] **Catalogo statico**: 20 voci (11 vocali, 3 dittonghi, 6 consonanti). `i-fleece` e `u-foot` published, gli altri 18 mostrati come placeholder per dare percezione di crescita del catalogo e SEO long-tail.
+- [x] **Nuovo hook `useDialect`** in `/app/frontend/src/hooks/useDialect.js`: single source of truth per la variante US/UK. Persistenza in `localStorage` (`vf.lms.dialect`), override via URL query (`?d=us|uk` o `?dialect=AmE|RP`) alla prima visita, sync cross-tab via `storage` event e cross-component via `CustomEvent` custom.
+- [x] **`PhonemeCardPage`** ora consuma `useDialect` invece dello state locale: cambio di dialetto in qualsiasi pagina viene riflesso ovunque immediatamente. Test e2e confermato: UK toggle in library → click card /iː/ → page card mostra 🇬🇧 attivo.
+- [x] **Toggle UI**: due pill US/UK con bandiere + descrizione "American English" / "Received Pronunciation" (nascosto su mobile). Gradient orange quando attivo.
+- [x] **Fix visuale**: rimossa duplicazione "FLEECE · FLEECE" / "FOOT · FOOT", ora mostra il `subcategory` fonologico (long tense, short lax).
+
+
+
 ### 28/06/2026 — Test phoneme card /iː/ FLEECE generata via pipeline ElevenLabs (P1 — DONE)
 - [x] **Script generator** `/app/backend/tests/generate_phoneme_audio_i_fleece.py`: login admin → POST /api/admin/elevenlabs/tts per 30 parole + 1 isolato + 3 frasi + 1 mnemonico = **35 file audio mp3 44.1kHz** generati con la voce clonata del Prof. Dapper (voice_id `mIrm7gNCglTAXk0xhryV`). Risultato persistito su `/tmp/i_fleece_audio.json` per estrazione URL.
 - [x] **Nuovo entry `PHONEME_I_FLEECE`** in `/app/frontend/src/data/phonemes.js`: card completa con 9 hotspot anatomici /iː/-specifici (blade FORWARD/HIGH, dorsum FRONT/CLOSE/TENSE, lip SPREADING), 4 knob articolatori, 30 parole comuni (see/me/he/we/she/tree/three/free/need/feel/week/sleep/green/street/read/keep/agree/between/complete/machine/believe/teach/easy/people/eat/each/team/piece/evening/season), 3 frasi d\u2019esempio, mnemonico ("He sees three sheep eat green leaves easily"), classification badges, fun-fact (F2 più alta tra le vocali inglesi), vowelChartPosition top-left.

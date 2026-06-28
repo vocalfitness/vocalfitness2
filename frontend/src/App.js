@@ -6,6 +6,7 @@ import ResourcesPage from "./pages/ResourcesPage";
 import CorporateTrainingPage from "./pages/CorporateTrainingPage";
 import MedtronicLandingPage from "./pages/MedtronicLandingPage";
 import ErnstYoungLandingPage from "./pages/ErnstYoungLandingPage";
+import PhonemeLibraryPage from "./pages/PhonemeLibraryPage";
 import SpeakRight101Page from "./pages/SpeakRight101Page";
 import PhonemeCardPage from "./pages/PhonemeCardPage";
 import LoginPage from "./pages/LoginPage";
@@ -29,6 +30,7 @@ function App() {
               <Route path="/speak-right-ey" element={<ErnstYoungLandingPage />} />
               <Route path="/proposta-ey" element={<ErnstYoungLandingPage />} />
               <Route path="/speak-right-101" element={<SpeakRight101Page />} />
+              <Route path="/lms/phonemes" element={<PhonemeLibraryPage />} />
               <Route path="/lms/phoneme/:id" element={<PhonemeCardPage />} />
               <Route path="/lms/phoneme" element={<PhonemeCardPage />} />
               <Route path="/login" element={<LoginPage />} />

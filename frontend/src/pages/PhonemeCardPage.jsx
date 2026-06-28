@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { VocalLabEmbed } from '../components/VocalLabEmbed';
 import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
+import useDialect from '../hooks/useDialect';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -238,7 +239,7 @@ const PhonemeCardPage = () => {
   const { id = 'u-foot' } = useParams();
   const phoneme = PHONEMES[id] || PHONEMES['u-foot'];
 
-  const [dialect, setDialect] = useState('AmE');
+  const { dialect, setDialect } = useDialect();
   const [openHotspot, setOpenHotspot] = useState(null);
   const [showFrontView, setShowFrontView] = useState(false);
   const [showArticulatory, setShowArticulatory] = useState(false);
@@ -452,7 +453,7 @@ const PhonemeCardPage = () => {
             <div className="absolute top-[4%] right-[3%] z-20">
               <button
                 type="button"
-                onClick={() => setDialect(d => d === 'AmE' ? 'RP' : 'AmE')}
+                onClick={() => setDialect(dialect === 'AmE' ? 'RP' : 'AmE')}
                 className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 rounded-full pl-2 pr-3 py-1.5 hover:border-orange-400 transition-all duration-300 hover:scale-105"
                 data-testid="phoneme-dialect-switch"
               >
