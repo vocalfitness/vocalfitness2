@@ -12,6 +12,18 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Spettrogramma real-time + Quiz uditivo (P2 — DONE)
+- [x] **`SpectrogramView.jsx`** (~155 LOC): scrolling waterfall spectrogram in tempo reale tramite Web Audio API (no librerie esterne). Pipeline: HTML5 audio → MediaElementSource → AnalyserNode (fftSize 1024, smoothing 0.78) → requestAnimationFrame loop → strip verticali di 1 px shiftate a sinistra. Color ramp percettivamente monotonica (navy → cyan → orange → white) sulla palette LMS. Etichette F0/F1 in basso, F2/F3 in alto, "→ tempo" a destra — formato Praat-style. Cleanup AudioContext + cancel rAF su unmount.
+- [x] **`PhonemeAuralQuiz.jsx`** (~165 LOC): drill "ascolta e identifica" con 3 alternative IPA. Mappa esplicita `CONFUSION_PAIRS` (non euristica) basata su similarità acustica reale: /iː/↔/ɪ/+/eɪ/ (sheep/ship/shape), /ʊ/↔/uː/+/ʌ/ (full/fool/cup), /θ/↔/f/+/s/ (high-freq noise), /r/↔/l/+/w/, ecc. Auto-play della parola random ad ogni round, score con accuracy %, feedback inline (verde/rosso + parola+IPA), streak detector. Riusa `getIpaForDialect` dal catalogo → quiz dialect-aware (mostra /e/ in UK, /ɛ/ in US per DRESS, ecc.).
+- [x] **Integrazione `PhonemeCardPage`**: nuova sezione "Fonetica Acustica + Quiz" sotto il Pink Trombone, grid responsive lg:grid-cols-2. Lo spettrogramma usa `phoneme.audio[dialect].isolated`; il quiz pesca da `commonWords`. Sezione visibile solo per card published (i 30 esempi audio del /ʊ/ FOOT pilotano il quiz correttamente).
+- [x] **Verifica E2E preview**:
+  - Spettrogramma /ʊ/ FOOT → click Avvia → bande formantiche F0/F1/F2 chiaramente visibili (audio .wav umano del Prof.)
+  - Quiz /ʊ/ FOOT → auto-play "look" → click /ʊ/ FOOT → punteggio 1/1, feedback "Corretto. La parola era look /lʊk/" + bottone "Prossima domanda"
+  - Cleanup verificato (AudioContext chiuso su unmount, audio ref pausato)
+- [x] **Posizionamento accademico**: lo spettrogramma trasforma la card in uno strumento di **fonetica acustica** (non solo articolatoria); il quiz è esercizio di **fonologia percettiva** (categorizzazione minimale-pair). Insieme coprono il triangolo articolatorio-acustico-uditivo richiesto dall\u2019utente.
+
+
+
 ### 28/06/2026 — Inventario IPA completo (44 RP / 43 GA) — accademicamente rigoroso (P1 — DONE)
 - [x] **`phonemeCatalogue.js` riscritto** con i 44 segmenti dell\u2019inglese standard secondo Wells (1982), Cruttenden (2014), Ladefoged & Johnson (2011):
   - **12 monofthongi** (7 brevi + 5 lunghe) — KIT, DRESS, TRAP, STRUT, LOT, FOOT, COMMA, FLEECE, PALM, THOUGHT, GOOSE, NURSE

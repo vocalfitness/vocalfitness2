@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { VocalLabEmbed } from '../components/VocalLabEmbed';
 import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
+import SpectrogramView from '../components/SpectrogramView';
+import PhonemeAuralQuiz from '../components/PhonemeAuralQuiz';
 import useDialect from '../hooks/useDialect';
 import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
@@ -841,6 +843,36 @@ const PhonemeCardPage = () => {
             </p>
           </div>
 
+        </div>
+
+        {/* ============== Acoustic phonetics + Aural training ============== */}
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6" data-testid="phoneme-deep-section">
+          <div className="rounded-3xl border border-cyan-500/25 bg-slate-900/60 p-6 md:p-7">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-4 h-4 text-cyan-300" />
+              <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-300 font-bold">
+                Fonetica Acustica · Analisi Spettrale
+              </p>
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white leading-tight mb-2">
+              Lo spettrogramma del Prof. Dapper
+            </h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-5">
+              La visualizzazione in tempo reale di F0, F1, F2 e F3 mentre il fonema viene pronunciato.
+              Asse Y = frequenza (0&nbsp;Hz in basso → ~10&nbsp;kHz in alto); colore = ampiezza.
+            </p>
+            <SpectrogramView
+              src={phoneme.audio?.[dialect]?.isolated || phoneme.audio?.AmE?.isolated}
+              label="Fonema isolato"
+              testId="phoneme-spectrogram"
+            />
+          </div>
+
+          <PhonemeAuralQuiz
+            phoneme={phoneme}
+            dialect={dialect}
+            testId="phoneme-aural-quiz"
+          />
         </div>
 
         {/* Bottom note */}
