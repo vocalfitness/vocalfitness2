@@ -446,7 +446,7 @@ export const PHONEME_I_FLEECE = {
     phrase: 'He sees three sheep eat green leaves easily.',
     highlights: ['He', 'sees', 'three', 'sheep', 'eat', 'green', 'leaves', 'easily'],
     note: 'Repeat slowly five times. On every /iː/, push the front of the tongue forward and high toward the hard palate, and stretch the lips into a thin horizontal smile — no rounding.',
-    audio: '/api/uploads/elevenlabs/mnemonic_i_fleece_v2_mIrm7gNC_1782656239.mp3',
+    audio: '/api/uploads/elevenlabs/mnemonic_i_fleece_v3_mIrm7gNC_1782662703.mp3',
   },
 
   pronunciationGuide: {
@@ -464,19 +464,19 @@ export const PHONEME_I_FLEECE = {
 
   audio: {
     AmE: {
-      isolated: '/api/uploads/elevenlabs/i_fleece_isolated_v2_mIrm7gNC_1782656194.mp3',
+      isolated: '/api/uploads/elevenlabs/i_fleece_isolated_v3_mIrm7gNC_1782662697.mp3',
       examples: [
-        '/api/uploads/elevenlabs/see_the_green_tree_v2_mIrm7gNC_1782656234.mp3',
-        '/api/uploads/elevenlabs/she_needs_to_eat_each_week_v2_mIrm7gNC_1782656236.mp3',
-        '/api/uploads/elevenlabs/three_sheep_sleep_field_v2_mIrm7gNC_1782656237.mp3',
+        '/api/uploads/elevenlabs/see_the_green_tree_v3_mIrm7gNC_1782662698.mp3',
+        '/api/uploads/elevenlabs/she_needs_to_eat_v3_mIrm7gNC_1782662700.mp3',
+        '/api/uploads/elevenlabs/three_sheep_sleep_v3_mIrm7gNC_1782662701.mp3',
       ],
     },
     RP: {
-      isolated: '/api/uploads/elevenlabs/i_fleece_isolated_v2_mIrm7gNC_1782656194.mp3',
+      isolated: '/api/uploads/elevenlabs/i_fleece_isolated_v3_mIrm7gNC_1782662697.mp3',
       examples: [
-        '/api/uploads/elevenlabs/see_the_green_tree_v2_mIrm7gNC_1782656234.mp3',
-        '/api/uploads/elevenlabs/she_needs_to_eat_each_week_v2_mIrm7gNC_1782656236.mp3',
-        '/api/uploads/elevenlabs/three_sheep_sleep_field_v2_mIrm7gNC_1782656237.mp3',
+        '/api/uploads/elevenlabs/see_the_green_tree_v3_mIrm7gNC_1782662698.mp3',
+        '/api/uploads/elevenlabs/she_needs_to_eat_v3_mIrm7gNC_1782662700.mp3',
+        '/api/uploads/elevenlabs/three_sheep_sleep_v3_mIrm7gNC_1782662701.mp3',
       ],
     },
   },
