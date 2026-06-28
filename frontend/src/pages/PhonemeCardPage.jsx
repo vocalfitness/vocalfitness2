@@ -11,6 +11,9 @@ import {
 import { VocalLabEmbed } from '../components/VocalLabEmbed';
 import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
 import useDialect from '../hooks/useDialect';
+import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
+import { useAuth } from '../context/AuthContext';
+import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -239,6 +242,9 @@ const PhonemeCardPage = () => {
   const { id = 'u-foot' } = useParams();
   const phoneme = PHONEMES[id] || PHONEMES['u-foot'];
 
+  const { user, loading: authLoading } = useAuth();
+  const accessGranted = canAccessCard(id, user);
+
   const { dialect, setDialect } = useDialect();
   const [openHotspot, setOpenHotspot] = useState(null);
   const [showFrontView, setShowFrontView] = useState(false);
@@ -342,6 +348,18 @@ const PhonemeCardPage = () => {
     };
   }, [phoneme, dialect]);
 
+  // Premium paywall guard — block render until auth state is resolved so the
+  // gate is not flashed for a logged-in user during initial token validation.
+  if (!authLoading && !accessGranted) {
+    return (
+      <LMSPremiumPaywall
+        variant="fullscreen"
+        cardId={id}
+        cardLabel={`/${phoneme.ipa}/ ${phoneme.examples?.[0] || ''}`.trim()}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-cyan-50 overflow-x-hidden">
       <style>{`
@@ -390,17 +408,30 @@ const PhonemeCardPage = () => {
 
       {/* Top bar */}
       <nav className="sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-cyan-500/15">
-        <div className="max-w-[1600px] mx-auto px-5 lg:px-8 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors group" data-testid="phoneme-back-link">
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            <span className="text-sm font-semibold tracking-wide">Vocal Fitness LMS</span>
-          </Link>
+        <div className="max-w-[1600px] mx-auto px-5 lg:px-8 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link to="/" className="flex items-center gap-2 text-cyan-300 hover:text-cyan-100 transition-colors group" data-testid="phoneme-back-link">
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              <span className="text-sm font-semibold tracking-wide hidden sm:inline">Vocal Fitness LMS</span>
+              <span className="text-sm font-semibold tracking-wide sm:hidden">Home</span>
+            </Link>
+            <span className="text-cyan-500/30">|</span>
+            <Link
+              to="/lms/phonemes"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-400 hover:text-white transition-all duration-300 group"
+              data-testid="phoneme-library-link"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold tracking-wide uppercase">Tutte le card</span>
+              <ChevronRight className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-2 text-xs text-cyan-300/70 uppercase tracking-[0.2em]">
               <GraduationCap className="w-3.5 h-3.5" />
               Phoneme Card
             </span>
-            <span className="text-xs text-cyan-200/60">·</span>
+            <span className="text-xs text-cyan-200/60 hidden sm:inline">·</span>
             <span className="text-xs font-mono font-bold text-cyan-100">{phoneme.displayIpa}</span>
           </div>
         </div>

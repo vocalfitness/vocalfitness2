@@ -2,62 +2,20 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Play, Pause, BookOpen, GraduationCap, Sparkles,
-  Lock, ChevronRight, Volume2, Globe, Layers
+  Lock, ChevronRight, Volume2, Globe, Layers, Crown
 } from 'lucide-react';
 import { PHONEMES } from '../data/phonemes';
+import { PHONEME_CATALOGUE as CATALOGUE, hasPremiumAccess } from '../data/phonemeCatalogue';
 import useDialect from '../hooks/useDialect';
+import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL } from '../lib/backend';
+import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 
 /* =========================================================================
  *  PhonemeLibraryPage  —  /lms/phonemes
- *  -----------------------------------------------------------------------
- *  Public, SEO-friendly catalogue page that introduces every phoneme card
- *  available on the platform. Acts as the "gate" before a student opens an
- *  individual card.
- *
- *  Dialect handling: a single GLOBAL toggle in the header (US / UK) writes
- *  to localStorage via the shared `useDialect` hook so every card opened
- *  from here inherits the same preference, and re-visits remember it.
- *  Cross-link friendly via ?d=us|uk on first visit.
- *
- *  Catalogue strategy:
- *    – published cards   →  rich, clickable mini-card (IPA + lexical set
- *                            + 3 example words + Listen mini-button)
- *    – upcoming cards    →  greyed-out placeholder with "in preparazione"
- *                            badge, drives the perception of a growing
- *                            library without dead 404 links
+ *  (catalogue data is now centralised in /data/phonemeCatalogue.js so the
+ *   PhonemeCardPage paywall guard can share the same source of truth)
  * ======================================================================= */
-
-// ------- Static catalogue spec (single source of truth) ------------------
-// Each entry can be either "published" (resolves to a real PHONEMES[id]
-// entry) or "upcoming" (renders a locked placeholder card).
-const CATALOGUE = [
-  // ----------------------- VOWELS ---------------------------------
-  { id: 'i-fleece', status: 'published', group: 'vowel', subtitle: 'FLEECE', words: ['see', 'tree', 'three'] },
-  { id: 'i-kit',    status: 'upcoming',  group: 'vowel', ipa: 'ɪ',  subtitle: 'KIT',     words: ['ship', 'sit', 'fish'] },
-  { id: 'e-dress',  status: 'upcoming',  group: 'vowel', ipa: 'e',  subtitle: 'DRESS',   words: ['bed', 'pen', 'help'] },
-  { id: 'ae-trap',  status: 'upcoming',  group: 'vowel', ipa: 'æ',  subtitle: 'TRAP',    words: ['cat', 'man', 'apple'] },
-  { id: 'a-father', status: 'upcoming',  group: 'vowel', ipa: 'ɑː', subtitle: 'FATHER',  words: ['car', 'father', 'palm'] },
-  { id: 'o-thought',status: 'upcoming',  group: 'vowel', ipa: 'ɔː', subtitle: 'THOUGHT', words: ['saw', 'thought', 'door'] },
-  { id: 'u-foot',   status: 'published', group: 'vowel', subtitle: 'FOOT', words: ['put', 'look', 'good'] },
-  { id: 'u-goose',  status: 'upcoming',  group: 'vowel', ipa: 'uː', subtitle: 'GOOSE',   words: ['two', 'food', 'blue'] },
-  { id: 'ah-strut', status: 'upcoming',  group: 'vowel', ipa: 'ʌ',  subtitle: 'STRUT',   words: ['cup', 'love', 'come'] },
-  { id: 'er-nurse', status: 'upcoming',  group: 'vowel', ipa: 'ɜːr',subtitle: 'NURSE',   words: ['bird', 'word', 'work'] },
-  { id: 'schwa',    status: 'upcoming',  group: 'vowel', ipa: 'ə',  subtitle: 'COMMA',   words: ['about', 'sofa', 'around'] },
-
-  // ----------------------- DIPHTHONGS -----------------------------
-  { id: 'ay-price', status: 'upcoming', group: 'diphthong', ipa: 'aɪ', subtitle: 'PRICE', words: ['time', 'right', 'my'] },
-  { id: 'ow-mouth', status: 'upcoming', group: 'diphthong', ipa: 'aʊ', subtitle: 'MOUTH', words: ['now', 'house', 'down'] },
-  { id: 'oy-choice',status: 'upcoming', group: 'diphthong', ipa: 'ɔɪ', subtitle: 'CHOICE',words: ['boy', 'voice', 'join'] },
-
-  // ----------------------- CONSONANTS -----------------------------
-  { id: 'th-think', status: 'upcoming', group: 'consonant', ipa: 'θ', subtitle: 'THINK',  words: ['think', 'three', 'bath'] },
-  { id: 'th-this',  status: 'upcoming', group: 'consonant', ipa: 'ð', subtitle: 'THIS',   words: ['this', 'mother', 'breathe'] },
-  { id: 's-sip',    status: 'upcoming', group: 'consonant', ipa: 's', subtitle: 'SIP',    words: ['see', 'sun', 'price'] },
-  { id: 'r-red',    status: 'upcoming', group: 'consonant', ipa: 'r', subtitle: 'RED',    words: ['red', 'tree', 'around'] },
-  { id: 'l-light',  status: 'upcoming', group: 'consonant', ipa: 'l', subtitle: 'LIGHT',  words: ['light', 'love', 'full'] },
-  { id: 'w-wet',    status: 'upcoming', group: 'consonant', ipa: 'w', subtitle: 'WET',    words: ['wet', 'one', 'quick'] },
-];
 
 const GROUPS = [
   { id: 'vowel',      label: 'Vocali',     color: 'from-cyan-500 to-blue-600',    soft: 'from-cyan-500/10  to-blue-500/5',    border: 'border-cyan-500/30',   accent: 'text-cyan-300' },
@@ -104,29 +62,65 @@ const ListenButton = ({ src, label = 'Listen', testId }) => {
 };
 
 // ------- Published mini-card ---------------------------------------------
-const PublishedCard = ({ entry, phoneme, group, dialect, index }) => {
+const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLockedClick }) => {
   const isoAudio = phoneme.audio?.[dialect]?.isolated || phoneme.audio?.AmE?.isolated;
+  const isPremium = entry.access === 'premium';
+
+  const handleClick = (e) => {
+    if (locked) {
+      e.preventDefault();
+      e.stopPropagation();
+      onLockedClick?.(entry);
+    }
+  };
+
   return (
     <Link
-      to={`/lms/phoneme/${entry.id}`}
-      className="group relative block"
+      to={locked ? '#' : `/lms/phoneme/${entry.id}`}
+      onClick={handleClick}
+      className={`group relative block ${locked ? 'cursor-pointer' : ''}`}
       data-testid={`phoneme-library-card-${entry.id}`}
+      data-locked={locked ? 'true' : 'false'}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div
-        className={`relative h-full rounded-3xl border ${group.border} bg-gradient-to-br ${group.soft} backdrop-blur-sm p-6 overflow-hidden transition-all duration-500 group-hover:-translate-y-1.5 group-hover:border-orange-400/60`}
+        className={`relative h-full rounded-3xl border ${
+          locked ? 'border-amber-500/40' : group.border
+        } bg-gradient-to-br ${group.soft} backdrop-blur-sm p-6 overflow-hidden transition-all duration-500 group-hover:-translate-y-1.5 ${
+          locked ? 'group-hover:border-orange-400/80' : 'group-hover:border-orange-400/60'
+        }`}
       >
         {/* Hover glow */}
         <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
              style={{ background: 'radial-gradient(circle at 30% 0%, rgba(251,146,60,0.18) 0%, transparent 60%)' }} />
 
-        {/* Top row: status pill + group label */}
+        {/* Top row: status pill + access label */}
         <div className="flex items-start justify-between gap-3 relative z-10">
           <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-bold ${group.accent}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
             disponibile · {group.label}
           </span>
-          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-orange-300 group-hover:translate-x-1 transition-all" />
+          {isPremium ? (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                locked
+                  ? 'bg-amber-500/20 border border-amber-400/60 text-amber-200'
+                  : 'bg-amber-500/10 border border-amber-500/40 text-amber-300'
+              }`}
+              data-testid="phoneme-library-badge-premium"
+            >
+              {locked ? <Lock className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
+              Premium
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold uppercase tracking-wider"
+              data-testid="phoneme-library-badge-free"
+            >
+              <Sparkles className="w-3 h-3" />
+              Gratis
+            </span>
+          )}
         </div>
 
         {/* IPA + lexical set */}
@@ -158,11 +152,18 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index }) => {
           <span className="text-xs text-slate-400">
             {phoneme.commonWords?.length || 0} parole · {phoneme.exampleSentences?.length || 0} frasi
           </span>
-          <ListenButton
-            src={isoAudio}
-            label={`Ascolta /${phoneme.ipa}/ ${dialect === 'AmE' ? 'in americano' : 'in britannico'}`}
-            testId={`phoneme-library-listen-${entry.id}`}
-          />
+          {locked ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+              <Lock className="w-3.5 h-3.5" />
+              Sblocca
+            </span>
+          ) : (
+            <ListenButton
+              src={isoAudio}
+              label={`Ascolta /${phoneme.ipa}/ ${dialect === 'AmE' ? 'in americano' : 'in britannico'}`}
+              testId={`phoneme-library-listen-${entry.id}`}
+            />
+          )}
         </div>
       </div>
     </Link>
@@ -239,7 +240,11 @@ const DialectToggle = ({ dialect, onChange }) => (
 // =========================================================================
 const PhonemeLibraryPage = () => {
   const { dialect, setDialect } = useDialect();
+  const { user } = useAuth();
   const [groupFilter, setGroupFilter] = useState('all');
+  const [paywallEntry, setPaywallEntry] = useState(null);
+
+  const isPremium = hasPremiumAccess(user);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -253,6 +258,8 @@ const PhonemeLibraryPage = () => {
     () => groupFilter === 'all' ? CATALOGUE : CATALOGUE.filter(e => e.group === groupFilter),
     [groupFilter]
   );
+
+  const handleLockedClick = (entry) => setPaywallEntry(entry);
 
   return (
     <div className="min-h-screen bg-[#04070d] text-slate-200" data-testid="phoneme-library-page">
@@ -360,9 +367,18 @@ const PhonemeLibraryPage = () => {
             if (entry.status === 'published') {
               const phoneme = PHONEMES[entry.id];
               if (!phoneme) return null;
+              const locked = entry.access === 'premium' && !isPremium;
               return (
                 <div key={entry.id} className="lib-card-enter h-full" style={{ animationDelay: `${i * 50}ms` }}>
-                  <PublishedCard entry={entry} phoneme={phoneme} group={group} dialect={dialect} index={i} />
+                  <PublishedCard
+                    entry={entry}
+                    phoneme={phoneme}
+                    group={group}
+                    dialect={dialect}
+                    index={i}
+                    locked={locked}
+                    onLockedClick={handleLockedClick}
+                  />
                 </div>
               );
             }
@@ -417,6 +433,15 @@ const PhonemeLibraryPage = () => {
           </p>
         </div>
       </footer>
+      {/* ---------- Premium paywall (modal) ---------- */}
+      {paywallEntry && (
+        <LMSPremiumPaywall
+          variant="modal"
+          cardId={paywallEntry.id}
+          cardLabel={`/${(PHONEMES[paywallEntry.id]?.ipa) || paywallEntry.ipa || ''}/ ${paywallEntry.subtitle}`}
+          onClose={() => setPaywallEntry(null)}
+        />
+      )}
     </div>
   );
 };

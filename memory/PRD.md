@@ -12,6 +12,29 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Audio v2 (slower/natural) + Card nav + Paywall premium (P0+P1 — DONE)
+- [x] **Audio v2 — pacing più lento e naturale**: nuovo script `/app/backend/tests/regenerate_phoneme_audio_v2.py` ha rigenerato i 35 file ElevenLabs per /iː/ con:
+  - **Text padding**: ogni parola wrappata con `   word.  ...` (leading silence + trailing decay), frasi con ellissi interne (`See... the green tree.`), fonema isolato come `...   eeeeeeee   ...`
+  - **Voice settings**: stability 0.50→0.40 (più variazione prosodica), style 0.15→0 (zero inflessione artificiale)
+  - Risultato verificato: file v2 ~2x più lunghi (es. isolated 12KB→24KB, mnemonic 37KB→53KB) — pacing più lento, decay naturale, troncamenti spariti
+  - Script `patch_phonemes_v2.py` ha sostituito chirurgicamente le URL in `phonemes.js`. /ʊ/ FOOT mantiene le registrazioni autentiche umane `.wav` del Prof. (non rigenerato — già perfette).
+- [x] **Pulsante nav "Tutte le card"** nel header di `PhonemeCardPage.jsx`: pill con BookOpen + chevron, accanto al link "Vocal Fitness LMS", che riporta a `/lms/phonemes`. Su mobile collassa elegantemente.
+- [x] **Sistema paywall Premium + lead capture** (modello "A — First card free, rest premium"):
+  - **`/app/frontend/src/data/phonemeCatalogue.js`**: single source of truth (catalogo + roles set + helpers `hasPremiumAccess`/`canAccessCard`). `/ʊ/ FOOT` = free, tutti gli altri = premium. Premium roles: `client/collaborator/editor/manager/admin` (lead/anonymous bloccati).
+  - **`LMSPremiumPaywall.jsx`** (`variant: 'modal' | 'fullscreen'`): hero, 4 benefit cards, selector tier €19/mese · €149/anno (annuale highlighted "PIÙ SCELTO"), form lead capture, success state, login link, contatti (mailto + WhatsApp).
+  - **Library page**: badges "GRATIS" / "PREMIUM" sulle card pubblicate, intercetta click su premium per utenti senza accesso → apre paywall modal.
+  - **Card page guard**: paywall fullscreen al posto del contenuto quando `!authLoading && !accessGranted`. Loading-aware per evitare flash di paywall a utenti premium durante la validazione token.
+- [x] **Backend lead capture**:
+  - `POST /api/lms/interest` (pubblico): salva in collection `lms_interests` (email, nome, card_id, tier, source, IP, UA) e usa **BackgroundTasks** per notifica SMTP non bloccante al Prof. su `steve@vocalfitness.org` (`[LMS] Interesse Premium · email@…`). Response <500ms.
+  - `GET /api/admin/lms/interests?status_filter=` (admin auth): elenco filtrabile newest-first.
+- [x] **Verifica E2E preview**:
+  - Library mostra correttamente "GRATIS"/"PREMIUM"
+  - Anonymous clicca /iː/ → paywall modal → submit email → success in 2.5s → audit log creato (200 OK)
+  - Admin login → bypassa paywall, accede a tutte le card
+  - Nav "TUTTE LE CARD" presente nell\u2019header card → click → `/lms/phonemes`
+
+
+
 ### 28/06/2026 — Phoneme Library + global US/UK dialect toggle (P1 — DONE)
 - [x] **Nuova rotta `/lms/phonemes`** con `/app/frontend/src/pages/PhonemeLibraryPage.jsx` (~340 LOC): hub pubblico che precede le card individuali. Hero con titolo, stats (2 disponibili / 18 in arrivo / variante corrente), filtri (Tutti/Vocali/Dittonghi/Consonanti), griglia responsive 1/2/3/4 colonne con mini-card published (IPA, lexical set, sottocategoria fonologica, 3 parole d\u2019esempio, mini play button per audio isolato del dialetto selezionato) e card "in preparazione" greyed-out con lucchetto. CTA finale "Prima volta? Inizia da /ʊ/ FOOT".
 - [x] **Catalogo statico**: 20 voci (11 vocali, 3 dittonghi, 6 consonanti). `i-fleece` e `u-foot` published, gli altri 18 mostrati come placeholder per dare percezione di crescita del catalogo e SEO long-tail.

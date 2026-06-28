@@ -945,6 +945,95 @@ async def send_proposal_by_email(payload: ProposalSendRequest, request: Request)
     return {"email_sent": True}
 
 
+# =========================================================================
+# LMS Premium Interest — lead capture from the paywall modal
+# -------------------------------------------------------------------------
+# A visitor who lands on a premium phoneme card (without an active
+# membership) is shown a paywall. They can submit their email + chosen tier
+# so the team can follow up manually. Stripe wiring will plug into the same
+# collection later — keep the schema permissive on purpose.
+# =========================================================================
+class LmsInterestCreate(BaseModel):
+    email: str
+    name: Optional[str] = None
+    card_id: Optional[str] = None
+    tier: Optional[str] = None       # 'monthly' | 'annual' | (future tier slugs)
+    source: Optional[str] = None     # e.g. 'paywall_modal'
+
+@api_router.post("/lms/interest")
+async def lms_interest(payload: LmsInterestCreate, request: Request, background: BackgroundTasks):
+    email_to = (payload.email or "").strip()
+    if not _EMAIL_RE.match(email_to):
+        raise HTTPException(status_code=400, detail="Indirizzo email non valido")
+
+    xff = request.headers.get("x-forwarded-for", "")
+    client_ip = (xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")) or ""
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "email": email_to,
+        "name": (payload.name or "").strip() or None,
+        "card_id": payload.card_id or None,
+        "tier": payload.tier or None,
+        "source": payload.source or None,
+        "client_ip": client_ip,
+        "user_agent": request.headers.get("user-agent", "")[:512],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "new",  # new | contacted | converted | declined
+    }
+    await db.lms_interests.insert_one(doc)
+
+    # Notify the seller via SMTP — non-blocking so the public endpoint
+    # responds within a few hundred ms even if Zoho takes seconds.
+    def _send_notification() -> None:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+
+            smtp_server   = os.environ.get('SMTP_SERVER', '')
+            smtp_port     = int(os.environ.get('SMTP_PORT', '587'))
+            smtp_user     = os.environ.get('SMTP_USER', '')
+            smtp_password = os.environ.get('SMTP_PASSWORD', '')
+            if not (smtp_server and smtp_user and smtp_password):
+                return
+            label_tier = {'monthly': '€19/mese', 'annual': '€149/anno'}.get(payload.tier or '', payload.tier or '—')
+            body = (
+                "🎓 New LMS Premium Interest\n\n"
+                f"Email:    {email_to}\n"
+                f"Name:     {payload.name or '—'}\n"
+                f"Card:     {payload.card_id or '—'}\n"
+                f"Tier:     {label_tier}\n"
+                f"Source:   {payload.source or '—'}\n"
+                f"IP:       {client_ip}\n\n"
+                "— sent automatically from vocalfitness.org/lms paywall\n"
+            )
+            msg = MIMEText(body, 'plain', 'utf-8')
+            msg['From']    = smtp_user
+            msg['To']      = 'steve@vocalfitness.org'
+            msg['Subject'] = f"[LMS] Interesse Premium · {email_to}"
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as srv:
+                srv.starttls()
+                srv.login(smtp_user, smtp_password)
+                srv.sendmail(smtp_user, ['steve@vocalfitness.org'], msg.as_string())
+        except Exception as e:
+            print(f"[lms_interest] notify email failed: {e}")
+
+    background.add_task(_send_notification)
+    return {"ok": True}
+
+@api_router.get("/admin/lms/interests")
+async def list_lms_interests(
+    status_filter: Optional[str] = None,
+    limit: int = 200,
+    _admin: dict = Depends(get_admin_user),
+):
+    q = {}
+    if status_filter:
+        q["status"] = status_filter
+    items = await db.lms_interests.find(q, {"_id": 0}).sort("created_at", -1).to_list(max(1, min(limit, 1000)))
+    return {"total": len(items), "items": items}
+
+
 # Testimonials Endpoints
 @api_router.get("/testimonials")
 async def get_testimonials(language: str = None, featured: bool = None):

@@ -36,7 +36,7 @@ const VOWEL_TARGETS = [
 // recording of the Professor's isolated phoneme.
 const PHONEME_DEFAULTS = {
   'u-foot':   { defaultSym: 'ʊ', referenceAudio: '/api/uploads/elevenlabs/glottal_u_foot_mIrm7gNC_1781555727.mp3' },
-  'i-fleece': { defaultSym: 'i', referenceAudio: '/api/uploads/elevenlabs/i_fleece_isolated_mIrm7gNC_1782653316.mp3' },
+  'i-fleece': { defaultSym: 'i', referenceAudio: '/api/uploads/elevenlabs/i_fleece_isolated_v2_mIrm7gNC_1782656194.mp3' },
 };
 const FALLBACK_DEFAULTS = { defaultSym: 'ʊ', referenceAudio: null };
 
