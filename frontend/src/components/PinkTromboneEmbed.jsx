@@ -26,20 +26,28 @@ const VOWEL_TARGETS = [
   { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',    freq: 132, tense: 0.55, intensity: 0.85 },
   { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER', freq: 125, tense: 0.70, intensity: 0.90 },
   { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT',freq: 122, tense: 0.70, intensity: 0.85 },
-  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',    freq: 120, tense: 0.55, intensity: 0.85, isDefault: true },
+  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',    freq: 120, tense: 0.55, intensity: 0.85 },
   { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',  freq: 130, tense: 0.85, intensity: 0.85 },
   { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',   freq: 120, tense: 0.45, intensity: 0.75 },
 ];
 
-const REFERENCE_AUDIO_BY_PHONEME = {
-  'u-foot': '/api/uploads/elevenlabs/glottal_u_foot_mIrm7gNC_1781555727.mp3',
+// Map phoneme card IDs to (a) the matching vowel-chart symbol used as
+// initial posture for the Pink Trombone and (b) the ElevenLabs reference
+// recording of the Professor's isolated phoneme.
+const PHONEME_DEFAULTS = {
+  'u-foot':   { defaultSym: 'ʊ', referenceAudio: '/api/uploads/elevenlabs/glottal_u_foot_mIrm7gNC_1781555727.mp3' },
+  'i-fleece': { defaultSym: 'i', referenceAudio: '/api/uploads/elevenlabs/i_fleece_isolated_mIrm7gNC_1782653316.mp3' },
 };
+const FALLBACK_DEFAULTS = { defaultSym: 'ʊ', referenceAudio: null };
 
 export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
+  const profile = PHONEME_DEFAULTS[phonemeId] || FALLBACK_DEFAULTS;
+  const defaultTarget = VOWEL_TARGETS.find(v => v.sym === profile.defaultSym) || VOWEL_TARGETS[0];
+
   const iframeRef = useRef(null);
   const refAudioRef = useRef(null);
   const [iframeReady, setIframeReady] = useState(false);
-  const [activeVowel, setActiveVowel] = useState('ʊ');
+  const [activeVowel, setActiveVowel] = useState(defaultTarget.sym);
   const [refPlaying, setRefPlaying] = useState(false);
   const [error, setError] = useState('');
 
@@ -65,20 +73,19 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
       const d = ev.data;
       if (d && d.type === 'pt:ready') {
         setIframeReady(true);
-        const initial = VOWEL_TARGETS.find(v => v.isDefault) || VOWEL_TARGETS[0];
-        applyVowel(initial);
+        applyVowel(defaultTarget);
       }
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, [applyVowel]);
+  }, [applyVowel, defaultTarget]);
 
   useEffect(() => () => {
     if (refAudioRef.current) { try { refAudioRef.current.pause(); } catch { /* noop */ } refAudioRef.current = null; }
   }, []);
 
   const playReference = () => {
-    const url = REFERENCE_AUDIO_BY_PHONEME[phonemeId];
+    const url = profile.referenceAudio;
     if (!url) { setError('Audio di riferimento non ancora disponibile per questa scheda'); return; }
     if (!refAudioRef.current) {
       refAudioRef.current = new Audio(`${BACKEND_URL}${url}`);
@@ -111,7 +118,7 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
 
       <div className="phonetics-lab-wrapper__topbar">
         <div className="phonetics-lab-wrapper__title">
-          <span className="phonetics-lab-wrapper__ipa">/ʊ/</span>
+          <span className="phonetics-lab-wrapper__ipa">/{defaultTarget.sym}/</span>
           <span className="phonetics-lab-wrapper__caption">
             Pink Trombone · modello fisico interattivo del tratto vocale
           </span>

@@ -12,6 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Test phoneme card /iː/ FLEECE generata via pipeline ElevenLabs (P1 — DONE)
+- [x] **Script generator** `/app/backend/tests/generate_phoneme_audio_i_fleece.py`: login admin → POST /api/admin/elevenlabs/tts per 30 parole + 1 isolato + 3 frasi + 1 mnemonico = **35 file audio mp3 44.1kHz** generati con la voce clonata del Prof. Dapper (voice_id `mIrm7gNCglTAXk0xhryV`). Risultato persistito su `/tmp/i_fleece_audio.json` per estrazione URL.
+- [x] **Nuovo entry `PHONEME_I_FLEECE`** in `/app/frontend/src/data/phonemes.js`: card completa con 9 hotspot anatomici /iː/-specifici (blade FORWARD/HIGH, dorsum FRONT/CLOSE/TENSE, lip SPREADING), 4 knob articolatori, 30 parole comuni (see/me/he/we/she/tree/three/free/need/feel/week/sleep/green/street/read/keep/agree/between/complete/machine/believe/teach/easy/people/eat/each/team/piece/evening/season), 3 frasi d\u2019esempio, mnemonico ("He sees three sheep eat green leaves easily"), classification badges, fun-fact (F2 più alta tra le vocali inglesi), vowelChartPosition top-left.
+- [x] **`PinkTromboneEmbed.jsx`** ora consapevole del fonema: introdotto `PHONEME_DEFAULTS` mapping (id → defaultSym + referenceAudio), rimosso flag `isDefault` hardcoded da VOWEL_TARGETS, IPA topbar label e vocale attiva del trapezio derivano da `phonemeId`. Aggiunto reference audio per `i-fleece`.
+- [x] **Route attivo**: `/lms/phoneme/i-fleece` funzionante in preview.
+- [x] **Verifica E2E**: HEAD su 5 audio URLs ritorna 200 + audio/mpeg (12-37 KB). Trapezio mostra /i/ attivo top-left. Topbar Pink Trombone mostra `/i/`.
+- ⚠️ **Limitazione nota**: gli asset immagine (sideView, frontView, articulatory) riusano i placeholder /ʊ/ con etichette baked-in. Sostituibili in Phase 2 (Admin CMS) caricando immagini sagittali /iː/-specifiche.
+
+
+
 ### 24/06/2026 — Allineamento assets EY ↔ homepage (P0 — DONE)
 - [x] **VIDEOS & IMAGES**: sostituiti gli URL placeholder con quelli identici alla homepage (`/app/frontend/src/pages/HomePage.jsx` linee 600-605):
   - `VIDEOS.hero` → `8id2qukm_57.1-invideo-seedance_2_0.mp4`
