@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
@@ -12,6 +12,7 @@ import { VocalLabEmbed } from '../components/VocalLabEmbed';
 import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
 import SpectrogramView from '../components/SpectrogramView';
 import PhonemeAuralQuiz from '../components/PhonemeAuralQuiz';
+import PhonemeVideoLesson from '../components/PhonemeVideoLesson';
 import useDialect from '../hooks/useDialect';
 import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
@@ -246,6 +247,8 @@ const PhonemeCardPage = () => {
 
   const { user, loading: authLoading } = useAuth();
   const accessGranted = canAccessCard(id, user);
+  const isPremiumUser = hasPremiumAccess(user);
+  const navigate = useNavigate();
 
   const { dialect, setDialect } = useDialect();
   const [openHotspot, setOpenHotspot] = useState(null);
@@ -608,6 +611,19 @@ const PhonemeCardPage = () => {
             </div>
           </div>
         </div>
+
+        {/* ============== Video-lezione del Prof. Steve Dapper ============== */}
+        {phoneme.videoLesson?.id && (
+          <div className="mt-6" data-testid="phoneme-video-lesson-section">
+            <PhonemeVideoLesson
+              videoId={phoneme.videoLesson.id}
+              title={phoneme.videoLesson.title}
+              isPremium={isPremiumUser}
+              onUpsellClick={() => navigate('/login?intent=signup')}
+              testId="phoneme-video-lesson"
+            />
+          </div>
+        )}
 
         {/* SUPPORT PANELS — below the main card */}
         <div className="grid lg:grid-cols-12 gap-5 mt-6">

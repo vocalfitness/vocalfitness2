@@ -14,6 +14,17 @@ export const PHONEME_U_FOOT = {
   dialects: ['AmE', 'RP'],
   dialectNote: 'near identical AmE and RP',
 
+  /**
+   * Optional YouTube video lesson by Prof. Steve Dapper.
+   * When present, the PhonemeCardPage renders a cinematic player container.
+   * At the end of the video, a hard upsell overlay invites the user to
+   * subscribe / register to unlock the full lesson.
+   */
+  videoLesson: {
+    id: '0-aau56RM9I',
+    title: 'L\'arte del fonema /ʊ/ — anteprima della video-lezione',
+  },
+
   assets: {
     sideView:       'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/0jy5a427__%CA%8A_%20Foot%20anatomy%2016_9_navy.png',
     frontView:      'https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/5pyhoxyr_Front%20_%CA%8A_%20Foot%20AmE.png',

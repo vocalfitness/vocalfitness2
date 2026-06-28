@@ -12,6 +12,20 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 28/06/2026 — Video-lezione YouTube nella card fonema /ʊ/ con upsell overlay (P1 — DONE)
+- [x] **`PhonemeVideoLesson.jsx`** completato con YouTube IFrame API + container cinematografico 16:9.
+  - Cover state: thumbnail YouTube `maxresdefault.jpg` (fallback `hqdefault.jpg`) + bottone Play arancione pulsante con glow, CTA "Tocca per avviare", grain decorativo.
+  - Iframe montato lazy solo al primo click → niente bundle YouTube sul first paint.
+  - YT Player con host `youtube-nocookie.com` + origin esplicito + `rel:0`, `modestbranding:1`, `iv_load_policy:3` (no annotations), `cc_load_policy:1` (CC on).
+  - `onStateChange` rileva `PlayerState.ENDED` → setta `ended=true` → render overlay full-surface gradient con CTA "Iscriviti per accedere" (naviga a `/login?intent=signup`) + link secondario "Rivedi l'anteprima" (seek 0 + replay).
+  - Premium users mostrano badge "ANTEPRIMA" assente (no upsell hard).
+  - Cleanup `playerRef.destroy()` su unmount.
+- [x] **Schema `videoLesson`** aggiunto a `phonemes.js` (`PHONEME_U_FOOT.videoLesson = {id:'0-aau56RM9I', title:'L\'arte del fonema /ʊ/ — anteprima della video-lezione'}`). Solo /ʊ/ come prototipo.
+- [x] **Integrazione `PhonemeCardPage`**: sezione condizionale fra main card e support panels (`data-testid="phoneme-video-lesson-section"`). `useNavigate` aggiunto, `hasPremiumAccess(user)` usato per skippare upsell ai premium.
+- [x] **Test smoke screenshot**: cover render OK con tag "VIDEO-LEZIONE · PROF. STEVE DAPPER", titolo, badge ANTEPRIMA, play orange. Lint pulito (0 issues).
+- Note: in headless Chromium (Playwright) YouTube può restituire "Video unavailable" per restrizioni DRM — comportamento normale, non riproducibile in browser reali.
+
+
 ### 28/06/2026 — Pink Trombone come popup top-left attivato dal trapezio (P2 — DONE)
 - [x] **Riorganizzato `PinkTromboneEmbed.jsx`**: rimosso l\u2019iframe inline dalla card. Ora la sezione "Laboratorio Interattivo" mostra solo il **trapezio vocalico IPA** in modalità compatta (single-column).
 - [x] **Popup attivato on-click**: qualsiasi click su un simbolo IPA del trapezio (o drag-down) apre un overlay fixed-position con backdrop blur, ancorato a `top: 24px; left: 24px`. Width responsive `min(440px, 100vw - 48px)`. Dentro: header con titolo "PINK TROMBONE · /<sym>/", iframe Pink Trombone (aspect 1:1, min-h 360px), legend in basso, pulsante X di chiusura.
