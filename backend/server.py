@@ -157,27 +157,29 @@ async def startup_event():
 
 
 # ==================== AUTHENTICATION CONFIG ====================
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'vocalfitness-secret-key-change-in-production-2024')
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+# Security / JWT primitives extracted to utils/security.py
+# ``seed_admin`` still lives here because it depends on ``db`` and runs at
+# startup (see ``@app.on_event("startup")`` below).
+from utils.security import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    pwd_context,
+    security,
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    build_user_deps,
+)
 
 async def seed_admin():
     """Idempotent admin seeding (per Emergent auth playbook).
-    
+
     Runs at startup. Ensures an admin user matching ADMIN_USERNAME / ADMIN_PASSWORD
     env vars exists. If the admin row was lost (e.g. DB volume re-created on
     redeploy) it is re-created. If the env password rotated, the hash is updated
     so the configured credentials are always the source of truth.
-    
+
     Safe behaviour:
       - Only touches the admin user (role == "admin" AND username matches env).
       - Never re-hashes if the current stored hash already matches the env password.
@@ -188,11 +190,11 @@ async def seed_admin():
     admin_username = (os.environ.get('ADMIN_USERNAME') or '').strip() or 'admin'
     admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip()
     admin_email = (os.environ.get('ADMIN_EMAIL') or '').strip() or 'admissions@vocalfitness.org'
-    
+
     if not admin_password:
         logging.warning("seed_admin: ADMIN_PASSWORD env not set — skipping idempotent admin seeding")
         return
-    
+
     try:
         existing = await db.users.find_one({"username": admin_username})
         if existing is None:
@@ -210,7 +212,6 @@ async def seed_admin():
             await db.users.insert_one(admin_doc)
             logging.info(f"seed_admin: created admin user '{admin_username}' from ADMIN_PASSWORD env")
         else:
-            # Update password hash only if env password no longer matches stored hash
             try:
                 matches = verify_password(admin_password, existing.get("hashed_password", ""))
             except Exception:
@@ -227,33 +228,8 @@ async def seed_admin():
     except Exception as e:
         logging.error(f"seed_admin failed: {e}")
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Token non valido")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token scaduto")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Token non valido")
-    
-    user = await db.users.find_one({"username": username}, {"_id": 0})
-    if user is None:
-        raise HTTPException(status_code=401, detail="Utente non trovato")
-    return user
-
-async def get_admin_user(current_user: dict = Depends(get_current_user)):
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Accesso riservato agli amministratori")
-    return current_user
+get_current_user, get_admin_user = build_user_deps(db)
 
 # ==================== USER MODELS ====================
 class UserCreate(BaseModel):
@@ -778,181 +754,7 @@ async def list_lms_interests(
 
 
 
-# ==================== AUTHENTICATION ENDPOINTS ====================
-@api_router.post("/auth/login", response_model=TokenResponse)
-async def login(credentials: UserLogin):
-    """Login and get access token"""
-    user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
-    
-    if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username o password non corretti",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token = create_access_token(data={"sub": user["username"]})
-    
-    return TokenResponse(
-        access_token=access_token,
-        user=UserResponse(
-            id=user["id"],
-            username=user["username"],
-            email=user.get("email", ""),
-            full_name=user.get("full_name", ""),
-            role=user.get("role", "client"),
-            created_at=datetime.fromisoformat(user["created_at"]) if isinstance(user["created_at"], str) else user["created_at"]
-        )
-    )
 
-@api_router.post("/auth/magic", response_model=TokenResponse)
-async def magic_login(payload: dict):
-    """Exchange a magic-link token for a regular session token."""
-    token = payload.get('token') if isinstance(payload, dict) else None
-    if not token:
-        raise HTTPException(status_code=400, detail="Missing token")
-    try:
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        if not decoded.get('magic'):
-            raise HTTPException(status_code=400, detail="Invalid magic token")
-        username = decoded.get('sub')
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Magic link expired")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid magic token")
-
-    user = await db.users.find_one({"username": username}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    access_token = create_access_token(data={"sub": user["username"]})
-    return TokenResponse(
-        access_token=access_token,
-        user=UserResponse(
-            id=user["id"],
-            username=user["username"],
-            email=user.get("email", ""),
-            full_name=user.get("full_name", ""),
-            role=user.get("role", "client"),
-            created_at=datetime.fromisoformat(user["created_at"]) if isinstance(user["created_at"], str) else user["created_at"]
-        )
-    )
-
-
-@api_router.get("/auth/me", response_model=UserResponse)
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    """Get current user information"""
-    return UserResponse(
-        id=current_user["id"],
-        username=current_user["username"],
-        email=current_user.get("email", ""),
-        full_name=current_user.get("full_name", ""),
-        role=current_user.get("role", "client"),
-        created_at=datetime.fromisoformat(current_user["created_at"]) if isinstance(current_user["created_at"], str) else current_user["created_at"]
-    )
-
-@api_router.post("/auth/change-password")
-async def change_password(request: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
-    """Change password for the current user"""
-    # Get user with hashed password from DB
-    user = await db.users.find_one({"id": current_user["id"]})
-    if not user:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
-    
-    # Verify current password
-    if not verify_password(request.current_password, user.get("hashed_password", "")):
-        raise HTTPException(status_code=400, detail="Password attuale non corretta")
-    
-    # Validate new password
-    if len(request.new_password) < 8:
-        raise HTTPException(status_code=400, detail="La nuova password deve avere almeno 8 caratteri")
-    
-    if request.current_password == request.new_password:
-        raise HTTPException(status_code=400, detail="La nuova password deve essere diversa dalla precedente")
-    
-    # Update password
-    new_hashed = get_password_hash(request.new_password)
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$set": {"hashed_password": new_hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    return {"success": True, "message": "Password aggiornata con successo"}
-
-# ==================== NEWSLETTER ENDPOINTS ====================
-@api_router.post("/newsletter/subscribe", response_model=NewsletterResponse, status_code=201)
-async def subscribe_newsletter(subscription: NewsletterSubscription):
-    """Subscribe to the newsletter"""
-    import re
-    
-    # Validate email
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if not re.match(email_regex, subscription.email):
-        raise HTTPException(status_code=400, detail="Email non valida")
-    
-    # Check if already subscribed
-    existing = await db.newsletter_subscribers.find_one({"email": subscription.email.lower()})
-    if existing:
-        if existing.get("is_active"):
-            raise HTTPException(status_code=400, detail="Email già iscritta alla newsletter")
-        else:
-            # Reactivate subscription
-            await db.newsletter_subscribers.update_one(
-                {"email": subscription.email.lower()},
-                {"$set": {"is_active": True, "resubscribed_at": datetime.now(timezone.utc).isoformat()}}
-            )
-            return NewsletterResponse(
-                id=existing["id"],
-                email=existing["email"],
-                name=existing.get("name", ""),
-                language=existing.get("language", "it"),
-                subscribed_at=datetime.fromisoformat(existing["subscribed_at"]) if isinstance(existing["subscribed_at"], str) else existing["subscribed_at"],
-                is_active=True
-            )
-    
-    # Create new subscription
-    sub_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
-    sub_doc = {
-        "id": sub_id,
-        "email": subscription.email.lower(),
-        "name": subscription.name,
-        "language": subscription.language,
-        "subscribed_at": now.isoformat(),
-        "is_active": True
-    }
-    
-    await db.newsletter_subscribers.insert_one(sub_doc)
-    
-    return NewsletterResponse(
-        id=sub_id,
-        email=subscription.email.lower(),
-        name=subscription.name,
-        language=subscription.language,
-        subscribed_at=now,
-        is_active=True
-    )
-
-@api_router.post("/newsletter/unsubscribe")
-async def unsubscribe_newsletter(email: str):
-    """Unsubscribe from the newsletter"""
-    result = await db.newsletter_subscribers.update_one(
-        {"email": email.lower()},
-        {"$set": {"is_active": False, "unsubscribed_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Email non trovata")
-    
-    return {"success": True, "message": "Disiscrizione completata"}
-
-@api_router.get("/admin/newsletter/subscribers")
-async def list_newsletter_subscribers(admin: dict = Depends(get_admin_user), active_only: bool = True):
-    """List newsletter subscribers (admin only)"""
-    query = {"is_active": True} if active_only else {}
-    subscribers = await db.newsletter_subscribers.find(query, {"_id": 0}).to_list(10000)
-    return {"subscribers": subscribers, "count": len(subscribers)}
 
 # ==================== ADMIN USER MANAGEMENT ENDPOINTS ====================
 @api_router.post("/admin/users", response_model=UserResponse, status_code=201)
@@ -2078,6 +1880,7 @@ from routers.messages import build_messages_router
 from routers.popups import build_popups_router
 from routers.leads_forms import build_leads_forms_router
 from routers.chat_alice import build_chat_alice_router
+from routers.auth import build_auth_router
 api_router.include_router(build_phoneme_cards_router(db, get_admin_user))
 api_router.include_router(build_elevenlabs_router(get_admin_user, emergent_put, UPLOADS_DIR))
 api_router.include_router(build_admin_leads_router(db, get_admin_user))
@@ -2088,6 +1891,7 @@ api_router.include_router(build_messages_router(db, get_admin_user, get_current_
 api_router.include_router(build_popups_router(db, get_admin_user, get_current_user, emergent_put, guess_mime))
 api_router.include_router(build_leads_forms_router(db, get_password_hash, create_access_token))
 api_router.include_router(build_chat_alice_router(db))
+api_router.include_router(build_auth_router(db, get_current_user, get_admin_user, UserResponse, NewsletterResponse))
 
 app.include_router(api_router)
 

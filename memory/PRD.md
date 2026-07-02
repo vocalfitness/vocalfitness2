@@ -12,6 +12,32 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · auth + newsletter (P1 — DONE ✅)
+- [x] **Nuovo modulo** `/app/backend/utils/security.py` (~116 righe) — centralizza tutte le primitive di sicurezza: JWT config, `pwd_context`, `security` (HTTPBearer), `verify_password`, `get_password_hash`, `create_access_token`, e factory `build_user_deps(db)` che restituisce le closure `get_current_user` + `get_admin_user`
+- [x] **Nuovo router** `/app/backend/routers/auth.py` (~267 righe) — 7 endpoint:
+  - `POST /auth/login` — username/password → JWT
+  - `POST /auth/magic` — magic-link token exchange
+  - `GET /auth/me` — profilo utente corrente
+  - `POST /auth/change-password` — cambio password
+  - `POST /newsletter/subscribe` — subscribe (con reactivation per email dismesse)
+  - `POST /newsletter/unsubscribe` — unsubscribe
+  - `GET /admin/newsletter/subscribers` — lista admin
+- [x] `TokenResponse` e helper `_make_user_response` incapsulati nel factory; `UserResponse`/`NewsletterResponse` iniettati via param per evitare cicli
+- [x] **server.py shrink**: 2113 → **1917 righe** (–196 righe, –9%)
+- [x] **Totale sessione backend**: 4188 → 1917 (**–2271 righe, –54%**) 🎯
+- [x] Zero lint errors su tutti i file
+- [x] **Test E2E** completo (12 assertion via curl):
+  - `POST /auth/login` valido → 200 (token 124 char, role admin) · password errata → 401 ✓
+  - `GET /auth/me` con token → 200 · senza token → 403 ✓
+  - `POST /auth/magic` con token JWT firmato correttamente → 200 (session token 124 char) · invalid → 401 · missing → 400 ✓
+  - `POST /newsletter/subscribe` nuova → 201 · duplicate → 400 ✓
+  - `POST /newsletter/unsubscribe` → 200 ✓
+  - `GET /admin/newsletter/subscribers` con admin auth → 200 (1 subscriber) ✓
+  - Cleanup DB OK
+- **Beneficio**: primitive di sicurezza centralizzate in `utils/security.py` (riusabili in tutti i router futuri via `build_user_deps` factory). Auth logic isolata, testabile con mock db. Il monolite `server.py` è ora sotto le 2000 righe.
+
+
+
 ### 02/07/2026 — Backend Refactoring · chat_alice AI chatbot (P1 — DONE)
 - [x] **Nuovo router** `/app/backend/routers/chat_alice.py` (~295 righe) — assistente virtuale "Alice" per qualifica lead con GPT-4o-mini via `EMERGENT_LLM_KEY`:
   - `POST /chat` con multi-turn session tracking (`session_id` keyed)
