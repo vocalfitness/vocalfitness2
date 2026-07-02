@@ -7,7 +7,7 @@ import {
   Save, X, Upload, CheckCircle, AlertCircle, HardDrive,
   Folder, Eye, EyeOff, UserCheck, Youtube, RefreshCw, ExternalLink,
   MessageSquare, Bell, Power, PowerOff, Send, Building2, User,
-  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter, Mail, AudioLines
+  ClipboardList, Calendar, ChevronDown, ChevronUp, UserPlus, Briefcase, Inbox, Search, Filter, Mail, AudioLines, Mic
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
@@ -1164,6 +1164,9 @@ const AdminPage = () => {
           </Button>
           <Button onClick={() => setActiveTab('audio-studio')} className={activeTab === 'audio-studio' ? 'bg-amber-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-audio-studio">
             <AudioLines className="w-4 h-4 mr-2" /> Audio Studio
+          </Button>
+          <Button onClick={() => navigate('/admin/phonemes')} className="bg-gradient-to-r from-cyan-600 to-orange-500 hover:from-cyan-500 hover:to-orange-400 text-white font-bold" data-testid="tab-phonemes-cms">
+            <Mic className="w-4 h-4 mr-2" /> Phoneme CMS
           </Button>
         </div>
 

@@ -243,7 +243,29 @@ const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
 // ============================================================
 const PhonemeCardPage = () => {
   const { id = 'u-foot' } = useParams();
-  const phoneme = PHONEMES[id] || PHONEMES['u-foot'];
+  // ------------------------------------------------------------------
+  // DB-first: try the CMS API, fall back to the legacy hardcoded
+  // PHONEMES map so the page never breaks during a partial migration.
+  // ------------------------------------------------------------------
+  const [phoneme, setPhoneme] = useState(PHONEMES[id] || null);
+  const [phonemeLoading, setPhonemeLoading] = useState(!PHONEMES[id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPhonemeLoading(!PHONEMES[id]);
+    const API = process.env.REACT_APP_BACKEND_URL;
+    fetch(`${API}/api/phonemes/${id}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data) => {
+        if (!cancelled) setPhoneme(data);
+      })
+      .catch(() => {
+        // Fallback to hardcoded catalogue when the API has no matching card
+        if (!cancelled && PHONEMES[id]) setPhoneme(PHONEMES[id]);
+      })
+      .finally(() => { if (!cancelled) setPhonemeLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
 
   const { user, loading: authLoading } = useAuth();
   const accessGranted = canAccessCard(id, user);
@@ -285,8 +307,8 @@ const PhonemeCardPage = () => {
     console.log(`📍 Coord picked: x=${entry.x}, y=${entry.y}`);
   };
 
-  // Resolve audio sources based on selected dialect
-  const audio = phoneme.audio?.[dialect] || phoneme.audio?.AmE || { isolated: null, examples: [null, null, null] };
+  // Resolve audio sources based on selected dialect (safe when phoneme is null during initial fetch)
+  const audio = phoneme?.audio?.[dialect] || phoneme?.audio?.AmE || { isolated: null, examples: [null, null, null] };
 
   useEffect(() => {
     const t = setTimeout(() => setAnimate(true), 250);
@@ -302,6 +324,7 @@ const PhonemeCardPage = () => {
   // the user's bandwidth while they read the card.
   // ============================================================
   useEffect(() => {
+    if (!phoneme) return; // safety when API fetch is still pending
     const collectUrls = () => {
       const urls = new Set();
       const a = phoneme.audio?.[dialect] || phoneme.audio?.AmE || {};
@@ -352,6 +375,31 @@ const PhonemeCardPage = () => {
       controller.abort();
     };
   }, [phoneme, dialect]);
+
+  // Loading gate — phoneme fetch still in-flight and no local fallback available
+  if (phonemeLoading && !phoneme) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-cyan-200 text-sm uppercase tracking-widest font-bold">Caricamento scheda…</div>
+      </div>
+    );
+  }
+
+  // Not found — no API result and no local fallback
+  if (!phoneme) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+        <div>
+          <h2 className="text-2xl font-black text-white mb-3">Scheda non trovata</h2>
+          <p className="text-slate-400 mb-6">La scheda fonetica <code className="text-cyan-300">/{id}/</code> non esiste o non è pubblicata.</p>
+          <Link to="/lms/phonemes" className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-bold">
+            <ArrowLeft className="w-4 h-4" />
+            Torna alla libreria
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Premium paywall guard — block render until auth state is resolved so the
   // gate is not flashed for a logged-in user during initial token validation.

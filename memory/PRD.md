@@ -12,6 +12,47 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 1 MVP (P1 — DONE)
+- [x] **Backend router modulare** `/app/backend/routers/phoneme_cards.py` (~290 righe). Endpoints:
+  - `GET /api/admin/phonemes` — lista admin (summary con hotspotCount, commonWordCount, hasAudio, hasVideoLesson)
+  - `GET /api/admin/phonemes/{id}` — get singola (full payload)
+  - `POST /api/admin/phonemes` — create (409 su id duplicato, validazione regex slug)
+  - `PUT /api/admin/phonemes/{id}` — update parziale (`exclude_unset=True`, gestione esplicita dei nullable `videoLesson`/`funFact`/`subcategory`)
+  - `DELETE /api/admin/phonemes/{id}`
+  - `POST /api/admin/phonemes/{id}/publish` — toggle pubblicazione
+  - `POST /api/admin/phonemes/{id}/duplicate` — duplicazione con id auto-generato `{id}-copy[-N]` in stato bozza
+  - `GET /api/phonemes` — lista pubblica (solo `published=true`)
+  - `GET /api/phonemes/{id}` — dettaglio pubblico
+  Tutti gli endpoint admin protetti da `Depends(get_admin_user)`.
+- [x] **Modelli Pydantic flessibili**: `PhonemeCardCreate` / `PhonemeCardUpdate` / `PhonemeCardResponse` / `PhonemeCardSummary`. Campi didattici deeply-nested (hotspots, audio, commonWords, spellings, features, knobs, classification, funFact…) come `List[Dict[str, Any]]` — così l'admin può cambiare shape senza deploy backend.
+- [x] **Seed idempotente** al boot `/app/backend/routers/phoneme_seed_data.py`: importa `PHONEME_U_FOOT` e `PHONEME_I_FLEECE` in Mongo con `createdBy='system-seed'`. Alla seconda startup non tocca nulla. Verificato: `inserted=[u-foot, i-fleece]` prima startup, `skipped=[u-foot, i-fleece]` seconda.
+- [x] **Frontend `/admin/phonemes`** (`PhonemeAdminPage.jsx`, ~330 righe): lista con stats cards (Totale/Pubblicate/Bozze), search per id/IPA/esempi, filtri Tutte/Pubblicate/Bozze, azioni per riga (Preview pubblica in nuova tab, Publish toggle, Duplicate, Delete con conferma, Modifica). Ogni riga mostra IPA glyph, esempi, badge di stato, contatori (9 hotspot, 30 parole), tag audio + video-lezione.
+- [x] **Frontend `/admin/phonemes/:id` + `/admin/phonemes/new`** (`PhonemeAdminEditorPage.jsx`, ~640 righe): editor form user-friendly per non-tecnici. Sezioni collassabili:
+  - **Informazioni principali** (default open): id slug validato via regex, category dropdown IT (Vocale/Dittongo/Consonante), IPA + displayIpa, subcategory, order, ChipInput per examples, dialectNote, Switch pubblicata
+  - **Video-lezione**: YouTube ID + titolo
+  - **Immagini** (4 URL con label descrittivi)
+  - **Audio** AmE + RP (isolated + 3 esempi ciascuno, label mostra la frase corrispondente)
+  - **Frasi di esempio** (3 × text + ChipInput highlights)
+  - **Frase mnemonica** (phrase + highlights + note + audio)
+  - **Guida alla pronuncia** (headline + Repeater steps)
+  - **Hotspot anatomici** — Repeater completo con id/x/y/label/title/role/detail/anatomy/kineticCue e frecce up/down per riordinare
+  - **Parole comuni** — Repeater compatto (w / ipa / audio) con drag-order
+  - **Avanzato JSON** — textarea con validazione real-time per spellings/frequencyChart/features/knobs/facialMuscles/classification/funFact/vowelChartPosition (una prossima iterazione avrà editor dedicati)
+  Sticky footer con dirty-state indicator + "Salva come bozza" + "Salva e pubblica".
+  Utility: `deepMerge()` per garantire campi mancanti, `setIn(path, value)` per update immutabile nested, `ChipInput` (Enter/comma/backspace), `Repeater` generico con add/remove/reorder.
+- [x] **`PhonemeCardPage.jsx` DB-first**: fetch `/api/phonemes/{id}` on mount, fallback su `PHONEMES[id]` da `phonemes.js` (retrocompatibilità durante migrazione). Loading gate + not-found state aggiunti. Audio preloader effect guardato quando phoneme è null.
+- [x] **Cross-navigation**: `/admin` ha nuovo tab "Phoneme CMS" (gradient cyan→orange) che naviga a `/admin/phonemes`. Editor ha link back a Lista schede + Anteprima pubblica in nuova tab.
+- [x] **Auth token key fix**: le nuove pagine usano `localStorage.getItem('vf_token')` allineandosi con `AuthContext.js`.
+- [x] **Test smoke end-to-end** (screenshot + assertions):
+  - Lista `/admin/phonemes` → 2 righe (FOOT + FLEECE), stat total=2, tutte le azioni cliccabili
+  - Editor `/admin/phonemes/u-foot` → carica dati (IPA=ʊ, displayIpa=/ʊ/, subcategory=short-lax, order=10, chip esempi FOOT/BOOK/PUT), pulsanti Salva presenti
+  - Public `/lms/phoneme/u-foot` → renderizza da API (glyph /ʊ/ visibile, hotspot cliccabili, front-view HUD, PhonemeVideoLesson intatto)
+  - Lint: 0 errors su entrambi i nuovi file
+- Note su prossimi step (Fase 2 · Step 2 e 3):
+  - **Step 2**: editor hotspot drag&drop visuale sull'immagine + upload immagini via Emergent Object Storage + preview live inline
+  - **Step 3**: bulk-generator audio ElevenLabs da UI (coda + progress bar) + editor dedicati per spellings/features/knobs/classification (togliere il JSON textarea)
+
+
 ### 28/06/2026 — Video-lezione YouTube nella card fonema /ʊ/ con upsell overlay (P1 — DONE)
 - [x] **`PhonemeVideoLesson.jsx`** completato con YouTube IFrame API + container cinematografico 16:9.
   - Cover state: thumbnail YouTube `maxresdefault.jpg` (fallback `hqdefault.jpg`) + bottone Play arancione pulsante con glow, CTA "Tocca per avviare", grain decorativo.

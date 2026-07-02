@@ -148,6 +148,12 @@ async def startup_event():
         _init_emergent_storage()
     except Exception as e:
         logging.warning(f"Emergent storage init at startup failed (will retry on first use): {e}")
+    try:
+        from routers.phoneme_cards import ensure_phoneme_seed
+        result = await ensure_phoneme_seed(db)
+        logging.info(f"Phoneme cards seed: inserted={result['inserted']} skipped={result['skipped']}")
+    except Exception as e:
+        logging.warning(f"Phoneme cards seed failed (non-fatal): {e}")
 
 
 # ==================== AUTHENTICATION CONFIG ====================
@@ -4153,6 +4159,10 @@ async def serve_uploaded_file(file_path: str):
 
 
 # Include the router in the main app
+# Register modular routers under the shared /api prefix
+from routers.phoneme_cards import build_phoneme_cards_router, ensure_phoneme_seed
+api_router.include_router(build_phoneme_cards_router(db, get_admin_user))
+
 app.include_router(api_router)
 
 # Mount uploads directory as static files

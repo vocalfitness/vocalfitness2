@@ -9,6 +9,8 @@ import ErnstYoungLandingPage from "./pages/ErnstYoungLandingPage";
 import PhonemeLibraryPage from "./pages/PhonemeLibraryPage";
 import SpeakRight101Page from "./pages/SpeakRight101Page";
 import PhonemeCardPage from "./pages/PhonemeCardPage";
+import PhonemeAdminPage from "./pages/PhonemeAdminPage";
+import PhonemeAdminEditorPage from "./pages/PhonemeAdminEditorPage";
 import LoginPage from "./pages/LoginPage";
 import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
@@ -36,6 +38,9 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/area-clienti" element={<MembersAreaPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/phonemes" element={<PhonemeAdminPage />} />
+              <Route path="/admin/phonemes/new" element={<PhonemeAdminEditorPage />} />
+              <Route path="/admin/phonemes/:id" element={<PhonemeAdminEditorPage />} />
               <Route path="/impostazioni" element={<SettingsPage />} />
             </Routes>
           </BrowserRouter>
