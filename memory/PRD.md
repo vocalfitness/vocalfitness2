@@ -12,6 +12,19 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · ElevenLabs Router Extraction (P0 — DONE)
+- [x] **Nuovo file** `/app/backend/routers/elevenlabs.py` (~200 righe) creato con factory `build_elevenlabs_router(get_admin_user, emergent_put, uploads_dir)` — stesso pattern di `phoneme_cards.py`
+- [x] **Rimosse ~135 righe** da `server.py` (da 4188 a ~4057 righe): `ElevenLabsTTSRequest`, `_get_elevenlabs_client()`, `list_elevenlabs_voices`, `elevenlabs_tts`
+- [x] **Router incluso** in `server.py` (bottom section) accanto a `phoneme_cards`
+- [x] **Test end-to-end** (curl via preview URL):
+  - `GET /api/admin/elevenlabs/voices` → HTTP 200, 27 voci reali + `default_voice_id` corretto
+  - `POST /api/admin/elevenlabs/tts` → HTTP 200, MP3 22.6 KB caricato su Emergent Storage
+  - Validazione (`text` vuoto) → HTTP 400 `"text obbligatorio"` ✓
+  - Auth guard (senza token) → HTTP 403 ✓
+- **Beneficio**: `server.py` più snello, endpoint ElevenLabs isolati e testabili individualmente, zero regressioni sul flusso Bulk Audio Generator del CMS.
+
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Auto-save Editor (P1 — DONE)
 - [x] **Auto-save debounced** (30 secondi dall'ultimo edit) nel `PhonemeAdminEditorPage.jsx`:
   - Silent PUT su `/api/admin/phonemes/{id}` — non modifica mai `published` (rispetta stato bozza/pubblicato)
