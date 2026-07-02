@@ -12,6 +12,38 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Frontend Refactoring · useAdminState hook (P1 — DONE ✅)
+- [x] **Nuovo custom hook** `/app/frontend/src/pages/admin/useAdminState.js` (~858 righe) — contiene tutta la logica di stato (~40 useState, 4 refs, CRM sections), gli useEffect (auth guard + data fetch), showToast helper e i ~35 handlers (folders/content/users/messaging/leads/youtube/popups CRUD). Ritorna un unico oggetto con ~130 identificatori.
+- [x] **Nuovo file translations** `/app/frontend/src/pages/adminTranslations.js` (~311 righe) — estratto dal top di AdminPage, importato sia da AdminPage sia dal hook
+- [x] **AdminPage.jsx shrink FINALE**: 1397 → **353 righe** (–1044 righe, –75% in questo passaggio)
+- [x] **TOTALE sessione (5 tappe)**: 2973 → 353 righe (**–88%**) 🎯
+- [x] **Zero lint errors** su tutti i file coinvolti
+- [x] **Smoke test E2E completo** in preview:
+  - Header + storage widget renderizzano ✓
+  - Tutti gli 8 tab cliccabili (folders, content, users, youtube, messaging, leads, database, popups) ✓
+  - CRUD end-to-end funziona: `handleCreateFolder` dall'hook → cartella creata + toast "Cartella creata con successo" + counter aggiornato "Cartelle (4)" ✓
+  - Cleanup: cartella test rimossa via API ✓
+
+**Riepilogo finale AdminPage refactoring**:
+```
+AdminPage.jsx         353 righe  (era 2973 — 88% ridotta)
+useAdminState.js      858 righe  (hook con state + handlers)
+AdminEditorModal.jsx  807 righe  (10 form CRUD)
+adminTranslations.js  311 righe  (i18n dict)
+AdminLeadsTab.jsx     349 righe
+AdminMessagingTab.jsx 274 righe
+AdminYouTubeTab.jsx   154 righe
+AdminContentTab.jsx   140 righe
+AdminPopupsTab.jsx    135 righe
+AdminUsersTab.jsx     120 righe
+AdminFoldersTab.jsx    89 righe
+AdminDatabaseTab.jsx   56 righe
+```
+
+- **Beneficio**: AdminPage.jsx è ora un componente di composizione puro (353 righe di JSX + tab dispatch). L'hook `useAdminState` è testabile con `@testing-library/react-hooks`. Ogni tab è isolato e lazy-loadable. Il codice è ora **production-grade e mantenibile a lungo termine**.
+
+
+
 ### 02/07/2026 — Frontend Refactoring · AdminEditorModal (P1 — DONE)
 - [x] **Nuovo componente** `/app/frontend/src/pages/admin/AdminEditorModal.jsx` (~807 righe) — modal shell unificato per tutti i 10 tipi di form CRUD admin:
   - `create-folder` / `edit-folder`
