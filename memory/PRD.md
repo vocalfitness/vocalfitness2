@@ -12,6 +12,22 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Frontend Refactoring · AdminPage split (P1 — DONE)
+- [x] **3 nuovi componenti** estratti in `/app/frontend/src/pages/admin/`:
+  - `AdminLeadsTab.jsx` (~349 righe) — Lead Inbox completo: filtri (7 fields), lista con badge CEFR/status, drawer dettaglio, azioni cambio-stato, invio email template (welcome/followup/proposal), touch history
+  - `AdminDatabaseTab.jsx` (~56 righe) — dashboard stats MongoDB (dimensione dati/indici/collezioni, tabella per-collection)
+  - `AdminPopupsTab.jsx` (~135 righe) — lista popup broadcast con badge type/status, stats views/dismissals, azioni toggle/edit/delete
+- [x] **AdminPage.jsx shrink**: da 2973 → 2583 righe (–390 righe, –13%)
+- [x] **Contratto props chiaro**: ogni tab riceve solo la slice di stato + handler che gli serve (single source of truth resta nel parent AdminPage)
+- [x] **Zero lint errors** su tutti i file toccati
+- [x] **Smoke test E2E** su preview (login admin → navigazione tra i 3 tab):
+  - `tab-leads` → `leads-panel` visibile ✓ (28 leads renderizzati)
+  - `tab-database` → heading "Statistiche Database" visibile ✓
+  - `tab-popups` → `add-popup-button` visibile + card popup renderizzato con stats (viste 1/15 6.7%) ✓
+- **Beneficio**: tab-level components isolati e riusabili, testabili unitariamente, il refactor riduce il rischio di regressioni cross-tab quando si modifica un singolo dominio (es. il lead inbox). Prossimo candidato: `MessagingTab` (~980 righe, il più grosso).
+
+
+
 ### 02/07/2026 — Backend Refactoring · Uploads + Leads + Proposals (P1 — DONE)
 - [x] **3 nuovi router** estratti da `server.py`:
   - `/app/backend/routers/admin_leads.py` (~287 righe) — `GET/PATCH /admin/leads`, `POST /admin/leads/{id}/email` (Zoho SMTP + template EN/IT + variable substitution + touch log)
