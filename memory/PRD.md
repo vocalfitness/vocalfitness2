@@ -12,6 +12,24 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · leads_forms (contact/booking/corporate-quote) (P1 — DONE)
+- [x] **Nuovo router** `/app/backend/routers/leads_forms.py` (~574 righe) — 3 endpoint pubblici del marketing:
+  - `POST /contact` — form contatto generico (Zoho SMTP notification HTML)
+  - `POST /booking` — richiesta valutazione gratuita + onboarding wizard (auto-registrazione utente + magic-link email quando `source=onboarding_wizard`)
+  - `POST /corporate-quote` — richiesta preventivo B2B (HTML notification con priorità 48h)
+- [x] Modelli inline (`ContactFormSubmission`, `BookingFormSubmission`, `CorporateQuoteRequest` + Response variants); auth callables (`get_password_hash`, `create_access_token`) iniettati via factory
+- [x] **server.py shrink**: 2895 → **2364 righe** (–531 righe in questo passaggio, –18%)
+- [x] **Totale sessione backend**: 4188 → 2364 (**–1824 righe, –44%**)
+- [x] Zero lint errors (fix: rimossi 3 blocchi di import duplicati inline, corretto `magic_link_sent` unused var)
+- [x] **Test E2E**:
+  - `POST /contact` → 201, `email_sent: True` (SMTP Zoho attivo, template HTML rendering OK) ✓
+  - `POST /booking` → 201, sector/day/preferredTime serializzati correttamente ✓
+  - `POST /corporate-quote` → 201, companyName/contactEmail preservati ✓
+  - Cleanup DB completato (docs test rimossi da contacts/bookings/corporate_quotes/users)
+- **Beneficio**: il router più grosso finora estratto (574 righe di lead-capture logic), con l'intera magic-link auto-registrazione preservata. Il monolite `server.py` è ora sotto le 2400 righe.
+
+
+
 ### 02/07/2026 — Backend Refactoring · testimonials + messages + popups (P1 — DONE)
 - [x] **3 nuovi router** estratti:
   - `/app/backend/routers/testimonials_clients.py` (~123 righe) — 4 endpoint (`GET/POST /testimonials`, `GET/POST /clients`) con modelli inline
