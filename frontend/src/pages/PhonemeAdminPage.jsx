@@ -7,8 +7,9 @@ import { Badge } from '../components/ui/badge';
 import {
   ArrowLeft, Plus, Pencil, Copy, Trash2, Eye, EyeOff,
   ExternalLink, Search, GraduationCap, RefreshCw, ChevronRight,
-  Volume2, PlaySquare, MapPin, Type,
+  Volume2, PlaySquare, MapPin, Type, LayoutList, Target,
 } from 'lucide-react';
+import PhonemeRoadmapDashboard from '../components/PhonemeRoadmapDashboard';
 
 /**
  * Phoneme CMS — list view.
@@ -25,6 +26,7 @@ export default function PhonemeAdminPage() {
   const [filter, setFilter]   = useState('all');   // all | published | draft
   const [error, setError]     = useState('');
   const [busy, setBusy]       = useState(null);    // per-row loading indicator
+  const [view, setView]       = useState('list');  // list | roadmap
 
   const API = process.env.REACT_APP_BACKEND_URL;
   const authHeaders = () => ({
@@ -176,8 +178,38 @@ export default function PhonemeAdminPage() {
           </p>
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* View mode toggle */}
+        <div className="mb-5 flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit" data-testid="phoneme-admin-view-toggle">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition ${
+              view === 'list' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:text-slate-200'
+            }`}
+            data-testid="phoneme-admin-view-list"
+          >
+            <LayoutList className="w-3.5 h-3.5" />
+            Lista schede
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('roadmap')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition ${
+              view === 'roadmap' ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'
+            }`}
+            data-testid="phoneme-admin-view-roadmap"
+          >
+            <Target className="w-3.5 h-3.5" />
+            Roadmap produzione
+          </button>
+        </div>
+
+        {view === 'roadmap' ? (
+          <PhonemeRoadmapDashboard existingCards={cards} />
+        ) : (
+          <>
+            {/* Stats cards */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-slate-900/70 border border-cyan-500/20 rounded-2xl p-5" data-testid="phoneme-admin-stat-total">
             <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Totale</p>
             <p className="mt-1 text-3xl font-black text-white">{stats.total}</p>
@@ -254,6 +286,8 @@ export default function PhonemeAdminPage() {
               />
             ))}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

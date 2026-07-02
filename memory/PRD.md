@@ -12,6 +12,33 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Roadmap Produzione Dashboard (P1 — DONE)
+- [x] **`PhonemeRoadmapDashboard.jsx`** (~380 righe): dashboard che incrocia i 44 fonemi ufficiali (`PHONEME_CATALOGUE`) con lo stato reale nel DB (API `/api/admin/phonemes`).
+  - **Progress ring animato** in gradient cyan→orange (140px, stroke 12) con % completate al centro
+  - **4 stat cards**: Totali (44), Iniziate (con % di avanzamento), Pubblicate, Complete 100%
+  - **Priorità pedagogica** per studenti italiani:
+    - P0 ALTA (badge rosso + Sparkles icon): `short-monophthong` + `fricative` — 15 fonemi, i più frequenti E più distanti dal repertorio fonetico italiano
+    - P1 MEDIA (badge amber): `long-monophthong`, `plosive`, `affricate`
+    - P2 BASSA (badge slate): dittonghi + approximant + nasal
+  - **Checklist per ogni card** (6 criteri): Card in DB · Hotspot ≥5 · Parole ≥20 · Audio · Video-lezione · Pubblicata → completeness % + progress bar
+  - **CTA contestuale**:
+    - Se non esiste → arancione "Crea scheda" (naviga a `/admin/phonemes/new?prefill={id}`)
+    - Se esiste ma <100% → cyan "Continua produzione"
+    - Se 100% → emerald "Ottimizza"
+  - **3 filtri**: Priorità (Tutte/Alta/Media/Bassa) · Categoria (Vocali/Dittonghi/Consonanti) · Progresso (Da completare/Complete)
+  - **Ordinamento**: priority ASC → completeness DESC → subtitle
+- [x] **Integrazione in `/admin/phonemes`**: nuovo toggle "Lista schede" / "Roadmap produzione" (Fragment condizionale, `existingCards` passate dal parent). Default view rimane la Lista.
+- [x] **Test smoke passato**:
+  - Toggle visibile, click su Roadmap → 44 card renderizzate ✓
+  - Stat corrente: 2% completate, INIZIATE 2/44 (5%), PUBBLICATE 2, COMPLETE 100% 1 ✓
+  - u-foot renderizza al 100% verde con "Ottimizza"; i-fleece mostra 5/6 checkmark (manca video-lezione)
+  - Filtro "Alta priorità" → 15/44 visibili (P0 short-monophthong + fricative)
+  - Filtro "Da completare" → 43/44 visibili
+  - Toggle-back a Lista funziona (2 righe visibili)
+  - Lint 0 errori
+- **Impatto**: l'admin ora ha una vista d'insieme immediata di *cosa manca* e *da dove partire* (P0 first), con click diretto per creare la scheda pre-compilata. Popolamento dei 42 fonemi rimasti diventa gestibile e prioritizzato.
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 2 (Visual Hotspot Editor + Image Upload) — (P1 — DONE)
 - [x] **`HotspotVisualEditor.jsx`** (~330 righe): editor drag & drop degli hotspot direttamente sull'immagine sagittale.
   - Layout 5-col grid: 3/5 canvas + 2/5 pannello dettaglio
