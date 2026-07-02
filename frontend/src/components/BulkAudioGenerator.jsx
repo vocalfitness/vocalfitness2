@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Wand2, Loader2, Check, X, AlertCircle, Play, Pause, RefreshCw,
-  Volume2, ChevronDown, ChevronRight, Sparkles,
+  Volume2, ChevronDown, ChevronRight, Sparkles, Mic2,
 } from 'lucide-react';
 import { Button } from './ui/button';
 
@@ -24,17 +24,56 @@ import { Button } from './ui/button';
 
 const CONCURRENCY = 2;
 
-// Voice used across every clip — falls back to the ELEVENLABS_DEFAULT_VOICE_ID
-// env on the backend when null. Kept configurable so a future iteration can
-// support per-dialect voices without breaking existing cards.
-const DEFAULT_VOICE = null;
-
 export default function BulkAudioGenerator({ card, onFieldChange }) {
   const [selected, setSelected] = useState(() => new Set());
   const [running,  setRunning]  = useState(new Set());
   const [errors,   setErrors]   = useState({});   // key → message
   const [expanded, setExpanded] = useState(new Set(['isolated', 'examples', 'mnemonic']));
   const abortRef = useRef({ cancelled: false });
+
+  // ─── Voices (ElevenLabs) ──────────────────────────────
+  const [voices, setVoices] = useState([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [voicesError, setVoicesError] = useState('');
+  const [voiceByDialect, setVoiceByDialect] = useState(() => {
+    // Restore last-used voices from localStorage so we don't ask twice
+    try {
+      const saved = JSON.parse(localStorage.getItem('vf_bulk_voices') || '{}');
+      return { AmE: saved.AmE || '', RP: saved.RP || '', default: saved.default || '' };
+    } catch { return { AmE: '', RP: '', default: '' }; }
+  });
+  const [previewing, setPreviewing] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setVoicesLoading(true);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/elevenlabs/voices`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('vf_token') || ''}` },
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setVoices(data.voices || []);
+        // Seed all dialects with the account default the first time
+        setVoiceByDialect((prev) => {
+          const next = { ...prev };
+          const def = data.default_voice_id || (data.voices?.[0]?.voice_id ?? '');
+          ['AmE', 'RP', 'default'].forEach((k) => { if (!next[k]) next[k] = def; });
+          return next;
+        });
+      })
+      .catch((e) => { if (!cancelled) setVoicesError(e.message); })
+      .finally(() => { if (!cancelled) setVoicesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Persist voice choices for future sessions
+  useEffect(() => {
+    try { localStorage.setItem('vf_bulk_voices', JSON.stringify(voiceByDialect)); } catch { /* ignore */ }
+  }, [voiceByDialect]);
 
   const items = useMemo(() => computeItems(card), [card]);
 
@@ -64,6 +103,8 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
     setErrors((e) => { const n = { ...e }; delete n[item.key]; return n; });
     setRunning((r) => { const n = new Set(r); n.add(item.key); return n; });
     try {
+      // Pick voice based on dialect (or fall back to default for dialect-agnostic items)
+      const voiceId = voiceByDialect[item.dialect] || voiceByDialect.default || '';
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/elevenlabs/tts`, {
         method: 'POST',
         headers: {
@@ -72,7 +113,7 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
         },
         body: JSON.stringify({
           text: item.text,
-          voice_id: DEFAULT_VOICE || undefined,
+          voice_id: voiceId || undefined,
           stability: 0.42,
           similarity_boost: 0.88,
           style: 0.05,
@@ -222,6 +263,51 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
             />
           </div>
         </div>
+
+        {/* Voice pickers */}
+        <div className="mt-4 pt-4 border-t border-slate-800" data-testid="bulk-audio-voice-panel">
+          <p className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold flex items-center gap-1.5 mb-2">
+            <Mic2 className="w-3.5 h-3.5" />
+            Voci ElevenLabs
+            {voicesLoading && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
+          </p>
+          {voicesError ? (
+            <p className="text-xs text-red-300 flex items-center gap-1.5" data-testid="bulk-audio-voices-error">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Impossibile caricare le voci: {voicesError}
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-3 gap-2">
+              <VoicePicker
+                label="🇺🇸 AmE"
+                value={voiceByDialect.AmE}
+                voices={voices}
+                onChange={(v) => setVoiceByDialect((s) => ({ ...s, AmE: v }))}
+                onPreview={setPreviewing}
+                previewing={previewing}
+                testId="bulk-audio-voice-AmE"
+              />
+              <VoicePicker
+                label="🇬🇧 RP"
+                value={voiceByDialect.RP}
+                voices={voices}
+                onChange={(v) => setVoiceByDialect((s) => ({ ...s, RP: v }))}
+                onPreview={setPreviewing}
+                previewing={previewing}
+                testId="bulk-audio-voice-RP"
+              />
+              <VoicePicker
+                label="Default (mnemonica + parole)"
+                value={voiceByDialect.default}
+                voices={voices}
+                onChange={(v) => setVoiceByDialect((s) => ({ ...s, default: v }))}
+                onPreview={setPreviewing}
+                previewing={previewing}
+                testId="bulk-audio-voice-default"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Groups */}
@@ -337,6 +423,76 @@ function ItemRow({ item, checked, onToggle, isRunning, error, onGenerateOne }) {
 }
 
 // ============================================================
+// VoicePicker — dropdown with inline preview button
+// ============================================================
+function VoicePicker({ label, value, voices, onChange, onPreview, previewing, testId }) {
+  const audioRef = useRef(null);
+  const selected = voices.find((v) => v.voice_id === value);
+  const previewUrl = selected?.preview_url || '';
+  const isPreviewing = previewing === value;
+
+  const togglePreview = () => {
+    if (!previewUrl) return;
+    if (isPreviewing) {
+      audioRef.current?.pause();
+      onPreview('');
+    } else {
+      onPreview(value);
+      // Give React a tick to attach the src
+      setTimeout(() => audioRef.current?.play?.().catch(() => {}), 30);
+    }
+  };
+
+  return (
+    <div className="grid gap-1" data-testid={testId}>
+      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 min-w-0 h-9 px-2 bg-slate-900 border border-slate-700 rounded-md text-slate-100 text-xs truncate"
+          data-testid={`${testId}-select`}
+        >
+          {!voices.length && <option value="">Caricamento…</option>}
+          {voices.map((v) => (
+            <option key={v.voice_id} value={v.voice_id}>
+              {v.name}
+              {v.category ? ` · ${v.category}` : ''}
+              {v.labels?.accent ? ` · ${v.labels.accent}` : ''}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={togglePreview}
+          disabled={!previewUrl}
+          className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md border transition ${
+            !previewUrl
+              ? 'border-slate-800 text-slate-700 cursor-not-allowed'
+              : isPreviewing
+                ? 'border-orange-400 bg-orange-500/20 text-orange-200'
+                : 'border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-cyan-300'
+          }`}
+          title={previewUrl ? (isPreviewing ? 'Ferma anteprima' : 'Ascolta anteprima') : 'Nessuna anteprima disponibile'}
+          data-testid={`${testId}-preview`}
+        >
+          {isPreviewing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+      {isPreviewing && previewUrl && (
+        <audio
+          ref={audioRef}
+          src={previewUrl}
+          onEnded={() => onPreview('')}
+          className="hidden"
+          autoPlay
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // Helpers
 // ============================================================
 function apiBase() {
@@ -373,6 +529,7 @@ function computeItems(card) {
     out.push({
       key:  `isolated-${dialect}`,
       group: 'isolated',
+      dialect,
       label: `${dialect === 'AmE' ? '🇺🇸 AmE' : '🇬🇧 RP'} · Fonema isolato`,
       text:  isolatedText,
       currentUrl: card.audio?.[dialect]?.isolated || '',
@@ -388,6 +545,7 @@ function computeItems(card) {
       out.push({
         key:  `example-${dialect}-${i}`,
         group: 'examples',
+        dialect,
         label: `${dialect === 'AmE' ? '🇺🇸 AmE' : '🇬🇧 RP'} · Frase ${i + 1}`,
         text:  ex.text,
         currentUrl: card.audio?.[dialect]?.examples?.[i] || '',
@@ -402,6 +560,7 @@ function computeItems(card) {
     out.push({
       key:  'mnemonic',
       group: 'mnemonic',
+      dialect: 'default',
       label: 'Frase mnemonica',
       text:  card.mnemonic.phrase,
       currentUrl: card.mnemonic.audio || '',
@@ -416,6 +575,7 @@ function computeItems(card) {
     out.push({
       key:  `word-${i}`,
       group: 'words',
+      dialect: 'default',
       label: `Parola ${i + 1}`,
       text:  w.w,
       currentUrl: w.audio || '',

@@ -12,6 +12,24 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Voice Dropdown nel Bulk Generator (P1 — DONE)
+- [x] **BulkAudioGenerator.jsx** esteso con 3 voice picker (AmE / RP / Default):
+  - **Fetch on mount** da `/api/admin/elevenlabs/voices` (endpoint già esistente in `server.py`), riuso puro
+  - Response ha 27 voci disponibili: 25 premade (Roger, Sarah, Laura, Charlie, George…) + 2 cloni personalizzati incluso **"Steve Dapper · professional · it-standard"** (default account)
+  - **Layout**: 3 `VoicePicker` in una riga a 3 colonne sotto la progress bar
+    - 🇺🇸 AmE (per gli isolated + example sentences AmE)
+    - 🇬🇧 RP (per gli isolated + example sentences RP)
+    - Default (per la frase mnemonica + le parole comuni — dialect-agnostic)
+  - Ogni picker: `<select>` con nome + categoria + accent label + bottone Play/Pause per **preview inline** (usa `voice.preview_url`, `<audio autoplay>` invisibile)
+  - **Persistenza localStorage** in chiave `vf_bulk_voices` — le scelte durano tra sessioni
+  - Auto-seed con account default al primo caricamento
+- [x] **`generateOne` aggiornato**: pesca `voiceByDialect[item.dialect] || voiceByDialect.default` in base al campo `dialect` dell'item
+- [x] **`computeItems` aggiornato**: ogni item porta ora `dialect: 'AmE' | 'RP' | 'default'` (mnemonic e commonWords sono `default`)
+- [x] **Loading state** con spinner + gestione errore quando l'API non risponde
+- [x] **Test smoke passato**: 27 voci caricate ✓, AmE selezionata su voce Prof Dapper ✓, preview button abilitato (ha preview_url) ✓, cambio voce RP → persistenza in localStorage verificata ✓, Lint 0 errori
+- **Impatto**: il Prof può ora usare voci native diverse per AmE (voce americana) vs RP (voce britannica) → risultato didatticamente più accurato. Le voci scelte restano tra le sessioni, quindi la configurazione si fa una volta sola.
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Live Preview + Editor Dedicati + Docs (P1 — DONE)
 - [x] **`PhonemeLivePreview.jsx`** (~240 righe): sidebar sticky a destra dell'editor con anteprima in tempo reale.
   - Layout responsive `lg:sticky lg:top-[88px]` che segue lo scroll
