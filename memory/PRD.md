@@ -12,6 +12,25 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Frontend Refactoring · 5 nuovi tab estratti (P1 — DONE)
+- [x] **5 nuovi componenti** in `/app/frontend/src/pages/admin/`:
+  - `AdminFoldersTab.jsx` (~89 righe) — grid cartelle con create/edit/delete
+  - `AdminContentTab.jsx` (~140 righe) — tabella contenuti con thumbnail regeneration
+  - `AdminUsersTab.jsx` (~120 righe) — tabella utenti con badge role/type + shortcut "invia messaggio"
+  - `AdminYouTubeTab.jsx` (~154 righe) — playlist YouTube con sync/edit/delete
+  - `AdminMessagingTab.jsx` (~274 righe) — chat 2-pane completa (sidebar conversazioni + thread + rich text editor + task/audio/video/file)
+- [x] **AdminPage.jsx shrink**: 2583 → 2137 righe (–446 righe, –17%)
+- [x] **Totale sessione refactoring frontend**: 2973 → 2137 (–836 righe, –28%)
+- [x] **8 tab admin ora modulari** (folders, content, users, youtube, messaging, leads, database, popups)
+- [x] **Zero lint errors** su 8 file toccati
+- [x] **Smoke test E2E** in preview: login → 8 tab cliccati in sequenza → tutti renderizzano correttamente. Messaging mostra sidebar con 15 conversazioni + empty state chat area ✓
+- **Target non raggiunto**: obiettivo era `<1000 righe`. Servono ancora 2 estrazioni:
+  1. `AdminEditorModal.jsx` (~780 righe di form condizionali) — da fare
+  2. `useAdminState.js` custom hook (~400 righe di state + handlers) — da fare
+- **Beneficio già ottenuto**: 8 tab isolati, riusabili e testabili unitariamente; il futuro lazy-loading via `React.lazy` è ora un one-liner per ciascun tab.
+
+
+
 ### 02/07/2026 — Frontend Refactoring · AdminPage split (P1 — DONE)
 - [x] **3 nuovi componenti** estratti in `/app/frontend/src/pages/admin/`:
   - `AdminLeadsTab.jsx` (~349 righe) — Lead Inbox completo: filtri (7 fields), lista con badge CEFR/status, drawer dettaglio, azioni cambio-stato, invio email template (welcome/followup/proposal), touch history
