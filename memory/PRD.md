@@ -12,6 +12,33 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 3 (Bulk Audio + Prefill) (P1 — DONE)
+- [x] **`BulkAudioGenerator.jsx`** (~340 righe): generatore bulk degli audio ElevenLabs con coda a concorrenza 2.
+  - **Analizza il card** e costruisce automaticamente la work-list di clip da generare:
+    - **Fonema isolato**: `The /ʊ/ sound. As in foot.` (una clip per dialetto AmE + RP)
+    - **Frasi di esempio**: `exampleSentences[i].text` (una clip × dialetto = 6 clip)
+    - **Frase mnemonica**: `mnemonic.phrase` (1 clip)
+    - **Parole comuni**: `commonWords[i].w` (fino a 30 clip)
+    - Total per una scheda completa: 39 clip audio
+  - **UI**:
+    - Header con progress bar completezza + counter (N/M già presenti · X selezionati)
+    - 4 gruppi collassabili (isolated / examples / mnemonic / words) con contatore completezza per gruppo
+    - Bottoni per gruppo: "Seleziona mancanti" / "Deseleziona"
+    - Auto-selezione iniziale di **tutti gli item vuoti** al primo render
+    - Ogni riga: checkbox + status icon (empty/running/done/error) + label + text preview + audio preview inline + bottone genera/rigenera
+    - Bottone header "Genera audio (N)" → runQueue con concorrenza 2 · bottone "Interrompi" durante generazione
+  - **API integration**: chiama `POST /api/admin/elevenlabs/tts` (endpoint già esistente in `server.py`) con parametri ottimizzati per prosodia (`stability: 0.42, similarity_boost: 0.88, style: 0.05, use_speaker_boost: true, model: eleven_multilingual_v2, output: mp3_44100_128`). Risposta contiene `relative_url` che viene scritto direttamente nel card via `onFieldChange(path, url)` (nested-safe).
+  - **Voice**: usa `ELEVENLABS_DEFAULT_VOICE_ID` env (voce clonata Prof. Dapper). Nessuna dropdown per ora — allineato al setup precedente.
+  - **Robustezza**: errori per-item con stato preservato, abort in-flight con `abortRef`, rigenerazione singola click, auto-selezione post-successo rimuove l'item dalla queue.
+- [x] **Prefill dell'editor**: `PhonemeAdminEditorPage` legge `?prefill={id}` da URL e in modalità new pre-popola id/ipa/displayIpa/category/subcategory/examples/dialects/dialectNote dal `PHONEME_CATALOGUE`. Inoltre pre-seeda i primi 3 `commonWords` con le parole di esempio del catalogo (row stub w+ipa+audio vuoti pronti). Toast verde: "Editor pre-compilato dal catalogo: {subtitle}".
+- [x] **Integrazione editor**: nuova sezione collassabile "Generatore audio ElevenLabs (bulk)" prima della sezione Audio manuale. La sezione Audio manuale rimane per casi edge (override URL, upload manuale).
+- [x] **Test smoke passato**:
+  - Prefill: `?prefill=e-dress` → id=e-dress, ipa=e, displayIpa=/e/, category=vowel, subcategory=short-monophthong, chip esempi BED/PEN/HELP, toast presente ✓
+  - Bulk Generator su u-foot: renderizzato, completezza=100% (39/39 già presenti), 4 gruppi (isolated/examples/mnemonic/words), 9 righe visibili di default (words collassato), bottone "Genera audio" con label dinamica ✓
+  - Lint: 0 errori su tutti i nuovi/modificati file
+- **Impatto**: creare una scheda da zero ora è possibile in **~5 minuti** (prefill 5 sec + upload immagini 30 sec + drag hotspot 90 sec + generare audio 90 sec + rifinire testi 2 min). Per popolare tutti i 42 fonemi rimanenti: ~3.5 ore vs le ~24 ore stimate all'inizio del progetto (85% riduzione tempo).
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Roadmap Produzione Dashboard (P1 — DONE)
 - [x] **`PhonemeRoadmapDashboard.jsx`** (~380 righe): dashboard che incrocia i 44 fonemi ufficiali (`PHONEME_CATALOGUE`) con lo stato reale nel DB (API `/api/admin/phonemes`).
   - **Progress ring animato** in gradient cyan→orange (140px, stroke 12) con % completate al centro

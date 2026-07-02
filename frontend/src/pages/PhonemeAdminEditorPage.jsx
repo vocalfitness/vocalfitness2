@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import HotspotVisualEditor from '../components/HotspotVisualEditor';
 import ImageUploader from '../components/ImageUploader';
+import BulkAudioGenerator from '../components/BulkAudioGenerator';
+import { PHONEME_CATALOGUE } from '../data/phonemeCatalogue';
 
 /**
  * PhonemeAdminEditorPage — CMS form editor.
@@ -75,6 +77,7 @@ export default function PhonemeAdminEditorPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { id: routeId } = useParams();
+  const [searchParams] = useSearchParams();
   const isNew = !routeId || routeId === 'new';
 
   const [card, setCard]     = useState(BLANK);
@@ -116,6 +119,35 @@ export default function PhonemeAdminEditorPage() {
     })();
     return () => { cancelled = true; };
   }, [routeId, isNew]);
+
+  // ---- Prefill from PHONEME_CATALOGUE when creating a new card via ?prefill=xxx ----
+  useEffect(() => {
+    if (!isNew) return;
+    const prefillId = searchParams.get('prefill');
+    if (!prefillId) return;
+    const entry = PHONEME_CATALOGUE.find((e) => e.id === prefillId);
+    if (!entry) return;
+
+    const seed = {
+      ...BLANK,
+      id: entry.id,
+      ipa: entry.ipa,
+      displayIpa: `/${entry.ipa}/`,
+      category: entry.group,
+      subcategory: entry.subgroup || '',
+      examples: (entry.words || []).map((w) => w.toUpperCase()),
+      dialects: entry.dialectScope === 'GA-only' ? ['AmE'] : entry.dialectScope === 'RP-only' ? ['RP'] : ['AmE', 'RP'],
+      dialectNote: entry.description || '',
+      // Pre-seed commonWords from the catalogue's example words so the admin
+      // has 3 concrete rows to build on rather than starting empty.
+      commonWords: (entry.words || []).map((w) => ({ w, ipa: '', audio: '' })),
+    };
+    setCard(seed);
+    setInitial(seed);
+    setAdvancedJson(serialiseAdvanced(seed));
+    setToast(`Editor pre-compilato dal catalogo: ${entry.subtitle || entry.id}`);
+    setTimeout(() => setToast(''), 3500);
+  }, [isNew, searchParams]);
 
   // Auto-fill advanced JSON textarea when card changes (initial load & after save)
   useEffect(() => {
@@ -407,6 +439,14 @@ export default function PhonemeAdminEditorPage() {
               </Field>
             ))}
           </div>
+        </Section>
+
+        {/* ================== BULK AUDIO GENERATOR ================== */}
+        <Section title="Generatore audio ElevenLabs (bulk)" icon={<Wand2 className="w-4 h-4" />}>
+          <BulkAudioGenerator
+            card={card}
+            onFieldChange={setField}
+          />
         </Section>
 
         {/* ================== AUDIO ================== */}
