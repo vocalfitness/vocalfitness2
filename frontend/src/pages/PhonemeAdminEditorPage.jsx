@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -89,6 +89,22 @@ export default function PhonemeAdminEditorPage() {
   const [toast, setToast]     = useState('');
   const [advancedJson, setAdvancedJson] = useState('');
   const [jsonError, setJsonError]     = useState('');
+
+  // ─── Auto-save ────────────────────────────────────────────
+  // Debounces every 30s from the last edit and silently persists as draft.
+  // Only active in edit mode (never in /new — we need a real id first).
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
+    try { return localStorage.getItem('vf_editor_autosave') !== 'off'; }
+    catch { return true; }
+  });
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // idle | saving | saved | error
+  const [lastAutoSaveAt, setLastAutoSaveAt] = useState(null);
+  const autoSaveTimerRef = useRef(null);
+  const autoSaveInFlightRef = useRef(false);
+
+  useEffect(() => {
+    try { localStorage.setItem('vf_editor_autosave', autoSaveEnabled ? 'on' : 'off'); } catch { /* ignore */ }
+  }, [autoSaveEnabled]);
 
   const API = process.env.REACT_APP_BACKEND_URL;
   const authHeaders = () => ({
@@ -231,6 +247,53 @@ export default function PhonemeAdminEditorPage() {
       setSaving(false);
     }
   };
+
+  // ─── Auto-save runner ─────────────────────────────────────
+  // Silent save — never toggles publish, keeps current published state.
+  // Skipped if: not in edit mode, not dirty, disabled, saving already, or JSON invalid.
+  const autoSave = async () => {
+    if (isNew || !autoSaveEnabled || autoSaveInFlightRef.current) return;
+    if (!isDirty) return;
+    if (jsonError) return;
+    if (validate()) return;
+
+    autoSaveInFlightRef.current = true;
+    setAutoSaveStatus('saving');
+    try {
+      const res = await fetch(`${API}/api/admin/phonemes/${routeId}`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify(card),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const merged = deepMerge(BLANK, data);
+      // Update `initial` so isDirty becomes false without disturbing the card ref
+      setInitial(merged);
+      setAutoSaveStatus('saved');
+      setLastAutoSaveAt(new Date());
+    } catch (e) {
+      setAutoSaveStatus('error');
+    } finally {
+      autoSaveInFlightRef.current = false;
+    }
+  };
+
+  // Debounced trigger — every dirty change resets a 30s timer
+  useEffect(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    if (isNew || !autoSaveEnabled || !isDirty || jsonError) return;
+    if (autoSaveStatus === 'saving') return;
+
+    autoSaveTimerRef.current = setTimeout(() => { autoSave(); }, 30_000);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [card, isDirty, autoSaveEnabled, isNew, jsonError]);
 
   // ---- Guards ----
   if (loading) return <FullscreenNote text="Caricamento…" />;
@@ -935,10 +998,20 @@ export default function PhonemeAdminEditorPage() {
       {/* Sticky footer with actions */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-cyan-500/20 bg-slate-950/95 backdrop-blur-md">
         <div className="max-w-[1400px] mx-auto px-5 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-slate-400">
-            {isDirty
-              ? <span className="text-amber-300 font-bold">● Modifiche non salvate</span>
-              : <span className="text-slate-500">Nessuna modifica pendente</span>}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="text-slate-400">
+              {isDirty
+                ? <span className="text-amber-300 font-bold">● Modifiche non salvate</span>
+                : <span className="text-slate-500">Nessuna modifica pendente</span>}
+            </div>
+            {!isNew && (
+              <AutoSaveIndicator
+                enabled={autoSaveEnabled}
+                onToggle={() => setAutoSaveEnabled((v) => !v)}
+                status={autoSaveStatus}
+                lastAt={lastAutoSaveAt}
+              />
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1045,6 +1118,47 @@ function Field({ label, help, required, children }) {
       </Label>
       {children}
       {help && <p className="text-[11px] text-slate-500 italic">{help}</p>}
+    </div>
+  );
+}
+
+// ============================================================
+// AutoSaveIndicator — subtle status + on/off toggle in the sticky footer
+// ============================================================
+function AutoSaveIndicator({ enabled, onToggle, status, lastAt }) {
+  const time = lastAt ? lastAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : null;
+  return (
+    <div className="flex items-center gap-2" data-testid="autosave-indicator">
+      <button
+        type="button"
+        onClick={onToggle}
+        title={enabled ? 'Disattiva salvataggio automatico' : 'Attiva salvataggio automatico ogni 30s'}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold border transition ${
+          enabled
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+            : 'border-slate-700 bg-slate-900 text-slate-500 hover:text-slate-300'
+        }`}
+        data-testid="autosave-toggle"
+      >
+        {enabled ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+        Autosave {enabled ? 'ON' : 'OFF'}
+      </button>
+      {enabled && (
+        <span className="text-[10px] text-slate-500" data-testid="autosave-status">
+          {status === 'saving' && (
+            <span className="text-cyan-300 inline-flex items-center gap-1"><Wand2 className="w-3 h-3 animate-pulse" />Salvataggio…</span>
+          )}
+          {status === 'saved' && time && (
+            <span className="text-emerald-300">✓ Salvato alle {time}</span>
+          )}
+          {status === 'error' && (
+            <span className="text-red-300">⚠ Errore autosave</span>
+          )}
+          {status === 'idle' && (
+            <span className="text-slate-500">ogni 30s dopo l&apos;ultima modifica</span>
+          )}
+        </span>
+      )}
     </div>
   );
 }

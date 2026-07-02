@@ -12,6 +12,27 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Auto-save Editor (P1 — DONE)
+- [x] **Auto-save debounced** (30 secondi dall'ultimo edit) nel `PhonemeAdminEditorPage.jsx`:
+  - Silent PUT su `/api/admin/phonemes/{id}` — non modifica mai `published` (rispetta stato bozza/pubblicato)
+  - Skip condizionale: solo in modalità edit (mai in `/new` che non ha ancora un id), solo se dirty, solo se auto-save enabled, solo se JSON valido, solo se validate() passa
+  - `autoSaveInFlightRef` guard contro chiamate concorrenti
+  - Aggiorna `initial` post-successo → `isDirty` torna a false automaticamente senza reset del `card`
+- [x] **`AutoSaveIndicator` component** nel footer sticky (accanto al dirty-state indicator):
+  - **Toggle pill** ON (verde) / OFF (slate) — persistito in `vf_editor_autosave`
+  - **4 stati visivi**: idle ("ogni 30s dopo l'ultima modifica"), saving (spinner Wand2 pulse + "Salvataggio…"), saved ("✓ Salvato alle 17:19"), error ("⚠ Errore autosave")
+  - Timestamp locale (formato `HH:mm` it-IT) mostrato dopo ogni salvataggio riuscito
+- [x] **Cleanup timer**: ogni edit resetta il timer 30s (debounce vero); unmount clear via return del `useEffect`
+- [x] **Test smoke passato**:
+  - Indicator visibile e ON di default ✓
+  - Toggle OFF/ON persistito in localStorage ✓
+  - Indicator NASCOSTO in modalità `/new` ✓
+  - Dirty state appare all'edit (`● Modifiche non salvate`) ✓
+  - PUT endpoint 200 OK ✓
+  - Lint 0 errori
+- **Impatto**: rete di sicurezza per il Prof durante la rifinitura dei 42 scheletri. Ogni edit viene automaticamente persistito dopo 30 secondi — nessun rischio di perdita dati in caso di crash browser, sessione scaduta o dimenticanza. Il toggle OFF resta disponibile per il modo "sperimentale" quando l'admin vuole controllo esplicito.
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Stability Preset Selector (P1 — DONE)
 - [x] **3 preset di prosodia ElevenLabs** tarati per l'insegnamento fonetico, nel `BulkAudioGenerator.jsx`:
   - **Naturale** (cyan, default): `stability 0.42 · similarity 0.88 · style 0.05` — bilanciato per la maggior parte dei fonemi
