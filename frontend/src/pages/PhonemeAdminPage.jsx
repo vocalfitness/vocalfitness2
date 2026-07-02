@@ -205,7 +205,7 @@ export default function PhonemeAdminPage() {
         </div>
 
         {view === 'roadmap' ? (
-          <PhonemeRoadmapDashboard existingCards={cards} />
+          <PhonemeRoadmapDashboard existingCards={cards} onRefresh={fetchCards} />
         ) : (
           <>
             {/* Stats cards */}

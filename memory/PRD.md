@@ -12,6 +12,28 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Bulk Skeleton Seeder (P1 — DONE)
+- [x] **Estensione di `PhonemeRoadmapDashboard.jsx`** con blocco "Popolamento rapido":
+  - Rileva automaticamente i fonemi del catalogo non ancora in DB (`missingEntries`)
+  - Bottone gradient arancione "Crea N scheletri" con confirm dialog che elenca il numero e chiarisce che tutte saranno create in stato bozza
+  - **Sequential POST loop** contro l'endpoint esistente `POST /api/admin/phonemes` (nessun endpoint backend nuovo — riuso puro)
+  - Payload per scheletro: `{id, ipa, displayIpa, category, subcategory, examples (uppercased), dialects (derivato da dialectScope), dialectNote (description), commonWords stub (3 righe pre-compilate), published: false, order: 100+i}`
+  - **UI live**: progress bar arancione + counter "N/M · nome fonema corrente" + percent %
+  - Al termine: banner esito (verde se tutto OK, ambra se errori parziali con lista degli id falliti)
+  - Auto-refresh del parent (via callback `onRefresh={fetchCards}`) → la griglia si aggiorna istantaneamente mostrando le nuove card create
+- [x] **Test smoke passato**:
+  - Prima: "Crea 42 scheletri" · INIZIATE 2 (5%) · e-dress/fan al 0% ✓
+  - Click → progress bar animata → "42 scheletri creati con successo" ✓
+  - Dopo: INIZIATE **44 (100%)** · e-dress/f-fan al 17% con "Card in DB" checked · CTA cambiata in "Continua produzione" ✓
+  - List view mostra **44 righe** (da 2) ✓
+  - Bottone diventa disabled "Crea 0 scheletri" (fuel esaurito) ✓
+  - Lint 0 errori
+- **Impatto**: setup iniziale dei 42 fonemi mancanti ridotto da ~5 min × 42 = 3.5h a **~15 secondi totali**. Il flow completo di produzione ora è:
+  1. Popolamento rapido (15 sec, una volta sola)
+  2. Ogni scheletro rifinito individualmente: upload immagini (30s) + drag hotspot (90s) + bulk audio ElevenLabs (90s) + testi (2 min) = **~5 min per scheda**
+  3. Roadmap fornisce priorità pedagogica per decidere l'ordine dei rifiniti
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 3 (Bulk Audio + Prefill) (P1 — DONE)
 - [x] **`BulkAudioGenerator.jsx`** (~340 righe): generatore bulk degli audio ElevenLabs con coda a concorrenza 2.
   - **Analizza il card** e costruisce automaticamente la work-list di clip da generare:

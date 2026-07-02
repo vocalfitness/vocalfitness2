@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2, Circle, ArrowRight, Sparkles, Filter, Target,
-  MapPin, Type, Volume2, PlaySquare, FileCheck, Layers,
+  MapPin, Type, Volume2, PlaySquare, FileCheck, Layers, Wand2, Loader2, X,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { PHONEME_CATALOGUE } from '../data/phonemeCatalogue';
@@ -93,11 +93,17 @@ function priorityOf(entry) {
 // ─────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────
-export default function PhonemeRoadmapDashboard({ existingCards = [] }) {
+export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh }) {
   const navigate = useNavigate();
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [progressFilter, setProgressFilter] = useState('all'); // all | pending | done
+
+  // ─── Bulk seed state ─────────────────────────────────
+  const [seedRunning, setSeedRunning] = useState(false);
+  const [seedProgress, setSeedProgress] = useState({ done: 0, total: 0, current: '' });
+  const [seedErrors, setSeedErrors] = useState([]);
+  const [seedResult, setSeedResult] = useState('');
 
   const existingById = useMemo(() => {
     const map = new Map();
@@ -143,6 +149,81 @@ export default function PhonemeRoadmapDashboard({ existingCards = [] }) {
   const percentComplete = Math.round((totals.complete / Math.max(totals.total, 1)) * 100);
   const percentExists   = Math.round((totals.exists   / Math.max(totals.total, 1)) * 100);
 
+  // Missing entries — never in DB. This is the fuel for the bulk seed button.
+  const missingEntries = useMemo(
+    () => enriched.filter(({ checks }) => !checks.exists),
+    [enriched],
+  );
+
+  // ─── Bulk seed: create empty skeletons in DB from catalogue entries ───
+  const runBulkSeed = async () => {
+    if (!missingEntries.length) return;
+    if (!window.confirm(
+      `Verranno create ${missingEntries.length} schede scheletro in stato BOZZA ` +
+      `(id, IPA, categoria, esempi pre-compilati dal catalogo).\n\n` +
+      `Non verranno pubblicate finché non le rifinirai. Procedere?`
+    )) return;
+
+    setSeedRunning(true);
+    setSeedErrors([]);
+    setSeedResult('');
+    setSeedProgress({ done: 0, total: missingEntries.length, current: '' });
+
+    const errs = [];
+    const API = process.env.REACT_APP_BACKEND_URL;
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem('vf_token') || ''}`,
+      'Content-Type': 'application/json',
+    };
+
+    for (let i = 0; i < missingEntries.length; i++) {
+      const { entry } = missingEntries[i];
+      setSeedProgress({ done: i, total: missingEntries.length, current: entry.subtitle || entry.id });
+
+      const payload = {
+        id: entry.id,
+        ipa: entry.ipa,
+        displayIpa: `/${entry.ipa}/`,
+        category: entry.group,
+        subcategory: entry.subgroup || '',
+        examples: (entry.words || []).map((w) => w.toUpperCase()),
+        dialects: entry.dialectScope === 'GA-only' ? ['AmE']
+                : entry.dialectScope === 'RP-only' ? ['RP']
+                : ['AmE', 'RP'],
+        dialectNote: entry.description || '',
+        commonWords: (entry.words || []).map((w) => ({ w, ipa: '', audio: '' })),
+        published: false,
+        order: 100 + i,
+      };
+      try {
+        const res = await fetch(`${API}/api/admin/phonemes`, {
+          method: 'POST', headers, body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          let detail = text;
+          try { detail = JSON.parse(text).detail || text; } catch { /* ignore */ }
+          throw new Error(detail);
+        }
+      } catch (e) {
+        errs.push({ id: entry.id, message: e.message });
+      }
+    }
+
+    setSeedProgress({ done: missingEntries.length, total: missingEntries.length, current: '' });
+    setSeedErrors(errs);
+    setSeedResult(
+      errs.length
+        ? `Creazione completata con ${errs.length} errori su ${missingEntries.length}.`
+        : `${missingEntries.length} scheletri creati con successo.`
+    );
+    setSeedRunning(false);
+    // Trigger parent refresh to update the roadmap grid immediately
+    if (typeof onRefresh === 'function') await onRefresh();
+    // Auto-hide result after a while
+    setTimeout(() => setSeedResult(''), 6000);
+  };
+
   return (
     <div data-testid="phoneme-roadmap-dashboard">
       {/* ─── Progress hero ─── */}
@@ -171,6 +252,70 @@ export default function PhonemeRoadmapDashboard({ existingCards = [] }) {
             <StatMini label="Complete 100%" value={totals.complete} accent="orange" testId="roadmap-stat-complete" />
           </div>
         </div>
+
+        {/* Bulk seed CTA */}
+        {(missingEntries.length > 0 || seedRunning || seedResult) && (
+          <div className="relative mt-5 pt-5 border-t border-cyan-500/15" data-testid="roadmap-bulk-seed">
+            <div className="flex flex-wrap items-center gap-3 justify-between">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-widest text-orange-300 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Popolamento rapido
+                </p>
+                <p className="text-sm text-white mt-1 max-w-xl leading-relaxed">
+                  Crea <span className="font-black text-orange-300">{missingEntries.length}</span> scheletri di scheda in stato bozza,
+                  pre-compilati con id/IPA/categoria/esempi dal catalogo. Nessuna sarà pubblica finché non la rifinisci.
+                </p>
+              </div>
+              <Button
+                onClick={runBulkSeed}
+                disabled={seedRunning || missingEntries.length === 0}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 text-slate-900 font-bold hover:scale-[1.03] transition flex-shrink-0"
+                data-testid="roadmap-bulk-seed-button"
+              >
+                {seedRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1.5" />}
+                {seedRunning ? 'Creazione in corso…' : `Crea ${missingEntries.length} scheletri`}
+              </Button>
+            </div>
+
+            {seedRunning && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                    {seedProgress.done} / {seedProgress.total} · {seedProgress.current || 'preparazione…'}
+                  </span>
+                  <span className="text-xs font-bold text-orange-300" data-testid="roadmap-bulk-seed-progress">
+                    {Math.round((seedProgress.done / Math.max(seedProgress.total, 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-200"
+                    style={{ width: `${(seedProgress.done / Math.max(seedProgress.total, 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {seedResult && !seedRunning && (
+              <div className={`mt-3 flex items-start gap-2 rounded-lg p-3 text-sm ${
+                seedErrors.length
+                  ? 'bg-amber-500/10 border border-amber-500/40 text-amber-200'
+                  : 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-200'
+              }`} data-testid="roadmap-bulk-seed-result">
+                {seedErrors.length ? <X className="w-4 h-4 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                <div className="min-w-0">
+                  <p className="font-bold">{seedResult}</p>
+                  {seedErrors.length > 0 && (
+                    <p className="text-xs mt-1 opacity-80">
+                      Errori: {seedErrors.map((e) => e.id).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Filters ─── */}
