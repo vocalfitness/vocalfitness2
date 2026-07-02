@@ -12,6 +12,22 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Stability Preset Selector (P1 — DONE)
+- [x] **3 preset di prosodia ElevenLabs** tarati per l'insegnamento fonetico, nel `BulkAudioGenerator.jsx`:
+  - **Naturale** (cyan, default): `stability 0.42 · similarity 0.88 · style 0.05` — bilanciato per la maggior parte dei fonemi
+  - **Espressivo** (arancione): `stability 0.25 · similarity 0.85 · style 0.15` — più variazione, ideale per vocali lunghe (`/iː/`, `/uː/`, `/ɔː/`) e frasi mnemoniche
+  - **Stabile** (verde): `stability 0.65 · similarity 0.92 · style 0.02` — molto consistente, ideale per fonemi isolati e consonanti (plosive, affricate)
+- [x] **UI**: pill selector 3-tab tra il progress bar e i voice picker con colore dinamico in base al preset attivo + hint sottotitolare che mostra parametri correnti in real-time
+- [x] **`generateOne` aggiornato**: pesca dinamicamente `prosody.stability / similarity_boost / style / use_speaker_boost` dal preset selezionato invece di valori hardcoded
+- [x] **Persistenza localStorage** in chiave `vf_bulk_prosody` — la scelta dura tra sessioni
+- [x] **Test smoke passato**:
+  - 3 pill renderizzate ✓, hint iniziale "Naturale · Bilanciato · 0.42" ✓
+  - Click "Espressivo" → hint aggiornato "0.25" + persistito in localStorage ✓
+  - Click "Stabile" → hint "consistente · 0.65" ✓
+  - Lint 0 errori
+- **Impatto**: il Prof può ora scegliere il preset ottimale per il tipo di fonema (Espressivo per vocali lunghe con contorno intonativo, Stabile per consonanti isolate) senza dover conoscere i parametri interni ElevenLabs. Le 3 configurazioni sono già testate e produce risultati didatticamente adeguati.
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Voice Dropdown nel Bulk Generator (P1 — DONE)
 - [x] **BulkAudioGenerator.jsx** esteso con 3 voice picker (AmE / RP / Default):
   - **Fetch on mount** da `/api/admin/elevenlabs/voices` (endpoint già esistente in `server.py`), riuso puro

@@ -24,6 +24,31 @@ import { Button } from './ui/button';
 
 const CONCURRENCY = 2;
 
+/**
+ * Prosody presets — tested ElevenLabs configs tuned for phonetic teaching.
+ *
+ *  • Naturale (default)  — balanced, good for most phonemes
+ *  • Espressivo          — more variation, ideal for long vowels and mnemonic sentences
+ *  • Stabile             — very consistent, ideal for isolated phonemes and consonants
+ */
+const PROSODY_PRESETS = {
+  natural: {
+    label: 'Naturale',
+    hint:  'Bilanciato — buono per la maggior parte dei fonemi',
+    stability: 0.42, similarity_boost: 0.88, style: 0.05, use_speaker_boost: true,
+  },
+  expressive: {
+    label: 'Espressivo',
+    hint:  'Più variazione — ideale per vocali lunghe e frasi mnemoniche',
+    stability: 0.25, similarity_boost: 0.85, style: 0.15, use_speaker_boost: true,
+  },
+  stable: {
+    label: 'Stabile',
+    hint:  'Molto consistente — ideale per fonemi isolati e consonanti',
+    stability: 0.65, similarity_boost: 0.92, style: 0.02, use_speaker_boost: true,
+  },
+};
+
 export default function BulkAudioGenerator({ card, onFieldChange }) {
   const [selected, setSelected] = useState(() => new Set());
   const [running,  setRunning]  = useState(new Set());
@@ -43,6 +68,16 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
     } catch { return { AmE: '', RP: '', default: '' }; }
   });
   const [previewing, setPreviewing] = useState('');
+
+  // ─── Prosody preset (natural / expressive / stable) ──────
+  const [prosodyKey, setProsodyKey] = useState(() => {
+    try { return localStorage.getItem('vf_bulk_prosody') || 'natural'; }
+    catch { return 'natural'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('vf_bulk_prosody', prosodyKey); } catch { /* ignore */ }
+  }, [prosodyKey]);
+  const prosody = PROSODY_PRESETS[prosodyKey] || PROSODY_PRESETS.natural;
 
   useEffect(() => {
     let cancelled = false;
@@ -114,10 +149,10 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
         body: JSON.stringify({
           text: item.text,
           voice_id: voiceId || undefined,
-          stability: 0.42,
-          similarity_boost: 0.88,
-          style: 0.05,
-          use_speaker_boost: true,
+          stability: prosody.stability,
+          similarity_boost: prosody.similarity_boost,
+          style: prosody.style,
+          use_speaker_boost: prosody.use_speaker_boost,
           model_id: 'eleven_multilingual_v2',
           output_format: 'mp3_44100_128',
           filename_hint: `${card.id || 'phoneme'}_${item.filenameSlug}`,
@@ -266,6 +301,37 @@ export default function BulkAudioGenerator({ card, onFieldChange }) {
 
         {/* Voice pickers */}
         <div className="mt-4 pt-4 border-t border-slate-800" data-testid="bulk-audio-voice-panel">
+          {/* Prosody preset selector */}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Preset di prosodia
+            </p>
+            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-1" data-testid="bulk-audio-prosody-selector">
+              {Object.entries(PROSODY_PRESETS).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setProsodyKey(key)}
+                  title={cfg.hint}
+                  className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition ${
+                    prosodyKey === key
+                      ? key === 'expressive' ? 'bg-orange-500/25 text-orange-200'
+                      : key === 'stable'     ? 'bg-emerald-500/25 text-emerald-200'
+                      :                        'bg-cyan-500/25 text-cyan-200'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  data-testid={`bulk-audio-prosody-${key}`}
+                >
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 italic mb-3" data-testid="bulk-audio-prosody-hint">
+            {prosody.hint} · stability {prosody.stability} · similarity {prosody.similarity_boost} · style {prosody.style}
+          </p>
+
           <p className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold flex items-center gap-1.5 mb-2">
             <Mic2 className="w-3.5 h-3.5" />
             Voci ElevenLabs
