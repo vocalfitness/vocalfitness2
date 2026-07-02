@@ -12,7 +12,56 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 2 (Visual Hotspot Editor + Image Upload) — (P1 — DONE)
+- [x] **`HotspotVisualEditor.jsx`** (~330 righe): editor drag & drop degli hotspot direttamente sull'immagine sagittale.
+  - Layout 5-col grid: 3/5 canvas + 2/5 pannello dettaglio
+  - Canvas 1:1 identico al render pubblico (coordinate percentuali interscambiabili)
+  - Puntini cyan animati (`shadow-[0_0_12px_rgba(34,211,238,0.7)]`), selezionato diventa arancione più grande
+  - **Drag**: mousedown/touchstart su un puntino → hook window mousemove/touchmove con clamp 0-100 + toFixed(1) → aggiorna x/y realtime nel state parent
+  - **Add on click**: click su area vuota (surface) → nuovo hotspot al punto cliccato, apre il pannello
+  - **Click su puntino** → apre pannello con tutti i campi (id, x/y numerici, label, title, role, detail, anatomy, kineticCue)
+  - Toggle "Mostra/Nascondi etichette" (label galleggianti sotto ogni dot)
+  - Coordinate readout live (top-left) + counter "N hotspot" (bottom-right)
+  - Actions per hotspot: Duplica (offset +3%) / Elimina (con confirm)
+- [x] **`ImageUploader.jsx`** (~120 righe): hybrid URL + drag/drop file input.
+  - Input testuale + bottone Upload + bottone X (clear)
+  - Drag & drop di file immagine sul field → upload immediato
+  - Endpoint riutilizzato: `POST /api/admin/upload` (già esistente in `server.py`, con storage Emergent)
+  - Auto-fill del campo URL con la path `/api/uploads/{filename}` restituita
+  - Preview thumbnail (16×16) + URL troncato sotto il field quando presente
+  - Stati: uploading (spinner) / OK (check verde) / error (X rosso + messaggio)
+  - Auth header `Bearer ${vf_token}`
+- [x] **Integrazione in `PhonemeAdminEditorPage.jsx`**:
+  - Sezione "Immagini della scheda" → 4× `ImageUploader` (sideView, frontView, frontViewClean, articulatory)
+  - Sezione "Hotspot anatomici" → nuovo `HotspotSection` con toggle Editor visuale / Tabellare (Repeater legacy come fallback per import/export testuali massivi). Il visuale è default; l'immagine `sideView` viene passata al canvas.
+- [x] **Test smoke end-to-end** (screenshot + assertions):
+  - Visual editor mostra 9 punti su /ʊ/ FOOT ✓
+  - Click su punto 0 apre pannello con title="Alveolar ridge" ✓
+  - Toggle Tabellare→Visuale funziona, Repeater rimane accessibile ✓
+  - 4 pulsanti Upload rilevati nella sezione Immagini + preview thumbnail sideView ✓
+  - Lint: 0 errori su tutti i nuovi/modificati file
+- **Impatto**: tempo per creare una nuova scheda scende da ~30 min (form manuale) a ~5-10 min (drag&drop hotspot + upload diretto immagini) — obiettivo popolare 44 fonemi ora realistico.
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Step 1 MVP (P1 — DONE)
+- [x] **Backend router modulare** `/app/backend/routers/phoneme_cards.py` (~290 righe). Endpoints:
+  - `GET /api/admin/phonemes` — lista admin (summary con hotspotCount, commonWordCount, hasAudio, hasVideoLesson)
+  - `GET /api/admin/phonemes/{id}` — get singola (full payload)
+  - `POST /api/admin/phonemes` — create (409 su id duplicato, validazione regex slug)
+  - `PUT /api/admin/phonemes/{id}` — update parziale (`exclude_unset=True`, gestione esplicita dei nullable `videoLesson`/`funFact`/`subcategory`)
+  - `DELETE /api/admin/phonemes/{id}`
+  - `POST /api/admin/phonemes/{id}/publish` — toggle pubblicazione
+  - `POST /api/admin/phonemes/{id}/duplicate` — duplicazione con id auto-generato in stato bozza
+  - `GET /api/phonemes` — lista pubblica (solo `published=true`)
+  - `GET /api/phonemes/{id}` — dettaglio pubblico
+- [x] Modelli Pydantic flessibili + seed idempotente al boot (importa /ʊ/ e /iː/)
+- [x] Frontend Admin: `/admin/phonemes` (lista + azioni) + `/admin/phonemes/:id` (editor form user-friendly)
+- [x] `PhonemeCardPage.jsx` DB-first con fallback su `phonemes.js`
+- [x] Cross-navigation: pulsante "Phoneme CMS" in `/admin` + link "Anteprima pubblica" + "Lista schede"
+- [x] Fix chiave localStorage token (`vf_token`)
+
+
+
 - [x] **Backend router modulare** `/app/backend/routers/phoneme_cards.py` (~290 righe). Endpoints:
   - `GET /api/admin/phonemes` — lista admin (summary con hotspotCount, commonWordCount, hasAudio, hasVideoLesson)
   - `GET /api/admin/phonemes/{id}` — get singola (full payload)

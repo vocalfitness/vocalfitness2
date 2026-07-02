@@ -9,8 +9,10 @@ import { Switch } from '../components/ui/switch';
 import {
   ArrowLeft, Save, ExternalLink, ChevronDown, ChevronRight, Plus, Trash2,
   Info, Sparkles, GraduationCap, Volume2, MapPin, BookOpen, FileText, Image as ImageIcon,
-  Video, Type, Palette, Wand2, Check, AlertCircle,
+  Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree,
 } from 'lucide-react';
+import HotspotVisualEditor from '../components/HotspotVisualEditor';
+import ImageUploader from '../components/ImageUploader';
 
 /**
  * PhonemeAdminEditorPage — CMS form editor.
@@ -386,22 +388,21 @@ export default function PhonemeAdminEditorPage() {
         {/* ================== ASSETS ================== */}
         <Section title="Immagini della scheda" icon={<ImageIcon className="w-4 h-4" />}>
           <p className="text-xs text-slate-400 mb-3">
-            URL delle 4 immagini anatomiche. Puoi ospitarle su Emergent Assets, Cloudinary, S3 o qualsiasi CDN.
+            Carica le 4 immagini anatomiche direttamente (trascina un file oppure clicca &quot;Upload&quot;), o incolla un URL esistente.
           </p>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid gap-5">
             {[
-              ['sideView',       'Side view (sagittale)', 'Vista laterale — sfondo card principale'],
-              ['frontView',      'Front view (frontale)', 'Attivazione muscoli facciali — modal'],
-              ['frontViewClean', 'Front view — clean',    'Ritaglio circolare per la miniatura HUD'],
-              ['articulatory',   'Articulatory deep-dive', 'Diagramma articolatorio dettagliato'],
+              ['sideView',       'Side view (sagittale)', 'Vista laterale — sfondo della card principale. Usata anche dall\'editor visuale hotspot.'],
+              ['frontView',      'Front view (frontale)', 'Attivazione muscoli facciali — mostrata nel modal front-view.'],
+              ['frontViewClean', 'Front view — clean',    'Ritaglio circolare per la miniatura HUD sulla card principale.'],
+              ['articulatory',   'Articulatory deep-dive', 'Diagramma articolatorio dettagliato — modal "Deep dive".'],
             ].map(([key, label, help]) => (
               <Field key={key} label={label} help={help}>
-                <Input
+                <ImageUploader
                   value={card.assets?.[key] || ''}
-                  onChange={(e) => setField(['assets', key], e.target.value)}
-                  placeholder="https://…"
-                  className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs"
-                  data-testid={`editor-field-assets-${key}`}
+                  onChange={(url) => setField(['assets', key], url)}
+                  placeholder="Trascina un'immagine qui, clicca Upload, o incolla un URL"
+                  testId={`editor-field-assets-${key}`}
                 />
               </Field>
             ))}
@@ -568,30 +569,10 @@ export default function PhonemeAdminEditorPage() {
 
         {/* ================== HOTSPOTS ================== */}
         <Section title="Hotspot anatomici" icon={<MapPin className="w-4 h-4" />}>
-          <p className="text-xs text-slate-400 mb-3">
-            Punti cliccabili sulla vista sagittale. X/Y sono percentuali (0–100) sull&apos;immagine.
-          </p>
-          <Repeater
-            label="Hotspot"
-            items={card.hotspots || []}
+          <HotspotSection
+            image={card.assets?.sideView}
+            hotspots={card.hotspots || []}
             onChange={(items) => setField('hotspots', items)}
-            template={{ id: '', x: 50, y: 50, label: '', title: '', role: '', detail: '', anatomy: '', kineticCue: '' }}
-            testId="editor-hotspots"
-            renderItem={(item, upd, i) => (
-              <div className="grid gap-2">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <Input value={item.id || ''} onChange={(e) => upd({ ...item, id: e.target.value })} placeholder="id (velum-raised)" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" />
-                  <Input type="number" step="0.1" value={item.x ?? ''} onChange={(e) => upd({ ...item, x: parseFloat(e.target.value) || 0 })} placeholder="X (0-100)" className="bg-slate-900 border-slate-700 text-slate-100" />
-                  <Input type="number" step="0.1" value={item.y ?? ''} onChange={(e) => upd({ ...item, y: parseFloat(e.target.value) || 0 })} placeholder="Y (0-100)" className="bg-slate-900 border-slate-700 text-slate-100" />
-                  <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Label breve" className="bg-slate-900 border-slate-700 text-slate-100" />
-                </div>
-                <Input value={item.title || ''} onChange={(e) => upd({ ...item, title: e.target.value })} placeholder="Titolo (nel pannello di dettaglio)" className="bg-slate-900 border-slate-700 text-slate-100" />
-                <Input value={item.role || ''} onChange={(e) => upd({ ...item, role: e.target.value })} placeholder="Ruolo (es: Passive — not engaged)" className="bg-slate-900 border-slate-700 text-slate-100" />
-                <Textarea value={item.detail || ''} onChange={(e) => upd({ ...item, detail: e.target.value })} placeholder="Descrizione articolatoria dettagliata…" rows={2} className="bg-slate-900 border-slate-700 text-slate-100" />
-                <Input value={item.anatomy || ''} onChange={(e) => upd({ ...item, anatomy: e.target.value })} placeholder="Nota anatomica (opzionale)" className="bg-slate-900 border-slate-700 text-slate-100" />
-                <Input value={item.kineticCue || ''} onChange={(e) => upd({ ...item, kineticCue: e.target.value })} placeholder="Kinetic cue (opzionale)" className="bg-slate-900 border-slate-700 text-slate-100" />
-              </div>
-            )}
           />
         </Section>
 
@@ -755,6 +736,80 @@ function Field({ label, help, required, children }) {
       </Label>
       {children}
       {help && <p className="text-[11px] text-slate-500 italic">{help}</p>}
+    </div>
+  );
+}
+
+// ============================================================
+// HotspotSection — toggle between visual editor and tabular editor
+// ============================================================
+function HotspotSection({ image, hotspots, onChange }) {
+  const [mode, setMode] = useState('visual'); // 'visual' | 'table'
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-1 mb-4 w-fit" data-testid="editor-hotspots-mode-toggle">
+        <button
+          type="button"
+          onClick={() => setMode('visual')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition ${
+            mode === 'visual' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:text-slate-200'
+          }`}
+          data-testid="editor-hotspots-mode-visual"
+        >
+          <MousePointer2 className="w-3.5 h-3.5" />
+          Editor visuale
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('table')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition ${
+            mode === 'table' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:text-slate-200'
+          }`}
+          data-testid="editor-hotspots-mode-table"
+        >
+          <ListTree className="w-3.5 h-3.5" />
+          Tabellare
+        </button>
+        <span className="ml-2 text-[10px] text-slate-500 pr-2">{hotspots.length} hotspot</span>
+      </div>
+
+      {mode === 'visual' ? (
+        <HotspotVisualEditor
+          image={image}
+          hotspots={hotspots}
+          onChange={onChange}
+          testId="editor-hotspots-visual"
+        />
+      ) : (
+        <>
+          <p className="text-xs text-slate-400 mb-3">
+            Modalità tabellare — utile per import/export massivi o correzioni testuali. Passa a &quot;Editor visuale&quot; per trascinare i punti direttamente sull&apos;immagine.
+          </p>
+          <Repeater
+            label="Hotspot"
+            items={hotspots}
+            onChange={onChange}
+            template={{ id: '', x: 50, y: 50, label: '', title: '', role: '', detail: '', anatomy: '', kineticCue: '' }}
+            testId="editor-hotspots"
+            renderItem={(item, upd) => (
+              <div className="grid gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Input value={item.id || ''} onChange={(e) => upd({ ...item, id: e.target.value })} placeholder="id (velum-raised)" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" />
+                  <Input type="number" step="0.1" value={item.x ?? ''} onChange={(e) => upd({ ...item, x: parseFloat(e.target.value) || 0 })} placeholder="X (0-100)" className="bg-slate-900 border-slate-700 text-slate-100" />
+                  <Input type="number" step="0.1" value={item.y ?? ''} onChange={(e) => upd({ ...item, y: parseFloat(e.target.value) || 0 })} placeholder="Y (0-100)" className="bg-slate-900 border-slate-700 text-slate-100" />
+                  <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Label breve" className="bg-slate-900 border-slate-700 text-slate-100" />
+                </div>
+                <Input value={item.title || ''} onChange={(e) => upd({ ...item, title: e.target.value })} placeholder="Titolo (nel pannello di dettaglio)" className="bg-slate-900 border-slate-700 text-slate-100" />
+                <Input value={item.role || ''} onChange={(e) => upd({ ...item, role: e.target.value })} placeholder="Ruolo" className="bg-slate-900 border-slate-700 text-slate-100" />
+                <Textarea value={item.detail || ''} onChange={(e) => upd({ ...item, detail: e.target.value })} placeholder="Descrizione articolatoria dettagliata…" rows={2} className="bg-slate-900 border-slate-700 text-slate-100" />
+                <Input value={item.anatomy || ''} onChange={(e) => upd({ ...item, anatomy: e.target.value })} placeholder="Nota anatomica (opzionale)" className="bg-slate-900 border-slate-700 text-slate-100" />
+                <Input value={item.kineticCue || ''} onChange={(e) => upd({ ...item, kineticCue: e.target.value })} placeholder="Kinetic cue (opzionale)" className="bg-slate-900 border-slate-700 text-slate-100" />
+              </div>
+            )}
+          />
+        </>
+      )}
     </div>
   );
 }
