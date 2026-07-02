@@ -12,6 +12,28 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Frontend Refactoring · AdminEditorModal (P1 — DONE)
+- [x] **Nuovo componente** `/app/frontend/src/pages/admin/AdminEditorModal.jsx` (~807 righe) — modal shell unificato per tutti i 10 tipi di form CRUD admin:
+  - `create-folder` / `edit-folder`
+  - `create-content` / `edit-content` (con upload file, thumbnail auto, cover custom)
+  - `create-user` / `edit-user` (form CRM completo: Anagrafica, Dati Aziendali, Social & Web, Marketing & CRM, Note & Storico, Ruolo Sistema — tutte le sezioni collassabili)
+  - `import-youtube` / `edit-youtube-users`
+  - `create-popup` / `edit-popup` (con upload media, cover, CTA, target selector)
+- [x] **AdminPage.jsx shrink**: 2138 → **1397 righe** (–741 righe, –35% solo in questo passaggio)
+- [x] **Totale sessione**: 2973 → 1397 righe (**–53%, obiettivo `<1400` RAGGIUNTO** ✅)
+- [x] **Contratto props esplicito**: ~40 props (state + refs + handlers) — parent resta single source of truth
+- [x] **Zero lint errors** su file toccati
+- [x] **Smoke test E2E** in preview (login admin → aperti tutti e 5 i tipi di modal):
+  - Folder modal → `folder-name-input` + `save-button` visibili ✓
+  - Content modal → `content-title-input` + `content-type-select` visibili ✓
+  - User modal → `user-username-input` + `user-role-select` visibili, sezioni CRM collassabili renderizzano ✓
+  - YouTube import → `youtube-url-input` visibile, banner rosso + lista clienti ✓
+  - Popup modal → `popup-title-input` + `popup-type-select` visibili, submit button arancione ✓
+  - Zero regressioni visive (colori, layout, submit button color per import-youtube/popup)
+- **Beneficio**: modal completamente isolato, ora possibile testarlo unitariamente con mock di form data + submit handlers. Il file principale è finalmente sotto le 1400 righe.
+
+
+
 ### 02/07/2026 — Frontend Refactoring · 5 nuovi tab estratti (P1 — DONE)
 - [x] **5 nuovi componenti** in `/app/frontend/src/pages/admin/`:
   - `AdminFoldersTab.jsx` (~89 righe) — grid cartelle con create/edit/delete
