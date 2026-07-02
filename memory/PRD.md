@@ -12,6 +12,24 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · testimonials + messages + popups (P1 — DONE)
+- [x] **3 nuovi router** estratti:
+  - `/app/backend/routers/testimonials_clients.py` (~123 righe) — 4 endpoint (`GET/POST /testimonials`, `GET/POST /clients`) con modelli inline
+  - `/app/backend/routers/messages.py` (~236 righe) — 9 endpoint (member/admin chat + task complete + delete + unread count), riceve `get_conversation_id` e `send_notification_email` via factory
+  - `/app/backend/routers/popups.py` (~286 righe) — 10 endpoint (CRUD admin + upload media + member view/dismiss/list)
+- [x] **`server.py` shrink**: 3346 → 2895 righe (–451 righe, –13%)
+- [x] **Totale progressive**: 4188 → 2895 (–1293 righe, –31% dal punto di partenza)
+- [x] **Test E2E** (curl via preview):
+  - `GET /testimonials` → 200 (31 items) ✓
+  - `GET /clients` → 200 (25 items) ✓
+  - `GET /admin/messages/conversations` → 200 (11 conv) ✓
+  - `POST /admin/messages` → 200 (msg created) → `DELETE /admin/messages/{id}` → 200 ✓
+  - `GET /admin/popups` → 200 · `GET /admin/popups/stats` → 200 (aggregati corretti) ✓
+  - Auth guards senza token → 403 ✓
+- **Beneficio**: 3 domini ora completamente isolati e testabili. `messages.py` estrarrà anche l'auto-notifica email; `popups.py` include l'upload media (che usa `utils.storage` condiviso). Prossimi candidati: auth (login/magic/change-password), chat Alice AI, contact/booking/corporate-quote (i più grandi rimasti).
+
+
+
 ### 02/07/2026 — Frontend Refactoring · useAdminState hook (P1 — DONE ✅)
 - [x] **Nuovo custom hook** `/app/frontend/src/pages/admin/useAdminState.js` (~858 righe) — contiene tutta la logica di stato (~40 useState, 4 refs, CRM sections), gli useEffect (auth guard + data fetch), showToast helper e i ~35 handlers (folders/content/users/messaging/leads/youtube/popups CRUD). Ritorna un unico oggetto con ~130 identificatori.
 - [x] **Nuovo file translations** `/app/frontend/src/pages/adminTranslations.js` (~311 righe) — estratto dal top di AdminPage, importato sia da AdminPage sia dal hook
