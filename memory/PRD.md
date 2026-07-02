@@ -12,6 +12,25 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · Uploads + Leads + Proposals (P1 — DONE)
+- [x] **3 nuovi router** estratti da `server.py`:
+  - `/app/backend/routers/admin_leads.py` (~287 righe) — `GET/PATCH /admin/leads`, `POST /admin/leads/{id}/email` (Zoho SMTP + template EN/IT + variable substitution + touch log)
+  - `/app/backend/routers/proposals.py` (~272 righe) — `POST /proposals/track-open`, `GET /admin/proposals/opens`, `POST /proposals/send-by-email` (PDF attachment + BCC seller + audit log)
+  - `/app/backend/routers/uploads.py` (~299 righe) — `GET /admin/storage/stats`, `POST/DELETE /admin/upload*`, `POST /admin/thumbnail/*`, `GET /uploads/{path:path}` (public serve + Emergent-storage fallback + write-back cache)
+- [x] **Nuovo modulo condiviso** `/app/backend/utils/storage.py` (~148 righe) — costanti (`ALLOWED_EXTENSIONS`, `UPLOAD_MAX_*`) e helper (`format_size`, `get_total_storage_used`, `auto_generate_thumbnail`, `get_youtube_thumbnail`, `generate_video_thumbnail`, `generate_pdf_thumbnail`) accessibili sia dal router che dai restanti endpoint di `server.py`
+- [x] **`server.py` shrink**: da 4188 → 3346 righe (–842 righe, –20%)
+- [x] **Test E2E end-to-end** (curl via preview URL, admin login):
+  - Upload PNG reale → 200, salvato su disco + mirror Emergent Storage → public serve 200 (261 B, `image/png`) → DELETE 200 ✓
+  - `GET /admin/storage/stats` → 200 (2 GB cap, 7 files) ✓
+  - `POST /admin/thumbnail/generate-from-url` YouTube + Google Drive → 200 ✓
+  - `GET /admin/leads` → 200 (3 items) · `PATCH nonexistent` → 404 ✓
+  - `POST /proposals/track-open` → 200 (sequence numbering ok) · filter GET → 200 ✓
+  - `POST /proposals/send-by-email` invalid email → 400 ✓
+  - Auth guards (no token) → 403 ✓
+- **Beneficio**: architettura scalabile, ogni dominio ha il suo router testabile in isolamento, helper condivisi centralizzati in `utils/`. Prossimo candidato: split di `AdminPage.jsx` (>2900 righe frontend).
+
+
+
 ### 02/07/2026 — Backend Refactoring · ElevenLabs Router Extraction (P0 — DONE)
 - [x] **Nuovo file** `/app/backend/routers/elevenlabs.py` (~200 righe) creato con factory `build_elevenlabs_router(get_admin_user, emergent_put, uploads_dir)` — stesso pattern di `phoneme_cards.py`
 - [x] **Rimosse ~135 righe** da `server.py` (da 4188 a ~4057 righe): `ElevenLabsTTSRequest`, `_get_elevenlabs_client()`, `list_elevenlabs_voices`, `elevenlabs_tts`
