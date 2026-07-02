@@ -12,6 +12,26 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Backend Refactoring · chat_alice AI chatbot (P1 — DONE)
+- [x] **Nuovo router** `/app/backend/routers/chat_alice.py` (~295 righe) — assistente virtuale "Alice" per qualifica lead con GPT-4o-mini via `EMERGENT_LLM_KEY`:
+  - `POST /chat` con multi-turn session tracking (`session_id` keyed)
+  - Prompt di sistema IT/EN estratti in `_build_system_prompt()` helper
+  - Dual-pass LLM: risposta conversazionale + extraction pass per campi strutturati (name/email/english_level/goal/urgency)
+  - Hesitation detection (15 keywords IT+EN) → WhatsApp handoff automatico
+  - Completion logic (`is_complete`) basata su 3 condizioni (dati completi / esitanti+3 turni / con-info+5 turni)
+- [x] Modelli inline (`ChatRequest`, `ChatResponse`, `ChatMessage`, `LeadData`); `LlmChat`/`UserMessage` lazy-import per test env
+- [x] **server.py shrink**: 2364 → **2113 righe** (–251 righe, –11%)
+- [x] **Totale sessione backend**: 4188 → 2113 (**–2075 righe, –50%** — mezzo file eliminato) 🎯
+- [x] Zero lint errors
+- [x] **Test E2E LLM in preview** con vera chiamata Emergent LLM key:
+  - Turn 1 (greeting IT) → Alice risponde in italiano, estrae già `goal` ✓
+  - Turn 2 ("Sono Marco Rossi") → name extraction funziona, multi-turn session preserved ✓
+  - Turn 3 ("No preferisco parlare con qualcuno") → hesitation triggers WhatsApp handoff con messaggio esatto, `is_complete: True` ✓
+  - Cleanup 1 sessione DB rimossa
+- **Beneficio**: chatbot AI completamente isolato, testabile con mock LLM. La logica di prompt engineering + extraction ora vive in un file dedicato (facile A/B testing, versioning prompt).
+
+
+
 ### 02/07/2026 — Backend Refactoring · leads_forms (contact/booking/corporate-quote) (P1 — DONE)
 - [x] **Nuovo router** `/app/backend/routers/leads_forms.py` (~574 righe) — 3 endpoint pubblici del marketing:
   - `POST /contact` — form contatto generico (Zoho SMTP notification HTML)
