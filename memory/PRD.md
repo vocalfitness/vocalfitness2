@@ -12,6 +12,47 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Live Preview + Editor Dedicati + Docs (P1 — DONE)
+- [x] **`PhonemeLivePreview.jsx`** (~240 righe): sidebar sticky a destra dell'editor con anteprima in tempo reale.
+  - Layout responsive `lg:sticky lg:top-[88px]` che segue lo scroll
+  - Hero con glifo IPA + subtitle + esempio principale + progress bar
+  - Sagittale interattiva con hotspot overlay (cyan dots + shadow glow)
+  - 6-checklist compatta (Metadata / Hotspot / Parole / Audio / Video / Pubblicata) con icone stato
+  - Preview frasi con highlight arancione real-time
+  - Preview mnemonica + chips parole comuni (verde se ha audio, grigia se no)
+  - CTA "Apri pubblica" in nuova tab (visibile solo per card già salvate)
+  - Dirty state indicator + % completezza in footer
+- [x] **Editor dedicati** — sostituita la textarea JSON con 8 sezioni strutturate:
+  - **Ortografia (spellings)**: Repeater `{letters, percent, examples}` con input percentuale
+  - **Grafico frequenza**: Repeater `{ipa, height, active}` con Switch "attivo"
+  - **Features articolatorie**: Repeater `{label, value}`
+  - **Manopole (knobs)**: Repeater con **range slider visuale 0-100** + numeric input + Switch "Distintiva" per highlight
+  - **Muscoli facciali**: Repeater `{name, activation, detail}`
+  - **Classificazione**: Repeater `{label, tooltip}` con textarea per tooltip
+  - **Curiosità (funFact)**: form 2-campi con auto-null se entrambi vuoti
+  - **Posizione vowel chart**: form X/Y + **mini-picker cliccabile 2D** con dot arancione trascinabile, click-to-set su griglia con axis labels
+  - **Expert mode (JSON fallback)**: sezione finale con textarea per import/export massivi, collapsed di default
+- [x] **`PhonemeCmsHelpPage.jsx`** (~450 righe) su rotta `/admin/help/phoneme-cms`:
+  - Layout TOC laterale sticky (9 sezioni) + contenuto scrollabile
+  - H1 "Come popolare le schede fonetiche" con intro chiara del CMS
+  - **9 sezioni ancorate**: Panoramica · Lista schede · Roadmap · Bulk seed · Editor (con 8 subsection collassabili) · Live preview · Workflow step-by-step · Suggerimenti pedagogici · Troubleshooting
+  - Callout box `<CalloutInfo>` per suggerimenti importanti
+  - CTA a fine pagina: "Torna al CMS" + "Apri Phonetic Library pubblica"
+  - Placeholder per video tour futuro
+  - Link cross-nav aggiunto in top bar `/admin/phonemes` con icona HelpCircle
+- [x] **Layout editor a 2 colonne** (`lg:grid-cols-[minmax(0,1fr)_360px]`) — contenuto a sinistra, preview live a destra. Su mobile il preview passa sotto le sezioni (responsive).
+- [x] **Test smoke passato**:
+  - Live Preview sidebar rendered ✓, 6 check-item cells ✓, sagittal with 9 hotspot overlay ✓, "Apri pubblica" link visible ✓
+  - Editor dedicati: 4 knob range sliders ✓, vowel chart visual picker ✓, tutte le 8 sezioni presenti ✓
+  - Docs page: 9 TOC entries + 9 sezioni ✓, H1 "Come popolare le schede fonetiche" ✓
+  - Nav: link "Guida" da `/admin/phonemes` presente ✓
+  - Lint: 0 errori su tutti i nuovi/modificati file
+- **Impatto**:
+  - Editor ora 100% no-code (JSON expert mode ancora disponibile come escape hatch)
+  - Feedback immediato durante la rifinitura — non serve più salvare e ricaricare per vedere il risultato
+  - Onboarding del Prof/team autonomo grazie ai docs (riduce le domande di supporto)
+
+
 ### 02/07/2026 — LMS Fase 2 · CMS Fonemi — Bulk Skeleton Seeder (P1 — DONE)
 - [x] **Estensione di `PhonemeRoadmapDashboard.jsx`** con blocco "Popolamento rapido":
   - Rileva automaticamente i fonemi del catalogo non ancora in DB (`missingEntries`)

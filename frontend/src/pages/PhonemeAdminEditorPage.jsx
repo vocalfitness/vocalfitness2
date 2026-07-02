@@ -9,11 +9,12 @@ import { Switch } from '../components/ui/switch';
 import {
   ArrowLeft, Save, ExternalLink, ChevronDown, ChevronRight, Plus, Trash2,
   Info, Sparkles, GraduationCap, Volume2, MapPin, BookOpen, FileText, Image as ImageIcon,
-  Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree,
+  Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree, Layers,
 } from 'lucide-react';
 import HotspotVisualEditor from '../components/HotspotVisualEditor';
 import ImageUploader from '../components/ImageUploader';
 import BulkAudioGenerator from '../components/BulkAudioGenerator';
+import PhonemeLivePreview from '../components/PhonemeLivePreview';
 import { PHONEME_CATALOGUE } from '../data/phonemeCatalogue';
 
 /**
@@ -281,7 +282,9 @@ export default function PhonemeAdminEditorPage() {
         </div>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-5 py-8">
+      <div className="max-w-[1400px] mx-auto px-5 py-8">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+          <div className="min-w-0">
         {/* Alerts */}
         {error && (
           <div className="mb-4 bg-red-500/10 border border-red-500/40 rounded-lg p-3 text-red-300 text-sm flex items-start gap-2" data-testid="editor-error">
@@ -638,18 +641,274 @@ export default function PhonemeAdminEditorPage() {
           />
         </Section>
 
-        {/* ================== ADVANCED JSON ================== */}
-        <Section title="Avanzato — dati di visualizzazione (JSON)" icon={<Palette className="w-4 h-4" />}>
+        {/* ================== SPELLINGS ================== */}
+        <Section title="Ortografia (spellings)" icon={<FileText className="w-4 h-4" />}>
           <p className="text-xs text-slate-400 mb-3">
-            Campi complessi di grafica/statistica: <code className="text-cyan-300">spellings</code>, <code className="text-cyan-300">frequencyChart</code>,{' '}
-            <code className="text-cyan-300">features</code>, <code className="text-cyan-300">knobs</code>, <code className="text-cyan-300">facialMuscles</code>,{' '}
-            <code className="text-cyan-300">classification</code>, <code className="text-cyan-300">funFact</code>, <code className="text-cyan-300">vowelChartPosition</code>.
-            Modifica come JSON strutturato (in una prossima iterazione avranno editor dedicati).
+            Come questo fonema viene scritto in inglese — con frequenza in percentuale e alcuni esempi.
+          </p>
+          <Repeater
+            label="Grafia"
+            items={card.spellings || []}
+            onChange={(items) => setField('spellings', items)}
+            template={{ letters: '', percent: 0, examples: '' }}
+            testId="editor-spellings"
+            compact
+            renderItem={(item, upd, i) => (
+              <div className="grid sm:grid-cols-8 gap-2">
+                <Input value={item.letters || ''} onChange={(e) => upd({ ...item, letters: e.target.value })} placeholder="oo" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100 font-mono" data-testid={`editor-spelling-${i}-letters`} />
+                <div className="sm:col-span-2 flex items-center gap-2">
+                  <Input type="number" min="0" max="100" value={item.percent ?? 0} onChange={(e) => upd({ ...item, percent: parseInt(e.target.value, 10) || 0 })} className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-spelling-${i}-percent`} />
+                  <span className="text-xs text-slate-500">%</span>
+                </div>
+                <Input value={item.examples || ''} onChange={(e) => upd({ ...item, examples: e.target.value })} placeholder="foot, book, look" className="sm:col-span-4 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-spelling-${i}-examples`} />
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== FREQUENCY CHART ================== */}
+        <Section title="Grafico di frequenza (frequencyChart)" icon={<Palette className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Barre del grafico frequenza fonemi mostrato sulla card. Height 0–100. Marca <code className="text-cyan-300">active</code> per la barra evidenziata (di solito quella del fonema corrente).
+          </p>
+          <Repeater
+            label="Barra"
+            items={card.frequencyChart || []}
+            onChange={(items) => setField('frequencyChart', items)}
+            template={{ ipa: '', height: 50, active: false }}
+            testId="editor-freq"
+            compact
+            renderItem={(item, upd, i) => (
+              <div className="grid grid-cols-3 sm:grid-cols-8 gap-2 items-center">
+                <Input value={item.ipa || ''} onChange={(e) => upd({ ...item, ipa: e.target.value })} placeholder="ʊ" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100 font-mono" data-testid={`editor-freq-${i}-ipa`} />
+                <Input type="number" min="0" max="100" value={item.height ?? 50} onChange={(e) => upd({ ...item, height: parseInt(e.target.value, 10) || 0 })} className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-freq-${i}-height`} />
+                <label className="sm:col-span-3 flex items-center gap-2 text-xs text-slate-300">
+                  <Switch checked={!!item.active} onCheckedChange={(v) => upd({ ...item, active: v })} data-testid={`editor-freq-${i}-active`} />
+                  <span className={item.active ? 'text-cyan-300 font-bold' : 'text-slate-500'}>Attivo (fonema corrente)</span>
+                </label>
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== FEATURES ================== */}
+        <Section title="Features articolatorie" icon={<Info className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Tabella di attributi mostrata sulla card. Coppie etichetta/valore.
+          </p>
+          <Repeater
+            label="Feature"
+            items={card.features || []}
+            onChange={(items) => setField('features', items)}
+            template={{ label: '', value: '' }}
+            testId="editor-features"
+            compact
+            renderItem={(item, upd, i) => (
+              <div className="grid sm:grid-cols-3 gap-2">
+                <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Height" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-label`} />
+                <Input value={item.value || ''} onChange={(e) => upd({ ...item, value: e.target.value })} placeholder="Near-close" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-value`} />
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== KNOBS ================== */}
+        <Section title="Manopole (knobs)" icon={<Palette className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Le 4 &quot;manopole&quot; visive sotto la card (Advancement / Tenseness / Height / Roundness).
+            Valore da 0 a 100. Marca <code className="text-cyan-300">highlight</code> per le manopole distintive del fonema.
+          </p>
+          <Repeater
+            label="Manopola"
+            items={card.knobs || []}
+            onChange={(items) => setField('knobs', items)}
+            template={{ id: '', label: '', value: 50, valueLabel: '', highlight: false }}
+            testId="editor-knobs"
+            renderItem={(item, upd, i) => (
+              <div className="grid gap-2">
+                <div className="grid sm:grid-cols-4 gap-2">
+                  <Input value={item.id || ''} onChange={(e) => upd({ ...item, id: e.target.value })} placeholder="height" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-knob-${i}-id`} />
+                  <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="HEIGHT" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-label`} />
+                  <Input value={item.valueLabel || ''} onChange={(e) => upd({ ...item, valueLabel: e.target.value })} placeholder="near-close" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-valueLabel`} />
+                  <label className="flex items-center gap-2 text-xs text-slate-300">
+                    <Switch checked={!!item.highlight} onCheckedChange={(v) => upd({ ...item, highlight: v })} data-testid={`editor-knob-${i}-highlight`} />
+                    <span className={item.highlight ? 'text-orange-300 font-bold' : 'text-slate-500'}>Distintiva</span>
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range" min="0" max="100"
+                    value={item.value ?? 50}
+                    onChange={(e) => upd({ ...item, value: parseInt(e.target.value, 10) || 0 })}
+                    className="flex-1 accent-cyan-500"
+                    data-testid={`editor-knob-${i}-value-range`}
+                  />
+                  <Input type="number" min="0" max="100" value={item.value ?? 50} onChange={(e) => upd({ ...item, value: parseInt(e.target.value, 10) || 0 })} className="w-20 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-value`} />
+                  <span className="text-xs text-slate-500">/ 100</span>
+                </div>
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== FACIAL MUSCLES ================== */}
+        <Section title="Muscoli facciali" icon={<Sparkles className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Elenco muscoli con attivazione — mostrato nel modal &quot;Facial muscles&quot;.
+          </p>
+          <Repeater
+            label="Muscolo"
+            items={card.facialMuscles || []}
+            onChange={(items) => setField('facialMuscles', items)}
+            template={{ name: '', activation: '', detail: '' }}
+            testId="editor-facialMuscles"
+            compact
+            renderItem={(item, upd, i) => (
+              <div className="grid sm:grid-cols-6 gap-2">
+                <Input value={item.name || ''} onChange={(e) => upd({ ...item, name: e.target.value })} placeholder="Orbicularis oris" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-name`} />
+                <Input value={item.activation || ''} onChange={(e) => upd({ ...item, activation: e.target.value })} placeholder="MODERATE" className="sm:col-span-1 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-activation`} />
+                <Input value={item.detail || ''} onChange={(e) => upd({ ...item, detail: e.target.value })} placeholder="rounding" className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-detail`} />
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== CLASSIFICATION ================== */}
+        <Section title="Classificazione (etichette + tooltip)" icon={<Layers className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Le etichette-chip mostrate sotto la card (es: Near-high · Back · Relaxed · Monophthong). Ogni etichetta ha un tooltip esplicativo al passaggio del mouse.
+          </p>
+          <Repeater
+            label="Etichetta"
+            items={card.classification || []}
+            onChange={(items) => setField('classification', items)}
+            template={{ label: '', tooltip: '' }}
+            testId="editor-classification"
+            compact
+            renderItem={(item, upd, i) => (
+              <div className="grid sm:grid-cols-5 gap-2">
+                <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Near-high" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-cls-${i}-label`} />
+                <Textarea value={item.tooltip || ''} onChange={(e) => upd({ ...item, tooltip: e.target.value })} rows={2} placeholder="Descrizione mostrata nel tooltip…" className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100 text-xs" data-testid={`editor-cls-${i}-tooltip`} />
+              </div>
+            )}
+          />
+        </Section>
+
+        {/* ================== FUN FACT ================== */}
+        <Section title="Curiosità (funFact)" icon={<Sparkles className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Blocco &quot;Statistical curiosity&quot; opzionale mostrato sulla card. Lascia vuoto per non mostrarlo.
+          </p>
+          <div className="grid gap-3">
+            <Field label="Titolo">
+              <Input
+                value={card.funFact?.headline || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setField('funFact', val || card.funFact?.body ? { ...(card.funFact || {}), headline: val } : null);
+                }}
+                placeholder="Statistical curiosity"
+                className="bg-slate-900 border-slate-700 text-slate-100"
+                data-testid="editor-funFact-headline"
+              />
+            </Field>
+            <Field label="Testo">
+              <Textarea
+                value={card.funFact?.body || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setField('funFact', val || card.funFact?.headline ? { ...(card.funFact || {}), body: val } : null);
+                }}
+                rows={3}
+                placeholder="Testo della curiosità…"
+                className="bg-slate-900 border-slate-700 text-slate-100"
+                data-testid="editor-funFact-body"
+              />
+            </Field>
+            {!(card.funFact?.headline || card.funFact?.body) && (
+              <p className="text-[10px] text-slate-500 italic">
+                Nessuna curiosità impostata — il blocco non apparirà sulla card pubblica.
+              </p>
+            )}
+          </div>
+        </Section>
+
+        {/* ================== VOWEL CHART POSITION ================== */}
+        <Section title="Posizione nella tabella vocalica (vowelChartPosition)" icon={<MapPin className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Coordinate (0–100) sulla vowel chart. X: fronte→retro (0=front, 100=back). Y: alto→basso (0=close, 100=open).
+            Usato solo per vocali e dittonghi.
+          </p>
+          <div className="grid sm:grid-cols-[240px,1fr] gap-4 items-start">
+            {/* Mini visual picker */}
+            <div className="relative rounded-lg border border-slate-700 bg-slate-950 aspect-square overflow-hidden" data-testid="editor-vowelPos-picker">
+              {/* Grid overlay */}
+              <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 opacity-30">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <div key={i} className="border border-slate-700/60" />
+                ))}
+              </div>
+              {/* Axis labels */}
+              <span className="absolute top-1 left-1 text-[9px] text-slate-500 uppercase font-bold">front · close</span>
+              <span className="absolute top-1 right-1 text-[9px] text-slate-500 uppercase font-bold">back · close</span>
+              <span className="absolute bottom-1 left-1 text-[9px] text-slate-500 uppercase font-bold">front · open</span>
+              <span className="absolute bottom-1 right-1 text-[9px] text-slate-500 uppercase font-bold">back · open</span>
+              {/* Dot */}
+              <div
+                className="absolute w-4 h-4 bg-orange-400 border-2 border-orange-100 rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_14px_rgba(251,146,60,0.9)]"
+                style={{
+                  left:  `${card.vowelChartPosition?.x ?? 50}%`,
+                  top:   `${card.vowelChartPosition?.y ?? 50}%`,
+                }}
+              />
+              {/* Click-to-set */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+                  const y = Math.max(0, Math.min(100, ((e.clientY - rect.top)  / rect.height) * 100));
+                  setField('vowelChartPosition', { x: parseFloat(x.toFixed(1)), y: parseFloat(y.toFixed(1)) });
+                }}
+                className="absolute inset-0 cursor-crosshair"
+                title="Clicca per impostare la posizione"
+                data-testid="editor-vowelPos-click"
+              />
+            </div>
+            <div className="grid gap-3">
+              <Field label="X (front→back, 0–100)">
+                <Input type="number" step="0.1" min="0" max="100"
+                  value={card.vowelChartPosition?.x ?? 50}
+                  onChange={(e) => setField('vowelChartPosition', { ...(card.vowelChartPosition || {}), x: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-900 border-slate-700 text-slate-100"
+                  data-testid="editor-vowelPos-x"
+                />
+              </Field>
+              <Field label="Y (close→open, 0–100)">
+                <Input type="number" step="0.1" min="0" max="100"
+                  value={card.vowelChartPosition?.y ?? 50}
+                  onChange={(e) => setField('vowelChartPosition', { ...(card.vowelChartPosition || {}), y: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-900 border-slate-700 text-slate-100"
+                  data-testid="editor-vowelPos-y"
+                />
+              </Field>
+              <p className="text-[10px] text-slate-500 italic">
+                💡 Clicca sulla griglia a sinistra per impostare la posizione visivamente.
+              </p>
+            </div>
+          </div>
+        </Section>
+
+        {/* ================== EXPERT MODE — JSON FALLBACK ================== */}
+        <Section title="Expert mode — JSON avanzato" icon={<Palette className="w-4 h-4" />}>
+          <p className="text-xs text-slate-400 mb-3">
+            Modifica diretta di tutti i campi di visualizzazione come JSON — solo per casi edge o import/export massivi.
+            Le modifiche fatte qui sostituiscono quelle degli editor sopra.
           </p>
           <Textarea
             value={advancedJson}
             onChange={(e) => handleAdvancedChange(e.target.value)}
-            rows={22}
+            rows={16}
             className="bg-slate-950 border-slate-700 text-slate-100 font-mono text-xs leading-relaxed"
             spellCheck={false}
             data-testid="editor-field-advanced-json"
@@ -661,11 +920,21 @@ export default function PhonemeAdminEditorPage() {
             </p>
           )}
         </Section>
+          </div>
+
+          {/* ── Right column: sticky live preview ── */}
+          <PhonemeLivePreview
+            card={card}
+            cardId={isNew ? null : routeId}
+            isDirty={isDirty}
+            isSaved={!isNew && !isDirty}
+          />
+        </div>
       </div>
 
       {/* Sticky footer with actions */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-cyan-500/20 bg-slate-950/95 backdrop-blur-md">
-        <div className="max-w-[1200px] mx-auto px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-[1400px] mx-auto px-5 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-slate-400">
             {isDirty
               ? <span className="text-amber-300 font-bold">● Modifiche non salvate</span>

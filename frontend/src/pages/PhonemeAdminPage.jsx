@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/badge';
 import {
   ArrowLeft, Plus, Pencil, Copy, Trash2, Eye, EyeOff,
   ExternalLink, Search, GraduationCap, RefreshCw, ChevronRight,
-  Volume2, PlaySquare, MapPin, Type, LayoutList, Target,
+  Volume2, PlaySquare, MapPin, Type, LayoutList, Target, HelpCircle,
 } from 'lucide-react';
 import PhonemeRoadmapDashboard from '../components/PhonemeRoadmapDashboard';
 
@@ -152,6 +152,12 @@ export default function PhonemeAdminPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/admin/help/phoneme-cms" data-testid="phoneme-admin-help-link">
+              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span className="ml-2 hidden sm:inline">Guida</span>
+              </Button>
+            </Link>
             <Button onClick={fetchCards} variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800" data-testid="phoneme-admin-refresh">
               <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
               <span className="ml-2 hidden sm:inline">Aggiorna</span>
