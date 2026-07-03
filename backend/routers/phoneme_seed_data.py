@@ -102,7 +102,7 @@ PHONEME_U_FOOT = {
     "knobs": [
         {"id": "advancement", "label": "ADVANCEMENT", "value": 20, "valueLabel": "back"},
         {"id": "tenseness",   "label": "TENSENESS",   "value": 25, "valueLabel": "lax"},
-        {"id": "height",      "label": "HEIGHT",      "value": 80, "valueLabel": "near-close", "highlight": True},
+        {"id": "height",      "label": "HEIGHT",      "value": 80, "valueLabel": "Near-close", "highlight": True},
         {"id": "roundness",   "label": "ROUNDNESS",   "value": 50, "valueLabel": "moderate"},
     ],
     "exampleSentences": [
@@ -111,22 +111,22 @@ PHONEME_U_FOOT = {
         {"text": "\"Could you push?\"", "highlights": ["Could", "push"]},
     ],
     "facialMuscles": [
-        {"name": "Orbicularis oris",  "activation": "MODERATE",   "detail": "rounding"},
-        {"name": "Buccinator",        "activation": "moderate",   "detail": "cheek tension"},
-        {"name": "Zygomaticus major", "activation": "LOW",        "detail": "minimal upward pull"},
-        {"name": "Masseter",          "activation": "near-close", "detail": "jaw set in near-close position"},
-        {"name": "Mentalis",          "activation": "minimal",    "detail": "chin almost passive"},
+        {"name": "Orbicularis oris",  "activation": "MODERATE", "detail": "rounding"},
+        {"name": "Buccinator",        "activation": "MODERATE", "detail": "cheek tension"},
+        {"name": "Zygomaticus major", "activation": "LOW",      "detail": "minimal upward pull"},
+        {"name": "Masseter",          "activation": "MODERATE", "detail": "jaw set in near-close position"},
+        {"name": "Mentalis",          "activation": "LOW",      "detail": "chin almost passive"},
     ],
     "vowelChartPosition": {"x": 80, "y": 22},
     "classification": [
-        {"label": "Near-high",   "tooltip": "The tongue body rises high in the mouth but does not fully close (which would produce /uː/)."},
+        {"label": "Near-close",  "tooltip": "The tongue body rises high in the mouth but does not fully close (which would produce /uː/). Standard IPA height term."},
         {"label": "Relaxed",     "tooltip": "The lips and tongue stay loose — no muscular tension. Compare /uː/ where the tongue is tense."},
         {"label": "Back",        "tooltip": "The tongue body is positioned toward the back of the mouth, near the velum."},
         {"label": "Monophthong", "tooltip": "A single, stable vowel quality — no glide. The articulators hold position throughout."},
     ],
     "funFact": {
         "headline": "Statistical curiosity",
-        "body": "The /ʊ/ sound is the least common vowel in American English — which paradoxically makes mastering it a strong differentiator in spoken performance.",
+        "body": "The /ʊ/ sound occurs in a relatively small closed-class of English words — mastering it is a strong differentiator in spoken performance.",
     },
     "commonWords": [
         {"w": "look",      "ipa": "/lʊk/",         "audio": "https://customer-assets.emergentagent.com/job_b88ed235-bbf3-4b4c-aad3-890dc884bc01/artifacts/3qx2ms12_look.wav"},
@@ -293,7 +293,7 @@ PHONEME_I_FLEECE = {
     "knobs": [
         {"id": "advancement", "label": "ADVANCEMENT", "value": 95, "valueLabel": "front", "highlight": True},
         {"id": "tenseness",   "label": "TENSENESS",   "value": 90, "valueLabel": "tense"},
-        {"id": "height",      "label": "HEIGHT",      "value": 95, "valueLabel": "close", "highlight": True},
+        {"id": "height",      "label": "HEIGHT",      "value": 95, "valueLabel": "Close", "highlight": True},
         {"id": "roundness",   "label": "ROUNDNESS",   "value": 5,  "valueLabel": "unrounded (spread)"},
     ],
     "exampleSentences": [
@@ -303,11 +303,11 @@ PHONEME_I_FLEECE = {
     ],
     "facialMuscles": [
         {"name": "Risorius",          "activation": "HIGH",     "detail": "lateral lip retraction (smile)"},
-        {"name": "Zygomaticus major", "activation": "moderate", "detail": "upward-outward pull at the corners"},
+        {"name": "Zygomaticus major", "activation": "MODERATE", "detail": "upward-outward pull at the corners"},
         {"name": "Orbicularis oris",  "activation": "LOW",      "detail": "no rounding, lips spread thin"},
-        {"name": "Buccinator",        "activation": "moderate", "detail": "cheek tension supporting the smile"},
-        {"name": "Masseter",          "activation": "close",    "detail": "jaw held in close position"},
-        {"name": "Mentalis",          "activation": "minimal",  "detail": "chin passive"},
+        {"name": "Buccinator",        "activation": "MODERATE", "detail": "cheek tension supporting the smile"},
+        {"name": "Masseter",          "activation": "HIGH",     "detail": "jaw held in close position"},
+        {"name": "Mentalis",          "activation": "LOW",      "detail": "chin passive"},
     ],
     "vowelChartPosition": {"x": 5, "y": 5},
     "classification": [

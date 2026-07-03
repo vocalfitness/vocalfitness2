@@ -151,7 +151,7 @@ async def startup_event():
     try:
         from routers.phoneme_cards import ensure_phoneme_seed
         result = await ensure_phoneme_seed(db)
-        logging.info(f"Phoneme cards seed: inserted={result['inserted']} skipped={result['skipped']}")
+        logging.info(f"Phoneme cards seed: inserted={result['inserted']} skipped={result['skipped']} patched={result.get('patched', [])}")
     except Exception as e:
         logging.warning(f"Phoneme cards seed failed (non-fatal): {e}")
     try:

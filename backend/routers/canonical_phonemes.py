@@ -50,6 +50,8 @@ MANNER_TERMS   = ["Plosive", "Affricate", "Fricative", "Nasal",
 PLACE_TERMS    = ["Bilabial", "Labiodental", "Dental", "Alveolar",
                   "Post-alveolar", "Palatal", "Velar", "Glottal", "Labial-velar"]
 VOICING_TERMS  = ["Voiceless", "Voiced"]
+# Facial muscle activation levels — strict enum used in phoneme card CMS.
+ACTIVATION_TERMS = ["HIGH", "MODERATE", "LOW"]
 
 
 # --------------------------------------------------------------------------- #
@@ -220,13 +222,14 @@ def build_canonical_phonemes_router(db) -> APIRouter:
             "count": len(docs),
             "items": docs,
             "controlled_vocabulary": {
-                "height":    HEIGHT_TERMS,
-                "backness":  BACKNESS_TERMS,
-                "rounding":  ROUNDING_TERMS,
-                "tenseness": TENSENESS_TERMS,
-                "manner":    MANNER_TERMS,
-                "place":     PLACE_TERMS,
-                "voicing":   VOICING_TERMS,
+                "height":     HEIGHT_TERMS,
+                "backness":   BACKNESS_TERMS,
+                "rounding":   ROUNDING_TERMS,
+                "tenseness":  TENSENESS_TERMS,
+                "manner":     MANNER_TERMS,
+                "place":      PLACE_TERMS,
+                "voicing":    VOICING_TERMS,
+                "activation": ACTIVATION_TERMS,
             },
         }
 

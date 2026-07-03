@@ -358,4 +358,63 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
         await coll.insert_one(doc)
         inserted.append(seed["id"])
 
-    return {"inserted": inserted, "skipped": skipped}
+    # --- Phase B legacy correctness patch (idempotent) ---
+    # Corrects deprecated free-text values that were seeded before Phase B locked
+    # the controlled vocabularies. Only touches docs that still hold the exact
+    # legacy string — user edits are preserved.
+    patched: List[str] = []
+
+    # 1) classification label "Near-high" → "Near-close" (u-foot)
+    res1 = await coll.update_many(
+        {"classification.label": "Near-high"},
+        {"$set": {"classification.$[el].label": "Near-close",
+                  "classification.$[el].tooltip": "The tongue body rises high in the mouth but does not fully close (which would produce /uː/). Standard IPA height term."}},
+        array_filters=[{"el.label": "Near-high"}],
+    )
+    if res1.modified_count:
+        patched.append(f"classification.Near-high×{res1.modified_count}")
+
+    # 2) facialMuscles.activation → strict enum HIGH/MODERATE/LOW
+    activation_map = {
+        "moderate": "MODERATE",
+        "near-close": "MODERATE",
+        "close": "HIGH",
+        "minimal": "LOW",
+    }
+    for bad, good in activation_map.items():
+        res = await coll.update_many(
+            {"facialMuscles.activation": bad},
+            {"$set": {"facialMuscles.$[el].activation": good}},
+            array_filters=[{"el.activation": bad}],
+        )
+        if res.modified_count:
+            patched.append(f"activation.{bad}→{good}×{res.modified_count}")
+
+    # 3) funFact "least common vowel" superlative removal
+    res3 = await coll.update_many(
+        {"funFact.body": {"$regex": r"least common vowel"}},
+        {"$set": {"funFact.body": "The /ʊ/ sound occurs in a relatively small closed-class of English words — mastering it is a strong differentiator in spoken performance."}},
+    )
+    if res3.modified_count:
+        patched.append(f"funFact.least-common×{res3.modified_count}")
+
+    # 4) knobs where id='height' → capitalize valueLabel to canonical IPA form
+    knob_map = {
+        "close": "Close",
+        "near-close": "Near-close",
+        "close-mid": "Close-mid",
+        "mid": "Mid",
+        "open-mid": "Open-mid",
+        "near-open": "Near-open",
+        "open": "Open",
+    }
+    for bad, good in knob_map.items():
+        res = await coll.update_many(
+            {"knobs": {"$elemMatch": {"id": "height", "valueLabel": bad}}},
+            {"$set": {"knobs.$[el].valueLabel": good}},
+            array_filters=[{"el.id": "height", "el.valueLabel": bad}],
+        )
+        if res.modified_count:
+            patched.append(f"knob.height.{bad}→{good}×{res.modified_count}")
+
+    return {"inserted": inserted, "skipped": skipped, "patched": patched}

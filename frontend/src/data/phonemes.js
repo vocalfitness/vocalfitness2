@@ -146,10 +146,10 @@ export const PHONEME_U_FOOT = {
    */
   facialMuscles: [
     { name: 'Orbicularis oris',  activation: 'MODERATE', detail: 'rounding' },
-    { name: 'Buccinator',        activation: 'moderate', detail: 'cheek tension' },
+    { name: 'Buccinator',        activation: 'MODERATE', detail: 'cheek tension' },
     { name: 'Zygomaticus major', activation: 'LOW',      detail: 'minimal upward pull' },
-    { name: 'Masseter',          activation: 'near-close', detail: 'jaw set in near-close position' },
-    { name: 'Mentalis',          activation: 'minimal',  detail: 'chin almost passive' },
+    { name: 'Masseter',          activation: 'MODERATE', detail: 'jaw set in near-close position' },
+    { name: 'Mentalis',          activation: 'LOW',      detail: 'chin almost passive' },
   ],
 
   /**
@@ -162,7 +162,7 @@ export const PHONEME_U_FOOT = {
    * Phonetic classification (linguist-friendly badges).
    */
   classification: [
-    { label: 'Near-high', tooltip: 'The tongue body rises high in the mouth but does not fully close (which would produce /uː/).' },
+    { label: 'Near-close', tooltip: 'The tongue body rises high in the mouth but does not fully close (which would produce /uː/). Standard IPA height term.' },
     { label: 'Relaxed',   tooltip: 'The lips and tongue stay loose — no muscular tension. Compare /uː/ where the tongue is tense.' },
     { label: 'Back',      tooltip: 'The tongue body is positioned toward the back of the mouth, near the velum.' },
     { label: 'Monophthong', tooltip: 'A single, stable vowel quality — no glide. The articulators hold position throughout.' },
@@ -173,7 +173,7 @@ export const PHONEME_U_FOOT = {
    */
   funFact: {
     headline: 'Statistical curiosity',
-    body: 'The /ʊ/ sound is the least common vowel in American English — which paradoxically makes mastering it a strong differentiator in spoken performance.',
+    body: 'The /ʊ/ sound occurs in a relatively small closed-class of English words — mastering it is a strong differentiator in spoken performance.',
   },
 
   /**
@@ -393,11 +393,11 @@ export const PHONEME_I_FLEECE = {
 
   facialMuscles: [
     { name: 'Risorius',          activation: 'HIGH',     detail: 'lateral lip retraction (smile)' },
-    { name: 'Zygomaticus major', activation: 'moderate', detail: 'upward-outward pull at the corners' },
+    { name: 'Zygomaticus major', activation: 'MODERATE', detail: 'upward-outward pull at the corners' },
     { name: 'Orbicularis oris',  activation: 'LOW',      detail: 'no rounding, lips spread thin' },
-    { name: 'Buccinator',        activation: 'moderate', detail: 'cheek tension supporting the smile' },
-    { name: 'Masseter',          activation: 'close',    detail: 'jaw held in close position' },
-    { name: 'Mentalis',          activation: 'minimal',  detail: 'chin passive' },
+    { name: 'Buccinator',        activation: 'MODERATE', detail: 'cheek tension supporting the smile' },
+    { name: 'Masseter',          activation: 'HIGH',     detail: 'jaw held in close position' },
+    { name: 'Mentalis',          activation: 'LOW',      detail: 'chin passive' },
   ],
 
   /**

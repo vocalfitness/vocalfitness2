@@ -32,6 +32,15 @@ import { PHONEME_CATALOGUE } from '../data/phonemeCatalogue';
  */
 
 // ============================================================
+// Controlled vocabulary (mirrors /app/backend/routers/canonical_phonemes.py)
+// Kept in sync with backend seed to enforce identical option lists in the CMS
+// dropdowns. Never free-type Height values like "Near-high" (bug #4 in brief).
+// ============================================================
+const HEIGHT_TERMS = ['Close', 'Near-close', 'Close-mid', 'Mid', 'Open-mid', 'Near-open', 'Open'];
+const ACTIVATION_TERMS = ['HIGH', 'MODERATE', 'LOW'];
+const HEIGHT_LABEL_ALIASES = ['height', 'altezza'];
+
+// ============================================================
 // Blank template for /new
 // ============================================================
 const BLANK = {
@@ -431,7 +440,7 @@ export default function PhonemeAdminEditorPage() {
                 testId="editor-field-examples"
               />
             </Field>
-            <Field label="Nota dialetto" help="Testo mostrato in fondo alla card (es: 'near identical AmE and RP').">
+            <Field label="Nota dialetto" help="Nota dialettale mostrata SOLO se compilata (sostituisce l'auto-tag dei dialetti). Lascia vuoto per usare l'elenco automatico AmE/RP.">
               <Input
                 value={card.dialectNote || ''}
                 onChange={(e) => setField('dialectNote', e.target.value)}
@@ -766,12 +775,29 @@ export default function PhonemeAdminEditorPage() {
             template={{ label: '', value: '' }}
             testId="editor-features"
             compact
-            renderItem={(item, upd, i) => (
-              <div className="grid sm:grid-cols-3 gap-2">
-                <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Height" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-label`} />
-                <Input value={item.value || ''} onChange={(e) => upd({ ...item, value: e.target.value })} placeholder="Near-close" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-value`} />
-              </div>
-            )}
+            renderItem={(item, upd, i) => {
+              const isHeight = HEIGHT_LABEL_ALIASES.includes((item.label || '').trim().toLowerCase());
+              return (
+                <div className="grid sm:grid-cols-3 gap-2">
+                  <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Height" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-label`} />
+                  {isHeight ? (
+                    <select
+                      value={HEIGHT_TERMS.includes(item.value) ? item.value : ''}
+                      onChange={(e) => upd({ ...item, value: e.target.value })}
+                      className="sm:col-span-2 bg-slate-900 border border-slate-700 text-slate-100 rounded-md h-10 px-3 text-sm"
+                      data-testid={`editor-feature-${i}-value`}
+                    >
+                      <option value="">— Seleziona altezza IPA —</option>
+                      {HEIGHT_TERMS.map((h) => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input value={item.value || ''} onChange={(e) => upd({ ...item, value: e.target.value })} placeholder="Near-close" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-feature-${i}-value`} />
+                  )}
+                </div>
+              );
+            }}
           />
         </Section>
 
@@ -787,12 +813,29 @@ export default function PhonemeAdminEditorPage() {
             onChange={(items) => setField('knobs', items)}
             template={{ id: '', label: '', value: 50, valueLabel: '', highlight: false }}
             testId="editor-knobs"
-            renderItem={(item, upd, i) => (
+            renderItem={(item, upd, i) => {
+              const isHeight = (item.id || '').trim().toLowerCase() === 'height'
+                || HEIGHT_LABEL_ALIASES.includes((item.label || '').trim().toLowerCase());
+              return (
               <div className="grid gap-2">
                 <div className="grid sm:grid-cols-4 gap-2">
                   <Input value={item.id || ''} onChange={(e) => upd({ ...item, id: e.target.value })} placeholder="height" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-knob-${i}-id`} />
                   <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="HEIGHT" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-label`} />
-                  <Input value={item.valueLabel || ''} onChange={(e) => upd({ ...item, valueLabel: e.target.value })} placeholder="near-close" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-valueLabel`} />
+                  {isHeight ? (
+                    <select
+                      value={HEIGHT_TERMS.includes(item.valueLabel) ? item.valueLabel : ''}
+                      onChange={(e) => upd({ ...item, valueLabel: e.target.value })}
+                      className="bg-slate-900 border border-slate-700 text-slate-100 rounded-md h-10 px-3 text-sm"
+                      data-testid={`editor-knob-${i}-valueLabel`}
+                    >
+                      <option value="">— altezza IPA —</option>
+                      {HEIGHT_TERMS.map((h) => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input value={item.valueLabel || ''} onChange={(e) => upd({ ...item, valueLabel: e.target.value })} placeholder="near-close" className="bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-knob-${i}-valueLabel`} />
+                  )}
                   <label className="flex items-center gap-2 text-xs text-slate-300">
                     <Switch checked={!!item.highlight} onCheckedChange={(v) => upd({ ...item, highlight: v })} data-testid={`editor-knob-${i}-highlight`} />
                     <span className={item.highlight ? 'text-orange-300 font-bold' : 'text-slate-500'}>Distintiva</span>
@@ -810,7 +853,8 @@ export default function PhonemeAdminEditorPage() {
                   <span className="text-xs text-slate-500">/ 100</span>
                 </div>
               </div>
-            )}
+              );
+            }}
           />
         </Section>
 
@@ -823,13 +867,23 @@ export default function PhonemeAdminEditorPage() {
             label="Muscolo"
             items={card.facialMuscles || []}
             onChange={(items) => setField('facialMuscles', items)}
-            template={{ name: '', activation: '', detail: '' }}
+            template={{ name: '', activation: 'MODERATE', detail: '' }}
             testId="editor-facialMuscles"
             compact
             renderItem={(item, upd, i) => (
               <div className="grid sm:grid-cols-6 gap-2">
                 <Input value={item.name || ''} onChange={(e) => upd({ ...item, name: e.target.value })} placeholder="Orbicularis oris" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-name`} />
-                <Input value={item.activation || ''} onChange={(e) => upd({ ...item, activation: e.target.value })} placeholder="MODERATE" className="sm:col-span-1 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-activation`} />
+                <select
+                  value={ACTIVATION_TERMS.includes((item.activation || '').toUpperCase()) ? item.activation.toUpperCase() : ''}
+                  onChange={(e) => upd({ ...item, activation: e.target.value })}
+                  className="sm:col-span-1 bg-slate-900 border border-slate-700 text-slate-100 rounded-md h-10 px-3 text-sm font-bold"
+                  data-testid={`editor-muscle-${i}-activation`}
+                >
+                  <option value="">—</option>
+                  {ACTIVATION_TERMS.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
                 <Input value={item.detail || ''} onChange={(e) => upd({ ...item, detail: e.target.value })} placeholder="rounding" className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-muscle-${i}-detail`} />
               </div>
             )}
@@ -839,7 +893,7 @@ export default function PhonemeAdminEditorPage() {
         {/* ================== CLASSIFICATION ================== */}
         <Section title="Classificazione (etichette + tooltip)" icon={<Layers className="w-4 h-4" />}>
           <p className="text-xs text-slate-400 mb-3">
-            Le etichette-chip mostrate sotto la card (es: Near-high · Back · Relaxed · Monophthong). Ogni etichetta ha un tooltip esplicativo al passaggio del mouse.
+            Le etichette-chip mostrate sotto la card (es: Near-close · Back · Relaxed · Monophthong). Ogni etichetta ha un tooltip esplicativo al passaggio del mouse.
           </p>
           <Repeater
             label="Etichetta"
@@ -850,7 +904,7 @@ export default function PhonemeAdminEditorPage() {
             compact
             renderItem={(item, upd, i) => (
               <div className="grid sm:grid-cols-5 gap-2">
-                <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Near-high" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-cls-${i}-label`} />
+                <Input value={item.label || ''} onChange={(e) => upd({ ...item, label: e.target.value })} placeholder="Near-close" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-cls-${i}-label`} />
                 <Textarea value={item.tooltip || ''} onChange={(e) => upd({ ...item, tooltip: e.target.value })} rows={2} placeholder="Descrizione mostrata nel tooltip…" className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100 text-xs" data-testid={`editor-cls-${i}-tooltip`} />
               </div>
             )}

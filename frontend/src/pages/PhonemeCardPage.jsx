@@ -704,8 +704,7 @@ const PhonemeCardPage = () => {
             </div>
             {/* Frequency */}
             <div className="bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
-              <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-2">Frequency in English</p>
-              <p className="text-[10px] text-cyan-300/40 mb-4 -mt-1">2nd most common back vowel</p>
+              <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-4">Frequency in English</p>
               <div className="h-28 flex items-end gap-2 justify-around">
                 {phoneme.frequencyChart.map((b, i) => <FrequencyBar key={i} bar={b} index={i} animate={animate} />)}
               </div>
@@ -939,10 +938,14 @@ const PhonemeCardPage = () => {
           />
         </div>
 
-        {/* Bottom note */}
-        <p className="text-center text-xs text-cyan-500/40 mt-6 italic">
-          {phoneme.dialectNote.toUpperCase()} · AmE &amp; RP
-        </p>
+        {/* Bottom note — either the human-written dialectNote OR the dialects tag list, never both */}
+        {(phoneme.dialectNote || (phoneme.dialects && phoneme.dialects.length > 0)) && (
+          <p className="text-center text-xs text-cyan-500/40 mt-6 italic" data-testid="phoneme-dialect-footer">
+            {phoneme.dialectNote
+              ? phoneme.dialectNote.toUpperCase()
+              : (phoneme.dialects || []).join(' & ')}
+          </p>
+        )}
       </div>
 
       {/* ============== Hotspot detail sheet ============== */}

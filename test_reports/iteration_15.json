@@ -1,0 +1,35 @@
+{
+  "summary": "Phase B (Phoneme CMS controlled-vocabulary lockdown) validated end-to-end. Backend: 14/14 pytest PASS on /app/backend/tests/test_phoneme_phase_b.py — canonical controlled_vocabulary exposes height (7 IPA terms, no legacy 'Near-high'/'High'/'Low') and activation ([HIGH,MODERATE,LOW]); Phase A regression intact (84 total, 40 GenAm, 44 RP); seeded cards u-foot & i-fleece both have strict-enum facialMuscles.activation, capitalized knob 'height' valueLabel, no 'Near-high' classification, no 'least common vowel' funFact; migration is stable across repeated reads. Frontend: /lms/phoneme/u-foot does NOT contain '2nd most common back vowel' or 'least common vowel' anywhere in the DOM; [data-testid='phoneme-dialect-footer'] renders dialectNote.toUpperCase() with NO '· AmE & RP' concatenation (dedup works). Admin editor /admin/phonemes/u-foot: editor-muscle-0-activation is <SELECT> with options ['','HIGH','MODERATE','LOW']; editor-feature-0-value (Height row) is <SELECT> with 7 IPA options; editor-knob-2-valueLabel (id='height') is <SELECT> with 7 IPA options; non-height knobs remain free-text <INPUT>; 'Nota dialetto' help text mentions the auto-tag substitution (dedup awareness).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_phase_b.py",
+    "/app/test_reports/pytest/phase_b_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "phoneme_cards.py ensure_phoneme_seed — Phase B migration patches use $set + arrayFilters keyed on exact legacy strings; idempotent by design (subsequent restarts will match zero docs and patched=[]). Good pattern.",
+    "PhonemeAdminEditorPage.jsx — HEIGHT_LABEL_ALIASES covers 'height' and 'altezza'. Consider adding 'altura' (Spanish) if the CMS ever targets ES admins; not blocking.",
+    "PhonemeCardPage.jsx dialect footer — correctly renders EITHER dialectNote (uppercased) OR the dialects array joined with '&'; the previous concatenation bug is fixed. Suggest also trimming dialectNote whitespace before uppercasing to avoid stray-space-only strings rendering an empty footer with padding — very minor.",
+    "phoneme_seed_data.py — u-foot.features still contains free-text lowercase 'near-close' at label='Jaw' and 'close' at i-fleece features label='Jaw'. This is intentional (Jaw is not Height) and not covered by the Height lockdown; flag for main agent only if a broader canonicalization is planned in Phase C.",
+    "Editor Repeater 'template' for facialMuscles defaults to {activation:'MODERATE'} — good default that always passes the enum guard even before the user picks."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phoneme_phase_b.py",
+    "/app/test_reports/pytest/phase_b_results.xml"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (all 8 spec checks pass)"},
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Tested against system-seeded u-foot and i-fleece cards. Note: dialectNote for u-foot in DB currently reads 'auto test' (was overwritten by a prior admin edit, not the seed value 'near identical AmE and RP') — this does NOT affect any assertion (the dedup logic renders whatever value is present, uppercased) but main agent may want to reset it via admin UI or a re-seed toggle if the marketing copy matters.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase B lockdown is stable. Reuse /app/backend/tests/test_phoneme_phase_b.py for regression. Combined with iteration_14's /app/backend/tests/test_canonical_phonemes.py this gives 41 tests covering canonical inventory + Phase B controlled-vocab lockdown + seed migration idempotency. For Phase C/D (frequency chart lockdown, autofill from canonical), extend the Phase B file rather than creating new ones. Note the small quirk: u-foot.dialectNote in the live preview DB currently reads 'auto test' — the dedup logic still passes because it just uppercases the raw value.",
+  "rca of the issue": "N/A — no bugs found. All 4 approved bug-fix items in Phase B verified: (1) Height feature + knob valueLabel are IPA-controlled <select> dropdowns with the 7 terms, (2) facialMuscles.activation is a strict HIGH/MODERATE/LOW <select>, (3) dialect footer dedup logic renders only ONE label (dialectNote OR dialects, never both), (4) '2nd most common back vowel' fully removed from public card. Migration patches in ensure_phoneme_seed correctly cleaned the DB-persisted legacy strings — u-foot 'Near-high' → 'Near-close', 'least common vowel' → neutral copy, all lowercase activation and knob height labels normalized to canonical IPA capitalization."
+}
