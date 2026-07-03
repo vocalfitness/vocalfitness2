@@ -1,0 +1,33 @@
+{
+  "summary": "Phase A canonical phoneme inventory validated end-to-end. 27/27 pytest tests pass. All spec assertions from the review request verified against the live preview URL: counts (84 total = 40 GenAm + 44 RP), dialect divergence (RP centring diphthongs ɪə/eə/ʊə, RP-only /ɒ/ LOT, /ɜː/ NURSE with anti-drift note referencing GenAm /ɝ/), controlled_vocabulary height list uses the 7 IPA-standard terms (Bug #4 fixed — no 'Near-high'/'High'/'Low' present), filter/sort behavior correct (frequency_rank asc, nulls last), validation errors 400/404 with expected detail strings, /t/ carries dialect_notes for both GenAm flapping and RP glottalling, idempotency confirmed (unique (dialect,ipa), count stable at 84). Regression check on pre-existing routers passed: testimonials, clients, /api/admin/leads (auth-gated), /api/auth/login (admin/VocalFitness2026!), /api/chat, /api/admin/popups all healthy — canonical router wiring did not break the previously extracted 12-router set.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_canonical_phonemes.py",
+    "/app/test_reports/pytest/canonical_phonemes_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "canonical_phonemes.py: ensure_canonical_seed uses upsert on unique (dialect, ipa) index — idempotent as designed. Note: seeds intentionally do NOT delete rows removed from the hard-coded lists (defensive comment says so). This is fine for Phase A but flag for Phase B/C: if the seed shape ever shrinks intentionally, drift will remain in the DB.",
+    "The 'seeded': true field is set via $setOnInsert only, so manually-added rows keep seeded=false — good pattern; consider surfacing this via an admin diagnostics endpoint later.",
+    "Sort implementation `(d.get('frequency_rank') is None, d.get('frequency_rank') or 999)` correctly handles nulls-last but the `or 999` fallback would misbehave if frequency_rank were legitimately 0; not currently a problem since ranks start at 1. Consider `... or float('inf')` for future safety.",
+    "Router file is 246 lines, well under the 700-line threshold. Clean separation, docstrings excellent."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_canonical_phonemes.py"
+  ],
+  "success_rate": {"backend": "100% (27/27)", "frontend": "not tested (backend-only per request)"},
+  "test_credentials": "admin / VocalFitness2026! (as documented in /app/memory/test_credentials.md)",
+  "seed_data_creation": "None created by tests. Seed of 84 canonical_phonemes docs is loaded automatically at backend startup by ensure_canonical_seed().",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase A (canonical inventory) is fully validated by /app/backend/tests/test_canonical_phonemes.py — reuse or extend it when Phases B/C/D/E/F land (frequencyChart lockdown, autofill from canonical, admin UI dropdown enforcement). The test file also contains a light regression suite for testimonials/clients/leads/login/chat/popups that can be reused after any router changes in server.py. Note: /api/testimonials and /api/clients return {items: [...]} shape (dict, not bare list) — pre-existing schema, not a bug.",
+  "rca of the issue": "N/A — no bugs found in Phase A implementation. Initial 2 pytest failures were incorrect assertions in the regression tests (I assumed bare-list responses for /api/testimonials and /api/clients; actual pre-existing schema is a dict wrapper). Fixed the assertions to accept the dict shape; all 27 tests now pass. Canonical router itself matched the spec exactly."
+}
