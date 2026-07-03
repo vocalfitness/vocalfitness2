@@ -939,10 +939,10 @@ const PhonemeCardPage = () => {
         </div>
 
         {/* Bottom note — either the human-written dialectNote OR the dialects tag list, never both */}
-        {(phoneme.dialectNote || (phoneme.dialects && phoneme.dialects.length > 0)) && (
+        {((phoneme.dialectNote && phoneme.dialectNote.trim()) || (phoneme.dialects && phoneme.dialects.length > 0)) && (
           <p className="text-center text-xs text-cyan-500/40 mt-6 italic" data-testid="phoneme-dialect-footer">
-            {phoneme.dialectNote
-              ? phoneme.dialectNote.toUpperCase()
+            {phoneme.dialectNote && phoneme.dialectNote.trim()
+              ? phoneme.dialectNote.trim().toUpperCase()
               : (phoneme.dialects || []).join(' & ')}
           </p>
         )}

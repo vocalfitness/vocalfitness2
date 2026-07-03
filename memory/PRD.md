@@ -12,6 +12,36 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 03/07/2026 — Phoneme System Rebuild · Phase B (Bug fix P1 controlled vocabulary) — DONE ✅
+- [x] **Backend** `/app/backend/routers/canonical_phonemes.py`: aggiunto `ACTIVATION_TERMS = ["HIGH","MODERATE","LOW"]` ed esposto in `controlled_vocabulary` accanto ai 7 termini height IPA.
+- [x] **Backend** `/app/backend/routers/phoneme_cards.py::ensure_phoneme_seed`: 4 patch idempotenti one-shot per correggere docs legacy in Mongo (matching solo su valori esatti, preserva user edits):
+  1. `classification.label` `Near-high` → `Near-close` (con tooltip aggiornato)
+  2. `facialMuscles.activation` map `moderate/near-close/close/minimal` → enum `MODERATE/MODERATE/HIGH/LOW`
+  3. `funFact.body` regex "least common vowel" → sostituito con testo non-superlativo
+  4. `knobs[id=height].valueLabel` lowercase → 7 termini IPA capitalizzati
+- [x] **Backend seed source** `/app/backend/routers/phoneme_seed_data.py`: u-foot + i-fleece riscritti con activation enum + `Near-close`/`Close` capitalizzati + funFact senza superlative
+- [x] **Frontend `PhonemeCardPage.jsx`**:
+  - Rimosso hardcoded "2nd most common back vowel" dal blocco Frequency in English
+  - Footer dialetto ora dedupa: renderizza dialectNote (trim + uppercase) O l'elenco dialects, mai concatena entrambi con `· AmE & RP`
+- [x] **Frontend `PhonemeAdminEditorPage.jsx`**:
+  - Aggiunte costanti locali `HEIGHT_TERMS` (7 IPA) + `ACTIVATION_TERMS` (enum) allineate con il backend
+  - Features Repeater: quando `label` è "Height"/"Altezza" (case-insensitive), il campo value diventa `<select>` con i 7 termini
+  - Knobs Repeater: quando `id === "height"` o label è "Height"/"Altezza", `valueLabel` diventa `<select>`
+  - FacialMuscles Repeater: `activation` sempre `<select>` con HIGH/MODERATE/LOW
+  - "Nota dialetto" help text chiarisce che sostituisce l'auto-tag (dedup awareness)
+  - Classification placeholder aggiornato a "Near-close" (era "Near-high")
+- [x] **Frontend seed** `/app/frontend/src/data/phonemes.js`: activation enum + `Near-close` classification + funFact non-superlativo
+- [x] **Test agent v3 iter_15**: **14/14 backend + 8/8 frontend PASS**, 0 fail, `retest_needed: False`, `action_items: []`
+  - Verificato: `/api/canonical/phonemes` espone activation + height; u-foot/i-fleece migrati; card pubblica libera da "2nd most common"; footer dedup funziona; editor 3 dropdown enforced
+
+**Prossime fasi in coda:**
+- Fase C: Frequency Chart lockdown (rimuovere "Aggiungi barra", read-only da canonical)
+- Fase D: Autofill Stage 1 deterministico (`POST /admin/phonemes/autofill`)
+- Fase E: Correctness checks readiness (minimal pairs validator, contradiction detector)
+- Fase F: AI drafting Stage 2 (bozza-only, confidence flags)
+
+
+
 ### 02/07/2026 — Phoneme System Rebuild · Phase A (Canonical Inventory) — DONE ✅
 - [x] **Nuovo router** `/app/backend/routers/canonical_phonemes.py` (~320 righe) — fondamenta data-driven per il phoneme CMS:
   - `ensure_canonical_seed(db)` idempotente (hooked in startup) — indice unico `(dialect, ipa)` + upsert deterministico
