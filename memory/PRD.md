@@ -12,6 +12,34 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 02/07/2026 — Phoneme System Rebuild · Phase A (Canonical Inventory) — DONE ✅
+- [x] **Nuovo router** `/app/backend/routers/canonical_phonemes.py` (~320 righe) — fondamenta data-driven per il phoneme CMS:
+  - `ensure_canonical_seed(db)` idempotente (hooked in startup) — indice unico `(dialect, ipa)` + upsert deterministico
+  - 84 documenti seeded: **40 GenAm** (11 vowel + 5 diphthong + 24 consonanti) + **44 RP** (12 vowel + 8 diphthong + 24 consonanti)
+  - `GET /canonical/phonemes?dialect=&kind=` public read con `controlled_vocabulary` esposto (7 IPA height terms, backness, rounding, manner, place, voicing)
+  - `GET /canonical/phonemes/{ipa}?dialect=` lookup singolo per autofill
+- [x] **Fixed root-cause dei Bug #1/#4** del brief:
+  - Height controlled vocab: `Close/Near-close/Close-mid/Mid/Open-mid/Near-open/Open` — impossibile scrivere "Near-high" (Bug #4)
+  - Frequency = `frequency_rank` int only (no percentuali fabbricate); superlative language da rimuovere dalle card in Fase B
+  - Dialect divergence modellata correttamente: RP /ɒ/ e /ɜː/ come righe distinte; centring diphthongs (ɪə/eə/ʊə) solo RP; note anti-drift ("Never mark identical") su /ɜː/ e /ɒ/
+  - /t/ e /ɹ/ e /l/ portano `dialect_notes` con realization differences (flapping/rhoticity/dark-L) invece di righe duplicate
+- [x] File `.md` canonici versionati in `/app/backend/canonical_data/` per audit/riferimento
+- [x] **Testing agent v3**: **27/27 test PASS**, 0 fail, no retest needed
+  - Counts esatti (84 total, 40 GenAm, 44 RP)
+  - Dialect divergence validata (RP centring diphthongs, /ɒ/ RP-only, note NURSE anti-drift)
+  - Controlled vocabulary height priva di "Near-high"/"High"/"Low" ✓
+  - Filter/sort/validation/idempotency tutti conformi
+  - **Zero regressioni** su 12 router estratti nelle sessioni precedenti
+
+**Prossime fasi in coda:**
+- Fase B: Bug fix P1 (dropdown Height, enum activation, dedup Nota dialetto, rimozione ranking hardcoded)
+- Fase C: Frequency Chart lockdown (rimuovere "Aggiungi barra", read-only da canonical)
+- Fase D: Autofill Stage 1 deterministico (`POST /admin/phonemes/autofill`)
+- Fase E: Correctness checks readiness (minimal pairs validator, contradiction detector)
+- Fase F: AI drafting Stage 2 (bozza-only, confidence flags)
+
+
+
 ### 02/07/2026 — Backend Refactoring · auth + newsletter (P1 — DONE ✅)
 - [x] **Nuovo modulo** `/app/backend/utils/security.py` (~116 righe) — centralizza tutte le primitive di sicurezza: JWT config, `pwd_context`, `security` (HTTPBearer), `verify_password`, `get_password_hash`, `create_access_token`, e factory `build_user_deps(db)` che restituisce le closure `get_current_user` + `get_admin_user`
 - [x] **Nuovo router** `/app/backend/routers/auth.py` (~267 righe) — 7 endpoint:
