@@ -1168,26 +1168,44 @@ def build_phoneme_cards_router(db, get_admin_user):
         if not ipa:
             raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
 
-        # Auto-detect dialect
-        dialect = payload.dialect
-        if not dialect:
+        # Auto-detect dialect with fallback: try preferred first, then the other
+        preferred_dialect = payload.dialect
+        candidate_dialects: List[str] = []
+        if preferred_dialect:
+            candidate_dialects.append(preferred_dialect)
+        else:
             ds = doc.get("dialects") or []
             if "AmE" in ds or "GenAm" in ds:
-                dialect = "GenAm"
-            elif "RP" in ds:
-                dialect = "RP"
-            else:
-                dialect = "GenAm"
+                candidate_dialects.append("GenAm")
+            if "RP" in ds and "RP" not in candidate_dialects:
+                candidate_dialects.append("RP")
+            if not candidate_dialects:
+                candidate_dialects = ["GenAm", "RP"]
+        # Ensure we try both dialects if the first misses in canonical
+        for alt in ("GenAm", "RP"):
+            if alt not in candidate_dialects:
+                candidate_dialects.append(alt)
 
         applied: Dict[str, Any] = {"autofill": [], "ai": []}
         errors: List[str] = []
+        autofill: Optional[Dict[str, Any]] = None
+        dialect: Optional[str] = None
+        last_err: Optional[str] = None
 
-        # ---- 1) Deterministic autofill
-        try:
-            autofill = await build_autofill_payload(db, ipa=ipa, dialect=dialect)
-        except HTTPException as e:
-            raise HTTPException(status_code=e.status_code,
-                                detail=f"Autofill fallito: {e.detail}")
+        # ---- 1) Deterministic autofill — try candidates until one succeeds
+        for d in candidate_dialects:
+            try:
+                autofill = await build_autofill_payload(db, ipa=ipa, dialect=d)
+                dialect = d
+                break
+            except HTTPException as e:
+                last_err = f"{d}: {e.detail}"
+                continue
+        if not autofill or not dialect:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Autofill fallito su tutti i dialetti candidati ({', '.join(candidate_dialects)}): {last_err}",
+            )
 
         update_fields: Dict[str, Any] = {}
         for key in ("features", "knobs", "classification", "vowelChartPosition"):
@@ -1235,13 +1253,19 @@ def build_phoneme_cards_router(db, get_admin_user):
 
         # ---- 3) Persist (published stays False for skeleton cards)
         if not update_fields:
+            try:
+                report = await build_readiness_report(db, doc)
+                cur_score = report["score"]
+            except Exception:  # noqa: BLE001
+                cur_score = None
             return {
                 "id": card_id,
                 "applied": applied,
                 "errors": errors,
                 "ai_confidences": ai_confidences,
                 "message": "Nessun campo modificato (già valorizzati o overwrite=false).",
-                "readinessScore": None,
+                "readinessScore": cur_score,
+                "dialect": dialect,
             }
 
         update_fields["updatedAt"] = _now_iso()
@@ -1265,6 +1289,7 @@ def build_phoneme_cards_router(db, get_admin_user):
             "errors": errors,
             "ai_confidences": ai_confidences,
             "readinessScore": readiness_score,
+            "dialect": dialect,
             "message": (
                 f"{len(applied['autofill'])} campi autofill + "
                 f"{len(applied['ai'])} bozze AI applicati."

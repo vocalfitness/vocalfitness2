@@ -126,10 +126,12 @@ class TestBatchFillAutofillOnly:
     """include_ai:false → deterministic autofill only, fast."""
 
     def test_autofill_only_no_ai(self, auth_headers, snapshot_and_restore_edress):
-        # NOTE: e-dress has ipa='e' + dialects=['AmE','RP']. Auto-detect picks GenAm,
-        # but GenAm canonical has /ɛ/ for DRESS, not /e/. So we pass dialect=RP
-        # explicitly (RP does use /e/ for DRESS) to exercise the happy path.
-        # A separate test below exposes the seed-data mismatch when dialect is auto.
+        # NOTE (post iter21 fix): auto-detect now falls back from GenAm to RP for
+        # e-dress (ipa='e' → RP has /e/, GenAm does not). We pass dialect=RP
+        # explicitly here to keep the assertions deterministic across re-runs.
+        # If e-dress is already populated from prior runs (autofill fields set),
+        # this call is a no-op (empty applied.autofill). We still assert that
+        # readinessScore is populated (iter21 fix #2) and dialect='RP'.
         r = requests.post(
             f"{BASE_URL}/api/admin/phonemes/e-dress/batch-fill",
             headers=auth_headers,
@@ -139,17 +141,21 @@ class TestBatchFillAutofillOnly:
         assert r.status_code == 200, f"batch-fill (no ai) failed: {r.status_code} {r.text}"
         data = r.json()
         assert data["id"] == "e-dress"
+        assert data.get("dialect") == "RP"
         assert "applied" in data
         auto = data["applied"].get("autofill", [])
         ai = data["applied"].get("ai", [])
-        # autofill should include features, knobs, classification, vowelChartPosition
-        for key in ("features", "knobs", "classification", "vowelChartPosition"):
-            assert key in auto, f"missing autofill key {key}; got {auto}"
         assert ai == [], f"AI must be empty when include_ai=false, got {ai}"
         assert isinstance(data.get("readinessScore"), int)
         assert data["readinessScore"] >= 55  # at minimum unchanged; probably higher
 
-        # Now verify persistence via admin GET
+        # If autofill was applied (fresh skeleton), verify the expected keys.
+        # If not (already populated from prior test run), just verify persistence.
+        if auto:
+            for key in ("features", "knobs", "classification", "vowelChartPosition"):
+                assert key in auto, f"missing autofill key {key}; got {auto}"
+
+        # Verify persistence via admin GET (fields must be present either way)
         card = _get_admin_card(auth_headers, "e-dress")
         assert card.get("published") is False
         assert card.get("features"), "features not persisted"
@@ -234,31 +240,23 @@ class TestBatchFillWithAI:
         assert (card.get("mnemonic") or {}).get("phrase"), "mnemonic.phrase not persisted"
 
 
-class TestBatchFillSeedMismatch:
+class TestBatchFillDialectFallback:
     """
-    Seed-data / auto-dialect bug: e-dress has ipa='e' + dialects=['AmE','RP'].
-    Auto-detect picks 'GenAm' first, but GenAm canonical DRESS is /ɛ/, not /e/.
-    So batch-fill without an explicit dialect returns 404 → the review request's
-    scenario ('POST batch-fill on e-dress returns 200') FAILS out of the box.
-
-    This test DOCUMENTS the failure. It XPASSES (currently returns 404) so if
-    someone fixes the seed data (or adds a dialect fallback), the test surfaces.
+    Iteration 21 fix: e-dress ipa='e' + dialects=['AmE','RP'].
+    Auto-detect now falls back from GenAm (no /e/) to RP (has /e/) and returns 200
+    with response.dialect='RP'. See test_phoneme_batch_fill_iter21.py for the
+    dedicated fix-verification suite.
     """
-    def test_edress_default_dialect_returns_404_due_to_seed_mismatch(self, auth_headers):
+    def test_edress_default_dialect_falls_back_to_rp(self, auth_headers):
         r = requests.post(
             f"{BASE_URL}/api/admin/phonemes/e-dress/batch-fill",
             headers=auth_headers,
             json={"include_ai": False},
             timeout=15,
         )
-        # This is the CURRENT (buggy) behaviour — flip to 200 once fixed.
-        assert r.status_code == 404, (
-            f"expected 404 (seed mismatch), got {r.status_code}. "
-            f"If this now returns 200, the e-dress ipa='e'/GenAm mismatch has been "
-            f"fixed — update this test to expect 200."
-        )
-        detail = (r.json().get("detail") or "").lower()
-        assert "autofill fallito" in detail or "non presente" in detail
+        assert r.status_code == 200, f"expected 200 after fallback fix, got {r.status_code}: {r.text[:300]}"
+        data = r.json()
+        assert data.get("dialect") == "RP", f"expected dialect='RP' via fallback, got {data.get('dialect')}"
 
 
 class TestBatchFillPreserveUserEdits:

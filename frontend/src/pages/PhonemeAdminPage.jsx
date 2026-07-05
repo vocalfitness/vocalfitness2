@@ -382,7 +382,11 @@ export default function PhonemeAdminPage() {
       {batchOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => !batchRunning && setBatchOpen(false)}
+          onClick={() => {
+            // Don't dismiss on backdrop click while running or when results are visible
+            if (batchRunning || batchResults.length > 0) return;
+            setBatchOpen(false);
+          }}
           data-testid="phoneme-admin-batch-modal"
         >
           <div
