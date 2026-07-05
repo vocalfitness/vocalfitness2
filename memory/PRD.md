@@ -12,6 +12,32 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme System Rebuild · Phase D (Autofill Stage 1 Deterministic) — DONE ✅
+- [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
+  - Nuovo endpoint `POST /api/admin/phonemes/autofill?ipa=&dialect=` (admin auth) — preview-only, ZERO scritture su Mongo
+  - Mappe deterministiche IPA → knob position: `_HEIGHT_TO_KNOB`, `_BACKNESS_TO_KNOB`, `_ROUNDING_TO_KNOB`, `_TENSENESS_TO_KNOB`, `_HEIGHT_TO_Y`, `_BACKNESS_TO_X` — nessun LLM, nessuna percentuale inventata
+  - `_compose_autofill_for_vowel()` — features (Height/Backness/Rounding/Tenseness/Duration/Voicing/Manner/Lexical set), 4 knobs (advancement/tenseness/height/roundness con height highlighted), classification chips, vowelChartPosition {x,y}
+  - `_compose_autofill_for_consonant()` — features (Voicing/Place/Manner), knobs=[] by design, classification chips, vowelChartPosition={}
+  - `build_autofill_payload(db, ipa, dialect)` — 400 su dialect ≠ GenAm/RP, 404 se IPA non nell'inventario
+- [x] **Frontend** `PhonemeAdminEditorPage.jsx`:
+  - Nuova sezione "Autofill dal canonical (deterministico)" con info banner arancione + bottone "Ottieni anteprima autofill"
+  - State `autofillPreview` con panel preview a 4 sotto-panelli (features / knobs con barre / classification chips / vowel chart position) + note canonical se presenti
+  - Bottoni Annulla / Applica al form (con Check icon verde). Applica scrive solo nello state locale — l'utente conferma con "Salva" per persistere
+  - Toast di conferma "Autofill applicato: features, knobs, classification, vowelChartPosition · ricontrolla e salva."
+- [x] **Test agent v3 iter_17**: **16/16 backend + 11/11 frontend PASS**, 0 fail, `retest_needed: False`, `action_items: []`
+  - Vowel /ʊ/ GenAm: 8 features, 4 knobs, 5 classification chips, vowel chart (x:95,y:22), source FOOT
+  - Consonant /t/ GenAm: knobs=[] by design, dialect_notes contiene "flapped"
+  - Diphthong RP-only /ɪə/ → GenAm restituisce 404 (RP-only handling ok)
+  - Preview-only confermato: GET /api/phonemes/u-foot before/after autofill è identico
+  - Cancel non muta form; Apply scrive nello state locale con toast
+  - Zero regressioni Fase A/B/C
+
+**Prossime fasi in coda:**
+- Fase E: Correctness checks readiness (minimal pairs validator, contradiction detector)
+- Fase F: AI drafting Stage 2 (bozza-only, confidence flags)
+
+
+
 ### 05/07/2026 — Phoneme System Rebuild · Phase C (Frequency Chart Lockdown) — DONE ✅
 - [x] **Backend `/app/backend/routers/phoneme_cards.py`**:
   - Nuova funzione `compute_frequency_chart(db, ipa, category, dialects, n=9)` — calcola i 9 bar da `canonical_phonemes` ordinati per `frequency_rank` ASC, con IPA target forzato in coda se fuori top-N, altezze normalizzate lineari 30→100 dal rank più alto al più basso, `active:true` sul target
