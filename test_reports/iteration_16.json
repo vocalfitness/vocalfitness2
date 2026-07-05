@@ -1,0 +1,36 @@
+{
+  "summary": "Phase C (Phoneme CMS Frequency Chart canonical-computed lockdown) validated end-to-end. Backend: 8/8 pytest PASS on /app/backend/tests/test_phoneme_phase_c.py — u-foot GET returns 9 canonical bars {iː,ɪ,ə,æ,ɛ,ʌ,ɚ,uː,ʊ} with /ʊ/ active and heights ∈ [30,100]; i-fleece has /iː/ active at height=100 (rank 1); admin GET == public GET (parity); PUT with malicious {ipa:'FAKE',height:999,active:true} is silently stripped while sibling dialectNote update DOES apply; POST with garbage frequencyChart is ignored (canonical-computed or []); Phase A regression intact (canonical count 84, GenAm 40, RP 44, controlled_vocabulary.height=7-IPA-terms, activation=[HIGH,MODERATE,LOW]); Phase B regression intact (u-foot Near-close, strict activation enum, no 'least common vowel'). Frontend: /lms/phoneme/u-foot renders all 9 canonical IPAs with /ʊ/ orange-highlighted; no '2nd most common back vowel' anywhere in DOM. Admin editor /admin/phonemes/u-foot: 'Grafico di frequenza · read-only' section shows info banner containing both 'Bloccato dal Phase C' and 'canonical_phonemes'; [data-testid='editor-freq-preview'] present with exactly 9 children [data-testid='editor-freq-bar-0'..'editor-freq-bar-8']; no [data-testid^='editor-freq-0-ipa'] / no [data-testid^='editor-freq-0-height'] inputs; no 'Aggiungi barra' button; 'Salva come bozza' click produced no error toast. Cleanup: PUT test restored dialectNote to its prior value; POST test deleted the ephemeral card in finally block.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_phase_c.py",
+    "/app/test_reports/pytest/phase_c_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "phoneme_cards.py compute_frequency_chart(): dialect selection uses `dialects == ['RP']` strict-equality; a card with dialects=['RP','AmE'] or ['RP','GenAm'] falls back to GenAm. This works for the current 2 seeded cards (both AmE+RP → GenAm chart) but is a hidden coupling — consider explicit precedence like `'GenAm' in dialects → GenAm, elif 'RP' in dialects → RP`. Not blocking.",
+    "phoneme_cards.py admin_update pops frequencyChart from update_fields AFTER the model_dump, then also re-injects computed. Correct. Note that a PUT that ONLY sends frequencyChart (no other fields) will hit the `if not update_fields` short-circuit and return the current DB doc without touching updatedAt — that is correct behaviour for a no-op edit; documented via the finally-inject-computed path.",
+    "admin_create sets doc['frequencyChart']=[] before insert, then injects computed for the response. Good: legacy DB rows are never polluted at write time by user input.",
+    "PhonemeAdminEditorPage.jsx line ~758: uses `card.frequencyChart` from local state — since ADVANCED_KEYS no longer includes frequencyChart, saveDraft() won't send it in the PUT payload. Backend also strips it defensively. Two-layer defence, good.",
+    "The read-only preview panel does not re-fetch on 'ipa'/'category'/'dialects' local edits before save — the bars only refresh after a Salva round-trip. This is an acceptable UX trade-off (server is source of truth) but a small note in the banner like 'Salva per aggiornare il grafico' would be user-friendly. Not blocking.",
+    "compute_frequency_chart height formula uses `1 - (rank - min_rank)/span` which yields max_h for rank==min_rank and min_h for rank==max_rank. Correct inversion. For a single-bar edge case (span=1 forced by max(1,...)) the top bar gets height=100, which is fine."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phoneme_phase_c.py",
+    "/app/test_reports/pytest/phase_c_results.xml"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100% (all 11 spec checks pass — public 3, admin editor 8)"},
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. PUT test mutated u-foot.dialectNote to 'test-c' then restored the original value in a finally block. POST test created id='test-c-phasec' (target ipa=/æ/) to exercise the create-time strip, then DELETE'd it in finally. Both cleanups verified to complete via pytest exit code 0 and admin_get parity checks.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase C lockdown is stable. Reuse /app/backend/tests/test_phoneme_phase_c.py alongside test_phoneme_phase_b.py (14 tests) and test_canonical_phonemes.py (27 tests) — combined 49-test regression suite for the Phoneme CMS. For Phase D (autofill from canonical, admin UI dropdown enforcement beyond height/activation), extend test_phoneme_phase_c.py. Note the compute_frequency_chart dialect-picking quirk documented in the code review above (strict-equality on ['RP']); if a card with dialects=['RP'] alone is ever added the chart will switch to RP inventory — worth a targeted test then.",
+  "rca of the issue": "N/A — no bugs found. All Phase C spec items verified: (1) canonical-computed 9-bar chart with correct IPA set and active flag, (2) admin/public parity, (3) PUT strip + preserve other fields, (4) POST strip at create time, (5) admin editor read-only preview with all data-testids present and legacy inputs/button removed, (6) Phase A/B regressions intact. Only 1 initial pytest failure was a typo in my own test id ('test-c-phaseC' → id-regex rejected capital C); fixed to 'test-c-phasec' and all 8 tests pass."
+}

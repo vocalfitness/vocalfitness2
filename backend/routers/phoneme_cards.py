@@ -179,6 +179,83 @@ def _to_response(doc: dict) -> PhonemeCardResponse:
 
 
 # --------------------------------------------------------------------------- #
+# Phase C — Frequency Chart computed from canonical inventory (read-only)
+# --------------------------------------------------------------------------- #
+async def compute_frequency_chart(
+    db,
+    ipa: str,
+    category: str,
+    dialects: List[str] | None = None,
+    n: int = 9,
+) -> List[Dict[str, Any]]:
+    """
+    Compute the frequency chart bars from the canonical inventory.
+
+    Returns the top-N phonemes of the same kind (vowel/consonant/diphthong) for
+    the card's dialect, ranked by ``frequency_rank`` ASC (most frequent first).
+    The requested ``ipa`` is always included and marked ``active: True``. Bar
+    heights are linearly normalised from rank 1 (100) to rank max (30) so the
+    chart is visually meaningful without fabricating percentages.
+
+    This function is the single source of truth for the chart — the stored
+    ``frequencyChart`` field in Mongo is ignored on read (Phase C lockdown).
+    """
+    if category not in ("vowel", "consonant", "diphthong"):
+        return []
+
+    # Pick the card's dialect — prefer RP if the card is RP-only, else GenAm
+    dialect_val = "RP" if (dialects and dialects == ["RP"]) else "GenAm"
+
+    docs = await db.canonical_phonemes.find(
+        {"dialect": dialect_val, "kind": category, "frequency_rank": {"$ne": None}},
+        {"_id": 0, "ipa": 1, "frequency_rank": 1},
+    ).to_list(100)
+    docs.sort(key=lambda d: d.get("frequency_rank") or 999)
+
+    top = docs[:n]
+
+    # Force-include the target ipa if outside top-N (swap in for the last slot)
+    if ipa and not any(d["ipa"] == ipa for d in top):
+        target = await db.canonical_phonemes.find_one(
+            {"dialect": dialect_val, "ipa": ipa},
+            {"_id": 0, "ipa": 1, "frequency_rank": 1},
+        )
+        if target:
+            top = top[:-1] + [target] if top else [target]
+
+    if not top:
+        return []
+
+    ranks = [d.get("frequency_rank") or 999 for d in top]
+    max_rank = max(ranks)
+    min_rank = min(ranks)
+    span = max(1, max_rank - min_rank)
+    min_h, max_h = 30, 100
+    bars: List[Dict[str, Any]] = []
+    for d in top:
+        rank = d.get("frequency_rank") or max_rank
+        # Invert: highest rank number → shortest bar
+        height = int(min_h + (max_h - min_h) * (1 - (rank - min_rank) / span))
+        bars.append({"ipa": d["ipa"], "height": height, "active": d["ipa"] == ipa})
+    return bars
+
+
+async def _inject_computed_chart(db, doc: dict) -> dict:
+    """Overwrite the stored ``frequencyChart`` with the canonical-computed one."""
+    try:
+        doc["frequencyChart"] = await compute_frequency_chart(
+            db,
+            ipa=doc.get("ipa", ""),
+            category=doc.get("category", "vowel"),
+            dialects=doc.get("dialects") or [],
+        )
+    except Exception:  # noqa: BLE001 — never break the read path
+        # keep whatever is in Mongo as fallback
+        pass
+    return doc
+
+
+# --------------------------------------------------------------------------- #
 # Router factory (so we can inject the shared db + admin dependency)
 # --------------------------------------------------------------------------- #
 def build_phoneme_cards_router(db, get_admin_user):
@@ -206,6 +283,7 @@ def build_phoneme_cards_router(db, get_admin_user):
         doc = await coll.find_one({"id": card_id}, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fonema non trovato")
+        await _inject_computed_chart(db, doc)
         return _to_response(doc)
 
     @router.post("/admin/phonemes", response_model=PhonemeCardResponse, status_code=201)
@@ -221,12 +299,15 @@ def build_phoneme_cards_router(db, get_admin_user):
 
         now = _now_iso()
         doc = payload.model_dump()
+        # Phase C lockdown: ignore any client-supplied frequencyChart at create time.
+        doc["frequencyChart"] = []
         doc["createdAt"] = now
         doc["updatedAt"] = now
         doc["createdBy"] = admin.get("username")
         doc["updatedBy"] = admin.get("username")
 
         await coll.insert_one(doc)
+        await _inject_computed_chart(db, doc)
         return _to_response(doc)
 
     @router.put("/admin/phonemes/{card_id}", response_model=PhonemeCardResponse)
@@ -248,14 +329,22 @@ def build_phoneme_cards_router(db, get_admin_user):
             if nullable in raw:
                 update_fields[nullable] = raw[nullable]
 
+        # Phase C lockdown: frequencyChart is computed server-side from the
+        # canonical inventory. Silently drop any incoming value so legacy
+        # editors / autofill drafts can't corrupt it.
+        update_fields.pop("frequencyChart", None)
+
         if not update_fields:
-            return _to_response(existing)
+            existing_computed = dict(existing)
+            await _inject_computed_chart(db, existing_computed)
+            return _to_response(existing_computed)
 
         update_fields["updatedAt"] = _now_iso()
         update_fields["updatedBy"] = admin.get("username")
 
         await coll.update_one({"id": card_id}, {"$set": update_fields})
         updated = await coll.find_one({"id": card_id}, {"_id": 0})
+        await _inject_computed_chart(db, updated)
         return _to_response(updated)
 
     @router.delete("/admin/phonemes/{card_id}")
@@ -319,6 +408,7 @@ def build_phoneme_cards_router(db, get_admin_user):
         doc = await coll.find_one({"id": card_id, "published": True}, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fonema non trovato o non pubblicato")
+        await _inject_computed_chart(db, doc)
         return _to_response(doc)
 
     return router

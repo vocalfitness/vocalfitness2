@@ -738,29 +738,43 @@ export default function PhonemeAdminEditorPage() {
           />
         </Section>
 
-        {/* ================== FREQUENCY CHART ================== */}
-        <Section title="Grafico di frequenza (frequencyChart)" icon={<Palette className="w-4 h-4" />}>
-          <p className="text-xs text-slate-400 mb-3">
-            Barre del grafico frequenza fonemi mostrato sulla card. Height 0–100. Marca <code className="text-cyan-300">active</code> per la barra evidenziata (di solito quella del fonema corrente).
-          </p>
-          <Repeater
-            label="Barra"
-            items={card.frequencyChart || []}
-            onChange={(items) => setField('frequencyChart', items)}
-            template={{ ipa: '', height: 50, active: false }}
-            testId="editor-freq"
-            compact
-            renderItem={(item, upd, i) => (
-              <div className="grid grid-cols-3 sm:grid-cols-8 gap-2 items-center">
-                <Input value={item.ipa || ''} onChange={(e) => upd({ ...item, ipa: e.target.value })} placeholder="ʊ" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100 font-mono" data-testid={`editor-freq-${i}-ipa`} />
-                <Input type="number" min="0" max="100" value={item.height ?? 50} onChange={(e) => upd({ ...item, height: parseInt(e.target.value, 10) || 0 })} className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-freq-${i}-height`} />
-                <label className="sm:col-span-3 flex items-center gap-2 text-xs text-slate-300">
-                  <Switch checked={!!item.active} onCheckedChange={(v) => upd({ ...item, active: v })} data-testid={`editor-freq-${i}-active`} />
-                  <span className={item.active ? 'text-cyan-300 font-bold' : 'text-slate-500'}>Attivo (fonema corrente)</span>
-                </label>
+        {/* ================== FREQUENCY CHART (Phase C — read-only) ================== */}
+        <Section title="Grafico di frequenza · read-only" icon={<Palette className="w-4 h-4" />}>
+          <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-cyan-300 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-cyan-100/90 leading-relaxed">
+                <p className="font-bold text-cyan-200 mb-1">Bloccato dal Phase C</p>
+                <p>
+                  Il grafico è ora <b>calcolato automaticamente</b> dal <code className="text-orange-300">canonical_phonemes</code> inventory
+                  (rank di frequenza reale per categoria + dialetto). Non è più possibile inserire percentuali arbitrarie o IPA a mano
+                  per evitare corruzione dei dati fonetici. Basta salvare la scheda: il grafico si aggiornerà da solo sulla card pubblica.
+                </p>
               </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-3">Anteprima calcolata</p>
+            {Array.isArray(card.frequencyChart) && card.frequencyChart.length > 0 ? (
+              <div className="h-28 flex items-end gap-2 justify-around" data-testid="editor-freq-preview">
+                {card.frequencyChart.map((b, i) => (
+                  <div key={i} className="flex flex-col items-center justify-end gap-1.5 h-full flex-1">
+                    <div
+                      className={`w-3 rounded-sm transition-all duration-700 ${b.active ? 'bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.7)]' : 'bg-slate-500/70'}`}
+                      style={{ height: `${b.height}%` }}
+                      data-testid={`editor-freq-bar-${i}`}
+                    />
+                    <span className={`text-[10px] font-mono ${b.active ? 'text-orange-400 font-bold' : 'text-slate-400'}`}>/{b.ipa}/</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic py-6 text-center">
+                Nessun dato canonical per <code className="text-cyan-300">{card.ipa || '?'}</code> ({card.category}, dialetto {(card.dialects || []).join('/')}).
+                Verifica che la categoria e il simbolo IPA siano corretti.
+              </p>
             )}
-          />
+          </div>
         </Section>
 
         {/* ================== FEATURES ================== */}
@@ -1121,7 +1135,7 @@ function deepMerge(a, b) {
   return out;
 }
 
-const ADVANCED_KEYS = ['spellings', 'frequencyChart', 'features', 'knobs', 'facialMuscles', 'classification', 'funFact', 'vowelChartPosition'];
+const ADVANCED_KEYS = ['spellings', 'features', 'knobs', 'facialMuscles', 'classification', 'funFact', 'vowelChartPosition'];
 function serialiseAdvanced(card) {
   const subset = {};
   ADVANCED_KEYS.forEach((k) => { subset[k] = card[k]; });
