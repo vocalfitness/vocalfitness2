@@ -121,6 +121,10 @@ class PhonemeCardSummary(BaseModel):
     commonWordCount: int = 0
     updatedAt: Optional[str] = None
     createdAt: Optional[str] = None
+    # Phase E badge — populated only by admin_list, omitted elsewhere
+    readinessScore: Optional[int] = None
+    readinessReady: Optional[bool] = None
+    readinessFailCount: Optional[int] = None
 
 
 class PhonemeCardResponse(PhonemeCardBase):
@@ -824,7 +828,19 @@ def build_phoneme_cards_router(db, get_admin_user):
     @router.get("/admin/phonemes", response_model=List[PhonemeCardSummary])
     async def admin_list(admin: dict = Depends(get_admin_user)):
         docs = await coll.find({}, {"_id": 0}).sort([("order", 1), ("id", 1)]).to_list(1000)
-        return [_summarise(d) for d in docs]
+        summaries: List[PhonemeCardSummary] = []
+        for d in docs:
+            s = _summarise(d)
+            # Phase E — augment with readiness score for the list badge
+            try:
+                report = await build_readiness_report(db, d)
+                s.readinessScore = report["score"]
+                s.readinessReady = report["ready"]
+                s.readinessFailCount = report["summary"]["fail"]
+            except Exception:  # noqa: BLE001 — never break the list on a bad card
+                s.readinessScore = None
+            summaries.append(s)
+        return summaries
 
     # ------------------------------------------------------------------ #
     # Phase D — Deterministic autofill (no DB mutation, only preview payload)

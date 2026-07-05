@@ -12,6 +12,11 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme CMS · Readiness badge in admin list — DONE ✅
+- [x] **Backend** `PhonemeCardSummary` esteso con `readinessScore` (0-100), `readinessReady` (bool), `readinessFailCount` (int). `admin_list` calcola readiness per ogni card (per 44 card ~200ms totali)
+- [x] **Frontend** `PhonemeAdminPage.jsx`: nuovo badge color-coded a destra dei chip meta (verde ≥90 / giallo ≥70 / rosso <70) con tooltip "Pronta per pubblicazione" o "N check falliti". Testid `phoneme-admin-readiness-{id}`
+- [x] Screenshot conferma: u-foot / i-fleece → ✓ 100% (verde); tutte le 42 schede skeleton → ✗ 55% (rosso). Visual signal a colpo d'occhio di quali card servono lavoro
+
 ### 05/07/2026 — Phoneme System Rebuild · Phase E (Readiness Checklist) — DONE ✅
 - [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
   - Nuovo endpoint `GET /api/admin/phonemes/{id}/readiness` (admin auth) — puro diagnostic, zero scritture

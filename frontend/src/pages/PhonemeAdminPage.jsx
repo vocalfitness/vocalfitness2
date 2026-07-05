@@ -355,6 +355,23 @@ function PhonemeRow({ card, busy, onEdit, onDuplicate, onPublish, onDelete }) {
               <PlaySquare className="w-3 h-3" />video-lezione
             </span>
           )}
+          {typeof card.readinessScore === 'number' && (
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border ${
+                card.readinessScore >= 90 ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
+                : card.readinessScore >= 70 ? 'text-amber-300 border-amber-500/40 bg-amber-500/10'
+                : 'text-rose-300 border-rose-500/40 bg-rose-500/10'
+              }`}
+              title={
+                card.readinessReady
+                  ? `Pronta per pubblicazione · score ${card.readinessScore}/100`
+                  : `${card.readinessFailCount ?? '?'} check falliti · score ${card.readinessScore}/100`
+              }
+              data-testid={`phoneme-admin-readiness-${card.id}`}
+            >
+              {card.readinessReady ? '✓' : '✗'} {card.readinessScore}%
+            </span>
+          )}
         </div>
 
         {/* Actions */}
