@@ -1,0 +1,34 @@
+{
+  "summary": "Phase D — Deterministic Autofill from canonical inventory validated end-to-end. Backend: 16/16 pytest PASS on /app/backend/tests/test_phoneme_phase_d.py. Vowel /ʊ/ GenAm returns 8 features (Height=Near-close, Backness=Back, Rounding=Moderate, Tenseness=Lax, Duration=Short, Voicing=Voiced, Manner=Pure monophthong, Lexical set=FOOT), 4 knobs (advancement/tenseness/height/roundness with height.highlight=true, height.valueLabel='Near-close'), 5+ classification chips (Near-close, Back, Moderate, Lax, Monophthong), vowelChartPosition={x:95,y:22}, source.canonical_kind='vowel', source.lexical_set='FOOT'. Vowel /iː/ RP: Height='Close', vowelChartPosition.y=5, lexical_set='FLEECE'. Consonant /t/ GenAm: Voicing=Voiceless, Place=Alveolar, Manner=Plosive, knobs=[], classification=3, vowelChartPosition={}, source.canonical_kind='consonant', source.dialect_notes contains 'flap' (dict shape with 'flapped' key). Diphthong /ɪə/ RP: canonical_kind='diphthong', classification contains 'Diphthong'; same ipa on GenAm returns 404 (RP-only). Error cases: unknown IPA 'X' → 404 with detail 'non presente'; dialect='Italian' → 400 with 'GenAm o RP'; empty ipa → 422; no auth → 403. Persistence: GET /api/phonemes/u-foot before/after autofill returns identical features & knobs (preview-only confirmed). Regression: GET /api/canonical/phonemes count==84, GET /api/phonemes/u-foot returns 9-bar canonical frequencyChart intact. Frontend: /admin/phonemes/u-foot editor loads, 'Autofill dal canonical (deterministico)' section expandable, info banner contains 'canonical_phonemes'. editor-autofill-request-btn present. Click → editor-autofill-preview appears with all 4 child panels (features/knobs/classification/position). Cancel button hides preview and does NOT mutate form. Apply button hides preview, shows toast 'Autofill applicato: features, knobs, classification, vowelChartPosition · ricontrolla e salva.', and Features section then shows 8 items. Editor reloads cleanly after (no accidental persistence via subsequent Save).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_phase_d.py",
+    "/app/test_reports/pytest/phase_d_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "phoneme_cards.py _compose_autofill_for_vowel: knobs are built in order advancement/tenseness/height/roundness only for vowels where BOTH the field is set AND the term is in the mapping dict; a vowel with an unknown height/backness label (outside the controlled vocabulary) would silently produce a knobs array of <4 items. Currently all 40+ canonical vowels use controlled terms, but if the inventory ever adds a variant term the knob would be dropped without warning — worth a debug log or a fallback 'unknown' bucket.",
+    "phoneme_cards.py build_autofill_payload uses HTTPException 400 for both dialect and missing-ipa; the FastAPI Query-parameter default (no default value, no Query(...)) makes ipa/dialect a REQUIRED query string, so empty ipa is caught by FastAPI as a 422 not 400 — the manual `if not ipa: raise 400` is unreachable via the current router signature. Tests accept 400|422; consider using Query(min_length=1) for explicit 400.",
+    "PhonemeAdminEditorPage.jsx applyAutofill: uses `prev.features` fallback when autofill features is empty — so a consonant applying to a vowel-shaped card would preserve prev.knobs (since consonant.knobs=[]). This is defensive but silent — worth a small UI hint 'knobs section skipped for consonant'. Not blocking.",
+    "PhonemeAdminEditorPage.jsx canonicalDialectFor: hardcodes AmE→GenAm mapping but if a card had dialects=['GenAm'] the includes('AmE') check would miss and fall through to includes('RP')→ 'RP' fallback. Current cards use 'AmE' label so this is fine, but the mapping is fragile if seed labels evolve.",
+    "The autofill preview panel does not preview what will be overwritten in the form — it only shows the incoming values. A side-by-side diff of 'current → autofill' would prevent surprise overrides on cards that already have hand-tuned classification/knobs. Enhancement, not a bug."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phoneme_phase_d.py"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% (all 11 spec checks + cancel/apply/toast/persistence flow pass)"},
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Backend tests are read-only; the persistence-guarantee test snapshots u-foot features/knobs before and after autofill and asserts equality. Frontend test applied autofill client-side (state mutation) but never clicked Save, and page was reloaded afterwards. No DB writes performed. Note: pre-existing dialectNote='auto test' visible in screenshot appears to be residue from an unrelated prior session (out of scope for Phase D — main agent may want to restore to canonical value if desired).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase D autofill is stable and preview-only. Reuse /app/backend/tests/test_phoneme_phase_d.py alongside test_phoneme_phase_c.py (8 tests), test_phoneme_phase_b.py (14 tests), test_canonical_phonemes.py (27 tests) — combined 65-test regression suite for the Phoneme CMS + canonical inventory. The autofill endpoint depends on canonical_phonemes seed being fully loaded (84 items); if that seed count drifts, autofill tests for /ʊ/ /iː/ /t/ /ɪə/ will still work but the regression test_canonical_count_84 will flag it. Note: the autosave debounce (30s) means quick admin edits do NOT auto-persist within a typical test session — reloading the editor within 30s of an unsaved change wipes the change safely.",
+  "rca of the issue": "N/A — no bugs found. All 15 spec items verified: (1) /ʊ/ GenAm vowel blob complete, (2) /iː/ RP FLEECE, (3) /t/ GenAm consonant with flapping note, (4) /ɪə/ RP diphthong, (5) /ɪə/ GenAm 404, (6) unknown IPA 404 with 'non presente', (7) invalid dialect 400 with 'GenAm o RP', (8) missing ipa 422, (9) no-auth 403, (10) preview-only zero DB writes, (11-14) editor UI cancel/apply/toast/preview panels, (15) Phase A/B/C regression (84 canonical, 9-bar chart). Two initial pytest failures were in my own test code: (a) dialect_notes shape assumption (str vs dict) — canonical uses dict {GenAm: 'flapped...', RP: '...'}, fixed to stringify before .lower(); (b) canonical response shape ({count,items,controlled_vocabulary}) vs assumed list — fixed to unwrap data['items']. Both fixes tightened the tests without loosening assertions."
+}

@@ -257,6 +257,67 @@ export default function PhonemeAdminEditorPage() {
     }
   };
 
+  // ─── Phase D — Deterministic Autofill from canonical inventory ─────
+  // Card.dialects on VF is ['AmE','RP']; canonical uses 'GenAm'/'RP'. Map here.
+  const [autofillLoading, setAutofillLoading] = useState(false);
+  const [autofillPreview, setAutofillPreview] = useState(null); // {features, knobs, classification, vowelChartPosition, source, dialectUsed}
+  const [autofillError, setAutofillError] = useState('');
+
+  const canonicalDialectFor = (card_) => {
+    const ds = card_.dialects || [];
+    if (ds.includes('AmE') || ds.includes('GenAm')) return 'GenAm';
+    if (ds.includes('RP')) return 'RP';
+    return 'GenAm';
+  };
+
+  const requestAutofill = async () => {
+    setAutofillError('');
+    setAutofillPreview(null);
+    if (!card.ipa) {
+      setAutofillError('Compila prima il simbolo IPA.');
+      return;
+    }
+    const dialect = canonicalDialectFor(card);
+    setAutofillLoading(true);
+    try {
+      const url = `${API}/api/admin/phonemes/autofill?ipa=${encodeURIComponent(card.ipa)}&dialect=${dialect}`;
+      const res = await fetch(url, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) {
+        const text = await res.text();
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch { /* ignore */ }
+        throw new Error(detail);
+      }
+      const data = await res.json();
+      setAutofillPreview({ ...data, dialectUsed: dialect });
+    } catch (e) {
+      setAutofillError(e.message);
+    } finally {
+      setAutofillLoading(false);
+    }
+  };
+
+  const applyAutofill = () => {
+    if (!autofillPreview) return;
+    setCard((prev) => ({
+      ...prev,
+      features:  Array.isArray(autofillPreview.features)  && autofillPreview.features.length  ? autofillPreview.features  : prev.features,
+      knobs:     Array.isArray(autofillPreview.knobs)     && autofillPreview.knobs.length     ? autofillPreview.knobs     : prev.knobs,
+      classification: Array.isArray(autofillPreview.classification) && autofillPreview.classification.length ? autofillPreview.classification : prev.classification,
+      vowelChartPosition: (autofillPreview.vowelChartPosition && Object.keys(autofillPreview.vowelChartPosition).length)
+        ? autofillPreview.vowelChartPosition
+        : prev.vowelChartPosition,
+    }));
+    const filled = [];
+    if (autofillPreview.features?.length) filled.push('features');
+    if (autofillPreview.knobs?.length) filled.push('knobs');
+    if (autofillPreview.classification?.length) filled.push('classification');
+    if (autofillPreview.vowelChartPosition && Object.keys(autofillPreview.vowelChartPosition).length) filled.push('vowelChartPosition');
+    setAutofillPreview(null);
+    setToast(`Autofill applicato: ${filled.join(', ')} · ricontrolla e salva.`);
+    setTimeout(() => setToast(''), 4500);
+  };
+
   // ─── Auto-save runner ─────────────────────────────────────
   // Silent save — never toggles publish, keeps current published state.
   // Skipped if: not in edit mode, not dirty, disabled, saving already, or JSON invalid.
@@ -462,6 +523,136 @@ export default function PhonemeAdminEditorPage() {
               </div>
             </Field>
           </div>
+        </Section>
+
+        {/* ================== PHASE D — DETERMINISTIC AUTOFILL ================== */}
+        <Section title="Autofill dal canonical (deterministico)" icon={<Wand2 className="w-4 h-4" />}>
+          <div className="rounded-xl border border-orange-500/25 bg-orange-500/5 p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-orange-300 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-orange-100/90 leading-relaxed">
+                <p className="font-bold text-orange-200 mb-1">Precompilazione dall&apos;inventario canonical</p>
+                <p>
+                  Basato su <code className="text-cyan-300">canonical_phonemes</code>{' '}
+                  ({(card.dialects || []).includes('AmE') ? 'GenAm' : 'RP'}). Nessun LLM, nessun dato inventato:
+                  solo mappatura deterministica da IPA + dialetto → features / knobs / classification / vowel-chart position.
+                  Puoi revisionare l&apos;anteprima e decidere se applicarla o annullare.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={requestAutofill}
+              disabled={autofillLoading || !card.ipa}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              data-testid="editor-autofill-request-btn"
+            >
+              {autofillLoading ? (
+                <><span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />Calcolo in corso…</>
+              ) : (
+                <><Wand2 className="w-4 h-4 mr-2" />Ottieni anteprima autofill</>
+              )}
+            </Button>
+            {card.ipa && (
+              <span className="text-xs text-slate-400 font-mono">
+                Sorgente: <span className="text-cyan-300">/{card.ipa}/</span> · dialetto <span className="text-cyan-300">{canonicalDialectFor(card)}</span>
+              </span>
+            )}
+          </div>
+
+          {autofillError && (
+            <div className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2" data-testid="editor-autofill-error">
+              <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-rose-200 leading-relaxed">{autofillError}</p>
+            </div>
+          )}
+
+          {autofillPreview && (
+            <div className="mt-5 rounded-xl border border-cyan-500/30 bg-slate-900/70 p-4" data-testid="editor-autofill-preview">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">Anteprima autofill · {autofillPreview.dialectUsed}</p>
+                  {autofillPreview.source?.lexical_set && (
+                    <p className="text-xs text-slate-400 mt-1">Wells set: <span className="text-cyan-200 font-mono">{autofillPreview.source.lexical_set}</span></p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutofillPreview(null)}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                    data-testid="editor-autofill-cancel-btn"
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={applyAutofill}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+                    data-testid="editor-autofill-apply-btn"
+                  >
+                    <Check className="w-4 h-4 mr-1.5" /> Applica al form
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 text-xs">
+                {autofillPreview.features?.length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3" data-testid="editor-autofill-features">
+                    <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider font-bold mb-2">Features ({autofillPreview.features.length})</p>
+                    <ul className="space-y-1">
+                      {autofillPreview.features.map((f, i) => (
+                        <li key={i} className="flex gap-2 text-slate-200">
+                          <span className="text-cyan-400 font-bold min-w-[80px]">{f.label}:</span>
+                          <span className="font-mono">{f.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {autofillPreview.knobs?.length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3" data-testid="editor-autofill-knobs">
+                    <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider font-bold mb-2">Knobs ({autofillPreview.knobs.length})</p>
+                    <ul className="space-y-1.5">
+                      {autofillPreview.knobs.map((k, i) => (
+                        <li key={i} className="flex items-center gap-2 text-slate-200">
+                          <span className={`min-w-[100px] font-mono text-[10px] ${k.highlight ? 'text-orange-300 font-bold' : 'text-cyan-300'}`}>{k.label}</span>
+                          <span className="flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                            <span className={`block h-full ${k.highlight ? 'bg-orange-400' : 'bg-cyan-400'}`} style={{ width: `${k.value}%` }} />
+                          </span>
+                          <span className="text-[10px] text-slate-400 min-w-[36px] text-right">{k.value}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {autofillPreview.classification?.length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 md:col-span-2" data-testid="editor-autofill-classification">
+                    <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider font-bold mb-2">Classification ({autofillPreview.classification.length})</p>
+                    <div className="flex flex-wrap gap-2">
+                      {autofillPreview.classification.map((c, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 font-mono text-[11px]">{c.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {autofillPreview.vowelChartPosition && Object.keys(autofillPreview.vowelChartPosition).length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3" data-testid="editor-autofill-position">
+                    <p className="text-[10px] text-cyan-300/70 uppercase tracking-wider font-bold mb-2">Vowel chart position</p>
+                    <p className="text-slate-200 font-mono">x: {autofillPreview.vowelChartPosition.x} · y: {autofillPreview.vowelChartPosition.y}</p>
+                  </div>
+                )}
+                {autofillPreview.source?.notes && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 md:col-span-2">
+                    <p className="text-[10px] text-amber-300/80 uppercase tracking-wider font-bold mb-1">Note canonical</p>
+                    <p className="text-amber-100/90 italic text-[11px] leading-relaxed">{autofillPreview.source.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </Section>
 
         {/* ================== VIDEO LESSON ================== */}

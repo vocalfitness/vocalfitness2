@@ -264,6 +264,184 @@ async def _inject_computed_chart(db, doc: dict) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# Phase D — Deterministic autofill from canonical inventory
+# --------------------------------------------------------------------------- #
+# Maps standard IPA height / backness / rounding / tenseness terms to the
+# knob values (0-100) used by the visual editor. NO percentages are
+# fabricated — these are pedagogical scale positions, not corpus data.
+_HEIGHT_TO_KNOB = {
+    "Close": 95, "Near-close": 80, "Close-mid": 65,
+    "Mid": 50, "Open-mid": 35, "Near-open": 20, "Open": 5,
+}
+_BACKNESS_TO_KNOB = {
+    "Front": 95, "Central": 50, "Back": 5,
+    "Central/Back": 25, "Back (unrounded)": 10,
+}
+_ROUNDING_TO_KNOB = {
+    "Unrounded": 5, "Unrounded (r-colored)": 15,
+    "Moderate": 50, "Rounded": 95,
+}
+_TENSENESS_TO_KNOB = {
+    "Tense": 90, "Lax": 20, "Tense/Lax varies": 50,
+}
+# Height → Y coordinate (0=top=close, 100=bottom=open) on the vowel chart svg
+_HEIGHT_TO_Y = {
+    "Close": 5, "Near-close": 22, "Close-mid": 35,
+    "Mid": 50, "Open-mid": 65, "Near-open": 82, "Open": 95,
+}
+# Backness → X coordinate (0=left=front, 100=right=back)
+_BACKNESS_TO_X = {
+    "Front": 5, "Central": 50, "Back": 95,
+    "Central/Back": 70, "Back (unrounded)": 90,
+}
+
+
+def _compose_autofill_for_vowel(canonical: dict) -> Dict[str, Any]:
+    """Given a canonical vowel/diphthong row, return features/knobs/classification/vowelChartPosition."""
+    height    = canonical.get("height")
+    backness  = canonical.get("backness")
+    rounding  = canonical.get("rounding")
+    tenseness = canonical.get("tenseness")
+    duration  = canonical.get("duration")
+    lexset    = canonical.get("lexical_set") or ""
+    kind      = canonical.get("kind", "vowel")
+
+    features: List[Dict[str, str]] = []
+    if height:
+        features.append({"label": "Height",    "value": height})
+    if backness:
+        features.append({"label": "Backness",  "value": backness})
+    if rounding:
+        features.append({"label": "Rounding",  "value": rounding})
+    if tenseness:
+        features.append({"label": "Tenseness", "value": tenseness})
+    if duration:
+        features.append({"label": "Duration",  "value": duration})
+    features.append({"label": "Voicing", "value": "Voiced"})  # all vowels
+    features.append({"label": "Manner",  "value": "Diphthong" if kind == "diphthong" else "Pure monophthong"})
+    if lexset:
+        features.append({"label": "Lexical set", "value": lexset})
+
+    knobs: List[Dict[str, Any]] = []
+    if backness in _BACKNESS_TO_KNOB:
+        knobs.append({"id": "advancement", "label": "ADVANCEMENT",
+                      "value": _BACKNESS_TO_KNOB[backness],
+                      "valueLabel": backness.lower(), "highlight": False})
+    if tenseness in _TENSENESS_TO_KNOB:
+        knobs.append({"id": "tenseness", "label": "TENSENESS",
+                      "value": _TENSENESS_TO_KNOB[tenseness],
+                      "valueLabel": tenseness.lower(), "highlight": False})
+    if height in _HEIGHT_TO_KNOB:
+        knobs.append({"id": "height", "label": "HEIGHT",
+                      "value": _HEIGHT_TO_KNOB[height],
+                      "valueLabel": height, "highlight": True})
+    if rounding in _ROUNDING_TO_KNOB:
+        knobs.append({"id": "roundness", "label": "ROUNDNESS",
+                      "value": _ROUNDING_TO_KNOB[rounding],
+                      "valueLabel": rounding.lower(), "highlight": False})
+
+    classification: List[Dict[str, str]] = []
+    if height:
+        classification.append({"label": height,
+                               "tooltip": f"Height (tongue elevation): standard IPA term '{height}'."})
+    if backness:
+        classification.append({"label": backness,
+                               "tooltip": f"Backness (tongue advancement): '{backness}'."})
+    if rounding:
+        classification.append({"label": rounding,
+                               "tooltip": f"Lip posture: '{rounding}'."})
+    if tenseness:
+        classification.append({"label": tenseness,
+                               "tooltip": f"Muscular set: '{tenseness}'."})
+    classification.append({
+        "label": "Diphthong" if kind == "diphthong" else "Monophthong",
+        "tooltip": ("Two-part vowel with a glide between two qualities."
+                    if kind == "diphthong"
+                    else "A single, stable vowel quality — no glide."),
+    })
+
+    vowel_chart_position: Dict[str, int] = {}
+    if height in _HEIGHT_TO_Y and backness in _BACKNESS_TO_X:
+        vowel_chart_position = {"x": _BACKNESS_TO_X[backness], "y": _HEIGHT_TO_Y[height]}
+
+    return {
+        "features": features,
+        "knobs": knobs,
+        "classification": classification,
+        "vowelChartPosition": vowel_chart_position,
+    }
+
+
+def _compose_autofill_for_consonant(canonical: dict) -> Dict[str, Any]:
+    """Given a canonical consonant row, return features/knobs/classification.
+
+    Consonants don't populate `vowelChartPosition` (returned empty)."""
+    manner  = canonical.get("manner")
+    place   = canonical.get("place")
+    voicing = canonical.get("voicing")
+
+    features: List[Dict[str, str]] = []
+    if voicing:
+        features.append({"label": "Voicing", "value": voicing})
+    if place:
+        features.append({"label": "Place",   "value": place})
+    if manner:
+        features.append({"label": "Manner",  "value": manner})
+
+    classification: List[Dict[str, str]] = []
+    if voicing:
+        classification.append({"label": voicing, "tooltip": f"Laryngeal setting: '{voicing}'."})
+    if place:
+        classification.append({"label": place, "tooltip": f"Place of articulation: '{place}'."})
+    if manner:
+        classification.append({"label": manner, "tooltip": f"Manner of articulation: '{manner}'."})
+
+    # Consonants do not use the 4-knob vowel model; return no knobs by design.
+    return {
+        "features": features,
+        "knobs": [],
+        "classification": classification,
+        "vowelChartPosition": {},
+    }
+
+
+async def build_autofill_payload(db, ipa: str, dialect: str) -> Dict[str, Any]:
+    """Fetch the canonical row for (dialect, ipa) and compose the autofill blob.
+
+    Raises HTTPException 404 if the phoneme is not in the canonical inventory.
+    """
+    if dialect not in ("GenAm", "RP"):
+        raise HTTPException(status_code=400, detail="dialect deve essere 'GenAm' o 'RP'")
+    if not ipa:
+        raise HTTPException(status_code=400, detail="ipa obbligatorio")
+
+    doc = await db.canonical_phonemes.find_one(
+        {"dialect": dialect, "ipa": ipa}, {"_id": 0},
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Fonema '{ipa}' non presente nell'inventario canonical per dialetto {dialect}.",
+        )
+
+    kind = doc.get("kind", "vowel")
+    if kind == "consonant":
+        blob = _compose_autofill_for_consonant(doc)
+    else:
+        blob = _compose_autofill_for_vowel(doc)
+
+    blob["source"] = {
+        "canonical_ipa": ipa,
+        "canonical_dialect": dialect,
+        "canonical_kind": kind,
+        "lexical_set": doc.get("lexical_set"),
+        "notes": doc.get("notes"),
+        "dialect_notes": doc.get("dialect_notes"),
+    }
+    return blob
+
+
+# --------------------------------------------------------------------------- #
 # Router factory (so we can inject the shared db + admin dependency)
 # --------------------------------------------------------------------------- #
 def build_phoneme_cards_router(db, get_admin_user):
@@ -285,6 +463,23 @@ def build_phoneme_cards_router(db, get_admin_user):
     async def admin_list(admin: dict = Depends(get_admin_user)):
         docs = await coll.find({}, {"_id": 0}).sort([("order", 1), ("id", 1)]).to_list(1000)
         return [_summarise(d) for d in docs]
+
+    # ------------------------------------------------------------------ #
+    # Phase D — Deterministic autofill (no DB mutation, only preview payload)
+    # ------------------------------------------------------------------ #
+    @router.post("/admin/phonemes/autofill")
+    async def admin_autofill(
+        ipa: str,
+        dialect: str,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """
+        Return an autofill preview blob derived deterministically from the
+        canonical inventory. The response is NOT persisted — the admin
+        reviews and merges the returned fields client-side, then calls
+        PUT /admin/phonemes/{id} to save. Zero LLM involvement.
+        """
+        return await build_autofill_payload(db, ipa=ipa, dialect=dialect)
 
     @router.get("/admin/phonemes/{card_id}", response_model=PhonemeCardResponse)
     async def admin_get(card_id: str, admin: dict = Depends(get_admin_user)):
