@@ -280,7 +280,7 @@ PHONEME_I_FLEECE = {
     "features": [
         {"label": "Height",        "value": "Close"},
         {"label": "Backness",      "value": "Front"},
-        {"label": "Rounding",      "value": "Unrounded (spread)"},
+        {"label": "Rounding",      "value": "Unrounded"},
         {"label": "Voicing",       "value": "Voiced"},
         {"label": "Manner",        "value": "Pure monophthong"},
         {"label": "Jaw",           "value": "close"},

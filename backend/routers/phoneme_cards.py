@@ -462,6 +462,19 @@ def _check(key: str, category: str, status: str, message: str, severity: str = "
     }
 
 
+def _normalise_feature_value(v: Optional[str]) -> str:
+    """Lower-case and strip trailing parenthetical qualifiers.
+
+    'Unrounded (spread)' → 'unrounded'. Used by parity comparisons so a
+    schda that adds a pedagogical qualifier is still considered equivalent
+    to the plain canonical term.
+    """
+    if not v:
+        return ""
+    core = re.sub(r"\s*\(.*?\)\s*", " ", v).strip()
+    return core.lower()
+
+
 def _get_feature(card: dict, label: str) -> Optional[str]:
     """Case-insensitive lookup of a feature.value by label."""
     for f in (card.get("features") or []):
@@ -542,7 +555,7 @@ async def build_readiness_report(db, card: dict) -> Dict[str, Any]:
             canon_val = ref_row.get(canonical_field)
             if card_val is None or canon_val is None:
                 continue  # missing on either side → skip (content check will catch)
-            if card_val.lower() == canon_val.lower():
+            if _normalise_feature_value(card_val) == _normalise_feature_value(canon_val):
                 checks.append(_check(
                     f"parity.{canonical_field}", "canonical", "pass",
                     f"Feature '{feature_label}' = '{card_val}' concorda con canonical.",
@@ -559,7 +572,7 @@ async def build_readiness_report(db, card: dict) -> Dict[str, Any]:
             canon_val = ref_row.get(canonical_field)
             if card_val is None or canon_val is None:
                 continue
-            if card_val.lower() == canon_val.lower():
+            if _normalise_feature_value(card_val) == _normalise_feature_value(canon_val):
                 checks.append(_check(
                     f"parity.{canonical_field}", "canonical", "pass",
                     f"Feature '{feature_label}' = '{card_val}' concorda con canonical.",
@@ -1073,5 +1086,18 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
         )
         if res.modified_count:
             patched.append(f"knob.height.{bad}→{good}×{res.modified_count}")
+
+    # 5) Phase E — normalise Rounding parenthetical qualifiers to match canonical
+    #    e.g. "Unrounded (spread)" → "Unrounded"
+    for bad, good in [("Unrounded (spread)", "Unrounded"),
+                      ("Unrounded (r-colored)", "Unrounded"),
+                      ("Rounded (protruded)", "Rounded")]:
+        res = await coll.update_many(
+            {"features": {"$elemMatch": {"label": "Rounding", "value": bad}}},
+            {"$set": {"features.$[el].value": good}},
+            array_filters=[{"el.label": "Rounding", "el.value": bad}],
+        )
+        if res.modified_count:
+            patched.append(f"rounding.{bad}→{good}×{res.modified_count}")
 
     return {"inserted": inserted, "skipped": skipped, "patched": patched}

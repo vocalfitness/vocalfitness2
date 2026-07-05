@@ -247,6 +247,9 @@ export default function PhonemeAdminEditorPage() {
       if (isNew) {
         // Navigate to the edit URL so future saves are PUT
         navigate(`/admin/phonemes/${data.id}`, { replace: true });
+      } else {
+        // Phase E — auto-refresh readiness after every successful save
+        fetchReadiness();
       }
       setTimeout(() => setToast(''), 3000);
     } catch (e) {

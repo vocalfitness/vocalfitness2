@@ -12,6 +12,34 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme System Rebuild · Phase E (Readiness Checklist) — DONE ✅
+- [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
+  - Nuovo endpoint `GET /api/admin/phonemes/{id}/readiness` (admin auth) — puro diagnostic, zero scritture
+  - `build_readiness_report(db, card)` — 15 check deterministici raggruppati in 4 categorie:
+    - **canonical** (5): match ipa in inventario, category vs kind, parity Height/Backness/Rounding/Tenseness (o Voicing/Place/Manner per consonanti)
+    - **enum** (2): facialMuscles.activation ∈ {HIGH,MODERATE,LOW}; nessuna etichetta classification deprecata (Near-high/High/…)
+    - **contrast** (2): parsing `/A/ vs /B/` con verifica presenza canonical + coppie minime word-pair well-formed
+    - **content** (6): audio per ogni dialetto, ≥3 hotspots, ≥6 commonWords, ≥3 classification chip, mnemonic, funFact
+  - Normalizzazione parentetici (es: "Unrounded (spread)" ≡ "Unrounded") con `_normalise_feature_value()`
+  - Score 0-100 pesato (pass=1.0, warn=0.5, fail=0.0); `ready=true` iff fail_n=0
+  - 5° migration patch in `ensure_phoneme_seed`: normalizza Rounding parentetici legacy
+- [x] **Frontend** `PhonemeAdminEditorPage.jsx`:
+  - Nuova sezione "Readiness checklist (correctness)" defaultOpen
+  - Score numerico grande (verde ≥90 / giallo ≥70 / rosso <70) + verdict + summary counts
+  - Bottone "Ricalcola" con spinner
+  - Lista di 15 check con icon color-coded (✓/⚠/✗), category+key label
+  - Auto-fetch al load + auto-refetch dopo ogni Save (feedback loop stretto)
+  - Su `/admin/phonemes/new` mostra messaggio "Salva prima la scheda" + bottone disabilitato
+- [x] **Data drift fix**: seed i-fleece Rounding='Unrounded (spread)' → 'Unrounded' (parity con canonical)
+- [x] **Test agent v3 iter_18**: **10/10 backend + 11/11 frontend PASS** con 1 minor (i-fleece drift) risolto post-run
+  - Verificato: u-foot 100/100 ready; contradiction detection su Height=Open + classification.Near-high fires correctly; contrast.self detection su '/x/ vs /y/' fires; 404/403 corretti; new-card message ok
+  - Zero regressioni Fase A/B/C/D
+
+**Prossime fasi in coda:**
+- Fase F: AI drafting Stage 2 (bozza-only, confidence flags) — LLM-assisted per campi narrativi (mnemonic detail, funFact prose, facialMuscles.detail rewording)
+
+
+
 ### 05/07/2026 — Phoneme System Rebuild · Phase D (Autofill Stage 1 Deterministic) — DONE ✅
 - [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
   - Nuovo endpoint `POST /api/admin/phonemes/autofill?ipa=&dialect=` (admin auth) — preview-only, ZERO scritture su Mongo
