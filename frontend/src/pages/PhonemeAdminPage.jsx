@@ -8,6 +8,7 @@ import {
   ArrowLeft, Plus, Pencil, Copy, Trash2, Eye, EyeOff,
   ExternalLink, Search, GraduationCap, RefreshCw, ChevronRight,
   Volume2, PlaySquare, MapPin, Type, LayoutList, Target, HelpCircle,
+  Sparkles, X, CheckCircle2, AlertTriangle,
 } from 'lucide-react';
 import PhonemeRoadmapDashboard from '../components/PhonemeRoadmapDashboard';
 
@@ -27,6 +28,15 @@ export default function PhonemeAdminPage() {
   const [error, setError]     = useState('');
   const [busy, setBusy]       = useState(null);    // per-row loading indicator
   const [view, setView]       = useState('list');  // list | roadmap
+
+  // ---- Batch AI fill ----
+  const [batchOpen, setBatchOpen]           = useState(false);
+  const [batchSelected, setBatchSelected]   = useState({}); // id → bool
+  const [batchIncludeAi, setBatchIncludeAi] = useState(true);
+  const [batchRunning, setBatchRunning]     = useState(false);
+  const [batchCancel, setBatchCancel]       = useState(false);
+  const [batchProgress, setBatchProgress]   = useState({ current: 0, total: 0, currentId: '' });
+  const [batchResults, setBatchResults]     = useState([]); // {id, status:'ok'|'err', message, score}
 
   const API = process.env.REACT_APP_BACKEND_URL;
   const authHeaders = () => ({
@@ -52,6 +62,67 @@ export default function PhonemeAdminPage() {
   useEffect(() => {
     if (!loading && user?.role === 'admin') fetchCards();
   }, [loading, user?.role]);
+
+  // ---- Batch AI-fill handlers ----
+  const openBatchModal = () => {
+    // Pre-select all draft cards with readinessScore < 70
+    const preset = {};
+    for (const c of cards) {
+      if (!c.published && (c.readinessScore ?? 0) < 70) preset[c.id] = true;
+    }
+    setBatchSelected(preset);
+    setBatchResults([]);
+    setBatchProgress({ current: 0, total: 0, currentId: '' });
+    setBatchCancel(false);
+    setBatchOpen(true);
+  };
+
+  const runBatch = async () => {
+    const ids = Object.entries(batchSelected).filter(([, v]) => v).map(([id]) => id);
+    if (ids.length === 0) return;
+    setBatchRunning(true);
+    setBatchResults([]);
+    setBatchProgress({ current: 0, total: ids.length, currentId: ids[0] });
+    const results = [];
+    for (let i = 0; i < ids.length; i++) {
+      if (batchCancel) break;
+      const id = ids[i];
+      setBatchProgress({ current: i + 1, total: ids.length, currentId: id });
+      try {
+        const res = await fetch(`${API}/api/admin/phonemes/${id}/batch-fill`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ include_ai: batchIncludeAi }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          let detail = text;
+          try { detail = JSON.parse(text).detail || text; } catch { /* ignore */ }
+          results.push({ id, status: 'err', message: detail });
+        } else {
+          const data = await res.json();
+          results.push({
+            id, status: 'ok',
+            message: data.message || 'ok',
+            score: data.readinessScore,
+            applied: data.applied,
+          });
+        }
+      } catch (e) {
+        results.push({ id, status: 'err', message: e.message });
+      }
+      setBatchResults([...results]);
+    }
+    setBatchRunning(false);
+    // Refresh list so the new scores show up
+    await fetchCards();
+  };
+
+  const toggleBatchAll = (v) => {
+    const next = {};
+    for (const c of cards) if (!c.published) next[c.id] = v;
+    setBatchSelected(next);
+  };
 
   // ---- Filters ----
   const visibleCards = useMemo(() => {
@@ -161,6 +232,16 @@ export default function PhonemeAdminPage() {
             <Button onClick={fetchCards} variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800" data-testid="phoneme-admin-refresh">
               <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
               <span className="ml-2 hidden sm:inline">Aggiorna</span>
+            </Button>
+            <Button
+              onClick={openBatchModal}
+              variant="outline"
+              size="sm"
+              className="border-fuchsia-500/50 text-fuchsia-200 hover:bg-fuchsia-500/10"
+              data-testid="phoneme-admin-batch-open"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="ml-2 hidden sm:inline">Batch bozze AI</span>
             </Button>
             <Link to="/admin/phonemes/new" data-testid="phoneme-admin-new-link">
               <Button className="bg-gradient-to-r from-orange-500 to-amber-500 text-slate-900 font-bold hover:scale-[1.03] transition">
@@ -296,6 +377,199 @@ export default function PhonemeAdminPage() {
           </>
         )}
       </div>
+
+      {/* ================== BATCH AI-FILL MODAL ================== */}
+      {batchOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !batchRunning && setBatchOpen(false)}
+          data-testid="phoneme-admin-batch-modal"
+        >
+          <div
+            className="bg-slate-950 border border-fuchsia-500/30 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/40 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-fuchsia-300" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-100">Genera bozze AI in batch</h2>
+                  <p className="text-xs text-slate-400">Autofill canonical + Claude Sonnet 4.5 · salva ogni scheda come <span className="text-amber-300 font-bold">bozza</span></p>
+                </div>
+              </div>
+              <button
+                onClick={() => !batchRunning && setBatchOpen(false)}
+                className="text-slate-400 hover:text-slate-200 disabled:opacity-40"
+                disabled={batchRunning}
+                data-testid="phoneme-admin-batch-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1">
+              {!batchRunning && batchResults.length === 0 && (
+                <>
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-4 text-xs text-amber-100/90 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="leading-relaxed">
+                      <p><b>Sicurezza:</b> vengono elaborate SOLO schede in <i>bozza</i>. I campi già valorizzati manualmente vengono preservati (nessun overwrite). Il grafico di frequenza resta canonical-computed. Ogni scheda mantiene <code className="text-orange-300">published: false</code>.</p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 mb-4 text-sm text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={batchIncludeAi}
+                      onChange={(e) => setBatchIncludeAi(e.target.checked)}
+                      className="w-4 h-4 accent-fuchsia-500"
+                      data-testid="phoneme-admin-batch-include-ai"
+                    />
+                    <span className={batchIncludeAi ? 'text-fuchsia-200' : 'text-slate-400'}>Includi bozze AI (mnemonic + funFact) · disattiva per solo autofill deterministico</span>
+                  </label>
+
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Schede da elaborare · {Object.values(batchSelected).filter(Boolean).length} selezionate
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => toggleBatchAll(true)}
+                        className="text-[11px] text-cyan-300 hover:text-cyan-200"
+                        data-testid="phoneme-admin-batch-select-all"
+                      >Tutte</button>
+                      <span className="text-slate-600">·</span>
+                      <button
+                        onClick={() => toggleBatchAll(false)}
+                        className="text-[11px] text-slate-400 hover:text-slate-200"
+                        data-testid="phoneme-admin-batch-select-none"
+                      >Nessuna</button>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-800 rounded-lg divide-y divide-slate-800 max-h-[300px] overflow-y-auto">
+                    {cards.filter((c) => !c.published).map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-3 p-2.5 hover:bg-slate-900/60 cursor-pointer"
+                        data-testid={`phoneme-admin-batch-row-${c.id}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!batchSelected[c.id]}
+                          onChange={(e) => setBatchSelected((s) => ({ ...s, [c.id]: e.target.checked }))}
+                          className="w-4 h-4 accent-fuchsia-500"
+                        />
+                        <span className="font-mono text-cyan-300 text-sm min-w-[50px]">/{c.ipa}/</span>
+                        <span className="text-xs text-slate-400 flex-1">{c.id}</span>
+                        {typeof c.readinessScore === 'number' && (
+                          <span
+                            className={`text-[10px] font-bold rounded px-1.5 py-0.5 ${
+                              c.readinessScore >= 90 ? 'bg-emerald-500/15 text-emerald-300'
+                              : c.readinessScore >= 70 ? 'bg-amber-500/15 text-amber-300'
+                              : 'bg-rose-500/15 text-rose-300'
+                            }`}
+                          >
+                            {c.readinessScore}%
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {batchRunning && (
+                <div className="space-y-4" data-testid="phoneme-admin-batch-progress">
+                  <div>
+                    <div className="flex items-center justify-between mb-2 text-xs">
+                      <span className="text-slate-300">
+                        Elaboro <span className="font-mono text-fuchsia-300">{batchProgress.currentId}</span>
+                      </span>
+                      <span className="text-slate-400 font-bold">
+                        {batchProgress.current} / {batchProgress.total}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-fuchsia-500 to-pink-500 transition-all duration-300"
+                        style={{ width: `${(batchProgress.current / Math.max(1, batchProgress.total)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {batchResults.length > 0 && (
+                <div className="mt-4" data-testid="phoneme-admin-batch-results">
+                  <p className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                    Risultati · {batchResults.filter((r) => r.status === 'ok').length} ok / {batchResults.filter((r) => r.status === 'err').length} errori
+                  </p>
+                  <div className="border border-slate-800 rounded-lg divide-y divide-slate-800 max-h-[280px] overflow-y-auto">
+                    {batchResults.map((r) => (
+                      <div key={r.id} className="p-2.5 text-xs flex items-center gap-2.5">
+                        {r.status === 'ok' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                        )}
+                        <span className="font-mono text-cyan-300 min-w-[80px]">{r.id}</span>
+                        <span className="text-slate-300 flex-1 truncate">{r.message}</span>
+                        {typeof r.score === 'number' && (
+                          <span className={`text-[10px] font-bold rounded px-1.5 py-0.5 ${
+                            r.score >= 90 ? 'bg-emerald-500/15 text-emerald-300'
+                            : r.score >= 70 ? 'bg-amber-500/15 text-amber-300'
+                            : 'bg-rose-500/15 text-rose-300'
+                          }`}>{r.score}%</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-800 flex items-center justify-end gap-2">
+              {batchRunning ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBatchCancel(true)}
+                  className="border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
+                  data-testid="phoneme-admin-batch-cancel"
+                >
+                  Interrompi dopo la scheda corrente
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBatchOpen(false)}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                    data-testid="phoneme-admin-batch-dismiss"
+                  >
+                    Chiudi
+                  </Button>
+                  {batchResults.length === 0 && (
+                    <Button
+                      onClick={runBatch}
+                      disabled={Object.values(batchSelected).filter(Boolean).length === 0}
+                      className="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold"
+                      data-testid="phoneme-admin-batch-start"
+                    >
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                      Avvia batch su {Object.values(batchSelected).filter(Boolean).length} schede
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

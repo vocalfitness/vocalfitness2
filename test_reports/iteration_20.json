@@ -1,0 +1,53 @@
+{
+  "summary": "Phase F+ Batch-fill endpoint tested end-to-end. Backend: 8/8 pytest cases PASS on /app/backend/tests/test_phoneme_batch_fill.py — auth (403), 404 non-existent, 409 on published without overwrite, autofill-only happy path (features/knobs/classification/vowelChartPosition applied on e-dress+RP, published stays False, readinessScore int), frequencyChart untouched invariant (u-foot pre/post equality after refused 409), full AI happy path (mnemonic+funFact drafts persisted with confidences ∈ [0,1], score ≥70, message contains 'campi autofill' + 'bozze AI'), preserve-user-edits (second batch-fill w/ overwrite=false does NOT add 'mnemonic' to applied.ai and doesn't overwrite phrase). Frontend: full flow verified on /admin/phonemes — [phoneme-admin-batch-open] button present in toolbar, [phoneme-admin-batch-modal] opens with 'Sicurezza:' warning + [phoneme-admin-batch-include-ai] checkbox (default checked), 42 unpublished rows shown (u-foot & i-fleece published cards correctly hidden from list), pre-selection matches spec (41 cards with score<70 pre-checked, i-kit@79% unchecked), 'Tutte'/'Nessuna' buttons work, [phoneme-admin-batch-start] label reflects count, batch on ah-strut with include_ai=true showed [phoneme-admin-batch-progress] with 'Elaboro ah-strut 1/1', [phoneme-admin-batch-cancel] visible during batch, X-button DISABLED during batch (verified is_disabled()=True), clicking X + clicking backdrop during batch DO NOT close modal ✓, LLM call ~15-30s, [phoneme-admin-batch-results] rendered with '1 OK / 0 ERRORI · ah-strut · 4 campi autofill + 2 bozze AI applicati · 79%' and score badge, dismiss + list-refresh shows updated readiness badge in main list.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/admin/phonemes/e-dress/batch-fill (no dialect override)",
+        "issue": "Seed-data mismatch: card e-dress has ipa='e' + dialects=['AmE','RP']. Auto-detect picks 'GenAm', but GenAm canonical inventory has /ɛ/ for DRESS, not /e/. Endpoint therefore returns 404 'Fonema \\'e\\' non presente nell\\'inventario canonical per dialetto GenAm.' out of the box. The exact scenario the review request specified ('POST batch-fill on e-dress returns 200 with autofill applied') FAILS unless dialect='RP' is passed. Frontend's runBatch() does NOT pass dialect, so during a real admin batch, e-dress will show as an error row.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Batch modal close-guard AFTER completion",
+        "issue": "Once batch finishes (batchRunning=false) the backdrop-click handler `!batchRunning && setBatchOpen(false)` re-enables → clicking outside the modal silently closes it and the results summary vanishes. If the admin clicks anywhere on the page after batch ends, they lose the per-card success/error report. Recommend keeping backdrop-close disabled while [phoneme-admin-batch-results] has entries, forcing dismiss via 'Chiudi' button.",
+        "affected_selectors": ["[data-testid='phoneme-admin-batch-modal']", "[data-testid='phoneme-admin-batch-results']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_batch_fill.py",
+    "/app/test_reports/pytest/phase_f_plus_batch.xml"
+  ],
+  "action_items": [
+    "Fix e-dress seed data OR add dialect fallback in batch-fill. Option A (data): update e-dress skeleton to ipa='ɛ' since AmE DRESS is /ɛ/ (RP DRESS is /e/); or split into two cards. Option B (code): in admin_batch_fill, if build_autofill_payload raises 404 on auto-detected dialect and doc has multiple dialects, retry with the other dialect before failing. Option C (frontend): let the admin pick a default dialect for the whole batch in the modal.",
+    "Consider disabling backdrop-click-to-close while [phoneme-admin-batch-results] contains entries so admins don't accidentally lose the per-card report after a slow batch."
+  ],
+  "critical_code_review_comments": [
+    "phoneme_cards.py admin_batch_fill: dialect auto-detect only uses the FIRST match in doc['dialects']. For cards whose GenAm IPA differs from RP IPA (e-dress being the poster-child: RP=/e/, GenAm=/ɛ/), this fails hard. Add graceful fallback across the card's declared dialects before returning 404 — matches the frontend UX which does not surface a dialect selector.",
+    "phoneme_cards.py admin_batch_fill line 1244: 'readinessScore: None' when no fields updated — the frontend renders `data.readinessScore` as a badge; None → renders 'null%' in results row. Consider fetching current readiness even when no fields changed (still cheap: build_readiness_report on existing doc) so the UI always shows an accurate current score.",
+    "PhonemeAdminPage.jsx runBatch() calls batch-fill sequentially without a dialect override. Combined with the seed-data bug above, this means a full 42-card batch will fail on any card with divergent GenAm/RP IPA. Add a per-card fallback (retry with alternate dialect on 404 'canonical') or expose a dialect toggle in the modal.",
+    "PhonemeAdminPage.jsx openBatchModal snapshot is stale: it reads cards[] closure at button-click time. If the list is still loading readinessScore (admin GET returns synthetic scores via async build_readiness_report per card), openBatchModal may see readinessScore=undefined and pre-select nothing. Currently invisible because the initial fetchCards completes fast, but a slow network or a very large card set could produce empty preselection. Suggest gating the button on `readinessLoaded=true` or fetching readiness inside openBatchModal.",
+    "Minor: batch-cancel is soft (sets a flag checked only between HTTP round-trips). If one card's LLM call takes 30s, cancel takes effect only AFTER it completes. Consider AbortController on fetch for immediate cancellation.",
+    "Minor: the results panel shows a status dot but no explicit '✓' character (spec asks for '✓ icon'). Icon is a green circle; spec probably means 'success indicator' generically — no action needed but flagging for spec-alignment."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phoneme_batch_fill.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 on happy-path + preserve-edits + error scenarios; +1 xfail-style regression test documenting the e-dress seed mismatch)",
+    "frontend": "100% on spec testids (batch-open, batch-modal, safety warning, include-ai, row testids, select-all/none, start, progress, cancel, close-guard, results, dismiss, list refresh)"
+  },
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md) — used for both backend fixture and Playwright login. Login endpoint returns access_token (NOT 'token').",
+  "seed_data_creation": "None permanent. Cards modified during testing: e-dress (autofill+AI via test_batch_fill_with_ai_full, then reset via PUT), ah-strut (frontend batch with include_ai=true, then reset), ae-trap (frontend batch with include_ai=false, then reset). All three verified restored to 55% skeleton (empty features/knobs/classification/vowelChartPosition, empty mnemonic, funFact=None, published=false). i-kit intentionally left at 79% (pre-existing state per instructions). u-foot and i-fleece never modified (published cards, refused with 409 as designed).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Test file /app/backend/tests/test_phoneme_batch_fill.py includes a session-scoped snapshot_and_restore_edress fixture that saves e-dress state at start and restores at teardown. If a prior run leaked state (test crashed mid-way), manually PUT e-dress back to skeleton before re-running (see teardown code for the payload shape). Two happy-path tests pass dialect='RP' explicitly because e-dress ipa='e' does not exist in GenAm canonical — this reveals a real seed-data bug (see backend_issues). test_edress_default_dialect_returns_404_due_to_seed_mismatch documents the failure; once the main agent fixes it, flip that assertion to expect 200.",
+  "rca of the issue": "ROOT CAUSE — seed data mismatch. The e-dress card in /admin/phonemes was seeded with ipa='e' and dialects=['AmE','RP']. English phonology reality: DRESS = /ɛ/ in GenAm (General American) and /e/ in RP (Received Pronunciation). Two competing conventions coexist in the canonical inventory (/app/backend routers register them per-dialect), and the batch-fill's auto-detect picks 'GenAm' from ['AmE'|'RP'] in that order. Since GenAm canonical doesn't have a /e/ row, build_autofill_payload raises 404 → the entire batch-fill call bubbles a 404 back to the admin UI. REPRO: POST /api/admin/phonemes/e-dress/batch-fill with {include_ai:false} → 404. MITIGATION options (any one): (1) change seed data to use ipa='ɛ' with a dialectOverrides map for RP; (2) add a dialect-fallback loop in admin_batch_fill; (3) add a dialect selector in the batch modal so the admin can force RP when running the batch. Recommendation: option (2) — the smallest surgical change: after auto-detect fails with 404 'non presente nell inventario canonical', try each of doc['dialects'] mapped through the AmE→GenAm alias before giving up."
+}

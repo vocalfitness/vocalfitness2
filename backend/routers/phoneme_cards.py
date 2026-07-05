@@ -1120,6 +1120,157 @@ def build_phoneme_cards_router(db, get_admin_user):
 
         return await generate_ai_draft(db, doc, dialect, payload.fields)
 
+    # ------------------------------------------------------------------ #
+    # Phase F+ — Batch-fill (Autofill + AI-draft + auto-save as bozza)
+    # ------------------------------------------------------------------ #
+    class BatchFillRequest(BaseModel):
+        dialect: Optional[str] = None       # 'GenAm' | 'RP'; auto-detected if omitted
+        include_ai: bool = True             # if False, only deterministic autofill
+        overwrite: bool = False             # if True, overwrites even non-empty fields
+
+    def _is_empty_or_default(value: Any) -> bool:
+        """Return True if `value` is missing / '' / [] / {} / default skeleton content."""
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return not value.strip()
+        if isinstance(value, (list, tuple, dict)):
+            return len(value) == 0
+        return False
+
+    @router.post("/admin/phonemes/{card_id}/batch-fill")
+    async def admin_batch_fill(
+        card_id: str,
+        payload: BatchFillRequest,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """
+        Combine deterministic autofill (canonical → features/knobs/classification/
+        vowelChartPosition) with optional AI drafting (mnemonic/funFact) and PERSIST
+        the merged result as bozza (published=false).
+
+        SAFETY:
+          • Refuses to run if the card is currently published (unless overwrite=true).
+          • By default preserves any non-empty user-edited field (uses `overwrite` to force).
+          • Frequency chart is untouched — always canonical-computed on read.
+        """
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+
+        if doc.get("published") and not payload.overwrite:
+            raise HTTPException(
+                status_code=409,
+                detail="La scheda è pubblicata — usa overwrite=true per forzare la sovrascrittura.",
+            )
+
+        ipa = (doc.get("ipa") or "").strip()
+        if not ipa:
+            raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
+
+        # Auto-detect dialect
+        dialect = payload.dialect
+        if not dialect:
+            ds = doc.get("dialects") or []
+            if "AmE" in ds or "GenAm" in ds:
+                dialect = "GenAm"
+            elif "RP" in ds:
+                dialect = "RP"
+            else:
+                dialect = "GenAm"
+
+        applied: Dict[str, Any] = {"autofill": [], "ai": []}
+        errors: List[str] = []
+
+        # ---- 1) Deterministic autofill
+        try:
+            autofill = await build_autofill_payload(db, ipa=ipa, dialect=dialect)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code,
+                                detail=f"Autofill fallito: {e.detail}")
+
+        update_fields: Dict[str, Any] = {}
+        for key in ("features", "knobs", "classification", "vowelChartPosition"):
+            new_val = autofill.get(key)
+            if not new_val:
+                continue
+            cur_val = doc.get(key)
+            if payload.overwrite or _is_empty_or_default(cur_val):
+                update_fields[key] = new_val
+                applied["autofill"].append(key)
+
+        # ---- 2) AI drafting (optional, non-fatal on failure)
+        ai_confidences: Dict[str, float] = {}
+        if payload.include_ai:
+            try:
+                ai_result = await generate_ai_draft(db, doc, dialect, ["mnemonic", "funFact"])
+                drafts = ai_result.get("drafts", {})
+
+                if drafts.get("mnemonic"):
+                    cur_m = doc.get("mnemonic") or {}
+                    if payload.overwrite or _is_empty_or_default(cur_m.get("phrase")):
+                        m = drafts["mnemonic"]
+                        update_fields["mnemonic"] = {
+                            **cur_m,
+                            "phrase":     m.get("phrase")     or cur_m.get("phrase", ""),
+                            "highlights": m.get("highlights") or cur_m.get("highlights", []),
+                            "note":       m.get("note")       or cur_m.get("note", ""),
+                        }
+                        applied["ai"].append("mnemonic")
+                        ai_confidences["mnemonic"] = float(m.get("confidence", 0.0))
+
+                if drafts.get("funFact"):
+                    cur_f = doc.get("funFact") or {}
+                    if payload.overwrite or _is_empty_or_default(cur_f.get("body")):
+                        f = drafts["funFact"]
+                        update_fields["funFact"] = {
+                            **cur_f,
+                            "headline": f.get("headline") or cur_f.get("headline", ""),
+                            "body":     f.get("body")     or cur_f.get("body", ""),
+                        }
+                        applied["ai"].append("funFact")
+                        ai_confidences["funFact"] = float(f.get("confidence", 0.0))
+            except HTTPException as e:
+                errors.append(f"AI draft: {e.detail}")
+
+        # ---- 3) Persist (published stays False for skeleton cards)
+        if not update_fields:
+            return {
+                "id": card_id,
+                "applied": applied,
+                "errors": errors,
+                "ai_confidences": ai_confidences,
+                "message": "Nessun campo modificato (già valorizzati o overwrite=false).",
+                "readinessScore": None,
+            }
+
+        update_fields["updatedAt"] = _now_iso()
+        update_fields["updatedBy"] = admin.get("username")
+        # Never auto-publish
+        update_fields["published"] = False
+
+        await coll.update_one({"id": card_id}, {"$set": update_fields})
+
+        # ---- 4) Return summary + fresh readiness score
+        updated = await coll.find_one({"id": card_id}, {"_id": 0})
+        try:
+            report = await build_readiness_report(db, updated)
+            readiness_score = report["score"]
+        except Exception:  # noqa: BLE001
+            readiness_score = None
+
+        return {
+            "id": card_id,
+            "applied": applied,
+            "errors": errors,
+            "ai_confidences": ai_confidences,
+            "readinessScore": readiness_score,
+            "message": (
+                f"{len(applied['autofill'])} campi autofill + "
+                f"{len(applied['ai'])} bozze AI applicati."
+            ),
+        }
+
     @router.get("/admin/phonemes/{card_id}", response_model=PhonemeCardResponse)
     async def admin_get(card_id: str, admin: dict = Depends(get_admin_user)):
         doc = await coll.find_one({"id": card_id}, {"_id": 0})
