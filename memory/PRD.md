@@ -12,6 +12,35 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme System Rebuild · Phase F (AI drafting Stage 2) — DONE ✅
+- [x] **Integration**: Claude Sonnet 4.5 (`anthropic/claude-sonnet-4-5-20250929`) via `emergentintegrations.llm.chat.LlmChat` + `EMERGENT_LLM_KEY`. Playbook consultato prima dell'implementazione.
+- [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
+  - Nuovo endpoint `POST /api/admin/phonemes/{id}/ai-draft` (admin auth). Body: `{fields:[mnemonic|funFact], dialect?}`. Preview-only, zero scritture.
+  - `_AI_DRAFT_ALLOWED_FIELDS = {"mnemonic","funFact"}` — allow-list stretta (nessun campo strutturale)
+  - `_AI_DRAFT_SYSTEM`: system prompt che vieta invenzione di feature fonetiche, vieta superlativi non citati, esige JSON stretto
+  - `_build_ai_draft_prompt()` — include profilo canonical come ground truth + shape JSON deterministica + esistenti (per evitare duplicati)
+  - `_parse_llm_json()` — parser tollerante a markdown fences + estrazione JSON bilanciato
+  - `generate_ai_draft()` — chiama LLM, parsa, filtra ai soli fields richiesti, ritorna `{drafts, model, dialect, ipa, session_id, generated_at, status:"bozza"}`
+  - Error sanitization: 502 con messaggio tipo-eccezione (no leak SDK internals)
+- [x] **Frontend** `PhonemeAdminEditorPage.jsx`:
+  - Nuovo componente `ConfidencePill` (verde ≥0.8 / giallo ≥0.5 / rosso <0.5) con %+etichetta italiana
+  - Sezione "AI drafting · Claude Sonnet 4.5 (bozze)" con Switch per mnemonic/funFact + bottone "Genera bozza AI"
+  - Preview panel a 2 sotto-panelli (mnemonic con phrase italica + highlights chip + coaching note; funFact con headline+body) — ogni panel con ConfidencePill
+  - Bottoni "Scarta" / "Applica al form" (verde). Apply scrive solo nello state locale, preservando campi siblings (mnemonic.audio, funFact metadata). Toast "Bozza AI applicata".
+  - Disabilitato su /admin/phonemes/new (isNew guard). Errore se nessun campo selezionato.
+- [x] **Test agent v3 iter_19**: **14/14 backend + 9/9 frontend PASS**, `retest_needed: False`, `action_items: []`
+  - Verificato: draft realistico ("We believe these people need peace and freedom." confidence 85%)
+  - Persistence-only-on-save garantita: applica → naviga senza salvare → GET pubblico invariato
+  - Regressioni Fase A-E ok (canonical 84, u-foot readiness 100/100, autofill funzionante)
+
+**Roadmap Fonemi completata (A→F). Prossime opzioni:**
+- P2 Steve Dapper Knowledge Graph
+- P3 Web Push Notifications
+- P3 Google Calendar/Drive integration
+- Piccoli miglioramenti QoL: filtro "Solo non pronte" nella lista admin phonemes; batch-mode AI drafting per generare bozze su N schede in parallelo
+
+
+
 ### 05/07/2026 — Phoneme CMS · Readiness badge in admin list — DONE ✅
 - [x] **Backend** `PhonemeCardSummary` esteso con `readinessScore` (0-100), `readinessReady` (bool), `readinessFailCount` (int). `admin_list` calcola readiness per ogni card (per 44 card ~200ms totali)
 - [x] **Frontend** `PhonemeAdminPage.jsx`: nuovo badge color-coded a destra dei chip meta (verde ≥90 / giallo ≥70 / rosso <70) con tooltip "Pronta per pubblicazione" o "N check falliti". Testid `phoneme-admin-readiness-{id}`

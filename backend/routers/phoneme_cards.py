@@ -985,7 +985,11 @@ async def generate_ai_draft(db, card: dict, dialect: str,
         raw = await chat.send_message(UserMessage(text=prompt))
     except Exception as e:  # noqa: BLE001 — bubble up as HTTP for the admin UI
         logging.exception("AI draft LLM call failed for /%s/", ipa)
-        raise HTTPException(status_code=502, detail=f"Errore chiamata LLM: {e}")
+        # Sanitised message — never leak SDK internals (api key excerpts, headers…) to the admin UI
+        raise HTTPException(
+            status_code=502,
+            detail=f"Errore chiamata LLM ({type(e).__name__}): vedi log server per traceback.",
+        )
 
     try:
         parsed = _parse_llm_json(str(raw))
