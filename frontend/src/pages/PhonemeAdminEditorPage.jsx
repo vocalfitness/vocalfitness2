@@ -9,7 +9,7 @@ import { Switch } from '../components/ui/switch';
 import {
   ArrowLeft, Save, ExternalLink, ChevronDown, ChevronRight, Plus, Trash2,
   Info, Sparkles, GraduationCap, Volume2, MapPin, BookOpen, FileText, Image as ImageIcon,
-  Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree, Layers,
+  Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree, Layers, Zap,
 } from 'lucide-react';
 import HotspotVisualEditor from '../components/HotspotVisualEditor';
 import ImageUploader from '../components/ImageUploader';
@@ -262,6 +262,37 @@ export default function PhonemeAdminEditorPage() {
   const [autofillLoading, setAutofillLoading] = useState(false);
   const [autofillPreview, setAutofillPreview] = useState(null); // {features, knobs, classification, vowelChartPosition, source, dialectUsed}
   const [autofillError, setAutofillError] = useState('');
+
+  // ─── Phase E — Readiness checklist ─────────────────────────────────
+  const [readiness, setReadiness] = useState(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState('');
+
+  const fetchReadiness = async () => {
+    if (isNew) {
+      setReadinessError('Salva prima la scheda per eseguire il check di readiness.');
+      return;
+    }
+    setReadinessError('');
+    setReadinessLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/phonemes/${routeId}/readiness`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setReadiness(data);
+    } catch (e) {
+      setReadinessError(e.message);
+    } finally {
+      setReadinessLoading(false);
+    }
+  };
+
+  // Auto-fetch readiness on card load
+  useEffect(() => {
+    if (isNew) return;
+    if (!routeId) return;
+    fetchReadiness();
+  }, [routeId, isNew]);
 
   const canonicalDialectFor = (card_) => {
     const ds = card_.dialects || [];
@@ -652,6 +683,79 @@ export default function PhonemeAdminEditorPage() {
                 )}
               </div>
             </div>
+          )}
+        </Section>
+
+        {/* ================== PHASE E — READINESS CHECKLIST ================== */}
+        <Section title="Readiness checklist (correctness)" icon={<Check className="w-4 h-4" />} defaultOpen>
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              {readiness ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl font-black" style={{ color: readiness.score >= 90 ? '#10b981' : readiness.score >= 70 ? '#fbbf24' : '#f43f5e' }} data-testid="editor-readiness-score">
+                    {readiness.score}<span className="text-lg text-slate-500">/100</span>
+                  </div>
+                  <div>
+                    <p className={`text-xs font-bold ${readiness.ready ? 'text-emerald-400' : 'text-amber-400'}`} data-testid="editor-readiness-verdict">
+                      {readiness.ready ? '✓ Pronta per pubblicazione' : '✗ Ci sono errori bloccanti'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {readiness.summary.pass} ok · {readiness.summary.warn} warning · <span className={readiness.summary.fail > 0 ? 'text-rose-400 font-bold' : ''}>{readiness.summary.fail} fail</span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  {isNew ? 'Salva la scheda per abilitare il check di readiness.' : 'Nessun report ancora. Premi "Ricalcola" per eseguirlo.'}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={fetchReadiness}
+              disabled={readinessLoading || isNew}
+              variant="outline"
+              size="sm"
+              className="border-cyan-500/40 text-cyan-200 hover:bg-cyan-500/10"
+              data-testid="editor-readiness-refresh-btn"
+            >
+              {readinessLoading ? (
+                <><span className="inline-block w-3 h-3 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin mr-2" />Analisi…</>
+              ) : (
+                <><Zap className="w-3.5 h-3.5 mr-1.5" />Ricalcola</>
+              )}
+            </Button>
+          </div>
+
+          {readinessError && (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2 mb-3" data-testid="editor-readiness-error">
+              <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-rose-200 leading-relaxed">{readinessError}</p>
+            </div>
+          )}
+
+          {readiness && (
+            <ul className="space-y-1.5" data-testid="editor-readiness-list">
+              {readiness.checks.map((c) => {
+                const color = c.status === 'pass' ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/5'
+                            : c.status === 'warn' ? 'text-amber-300 border-amber-500/30 bg-amber-500/5'
+                            : c.status === 'fail' ? 'text-rose-300 border-rose-500/30 bg-rose-500/5'
+                            : 'text-slate-400 border-slate-700 bg-slate-800/40';
+                const icon = c.status === 'pass' ? '✓' : c.status === 'warn' ? '⚠' : c.status === 'fail' ? '✗' : '•';
+                return (
+                  <li
+                    key={c.key}
+                    className={`flex items-start gap-3 px-3 py-2 rounded-md border ${color}`}
+                    data-testid={`editor-readiness-item-${c.key.replace(/\./g, '-')}`}
+                  >
+                    <span className="font-bold min-w-[16px] text-center">{icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider font-bold opacity-70">{c.category} · {c.key}</p>
+                      <p className="text-xs mt-0.5 leading-relaxed">{c.message}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </Section>
 

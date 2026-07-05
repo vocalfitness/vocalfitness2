@@ -442,6 +442,355 @@ async def build_autofill_payload(db, ipa: str, dialect: str) -> Dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
+# Phase E — Readiness checklist (correctness + contradiction detection)
+# --------------------------------------------------------------------------- #
+_ACTIVATION_ENUM = {"HIGH", "MODERATE", "LOW"}
+_CARD_DIALECT_TO_CANONICAL = {"AmE": "GenAm", "GenAm": "GenAm", "RP": "RP"}
+# Deprecated classification labels flagged by Phase B lockdown
+_DEPRECATED_CLASSIFICATION_LABELS = {"Near-high", "High", "Low-mid", "High-mid"}
+_CONTRAST_RE = re.compile(r"/\s*([^/\s]+?)\s*/\s*(?:vs|VS|Vs)\s*/\s*([^/\s]+?)\s*/")
+
+
+def _check(key: str, category: str, status: str, message: str, severity: str = "info") -> Dict[str, Any]:
+    """Build a check row. status ∈ {'pass','warn','fail','skip'}."""
+    return {
+        "key": key,
+        "category": category,
+        "status": status,
+        "message": message,
+        "severity": severity,
+    }
+
+
+def _get_feature(card: dict, label: str) -> Optional[str]:
+    """Case-insensitive lookup of a feature.value by label."""
+    for f in (card.get("features") or []):
+        if (f.get("label") or "").strip().lower() == label.lower():
+            return (f.get("value") or "").strip()
+    return None
+
+
+async def build_readiness_report(db, card: dict) -> Dict[str, Any]:
+    """
+    Return a structured readiness report for the given card doc.
+
+    The report is deterministic and never mutates the card. It aggregates:
+      - Canonical parity checks (category/kind, height/backness/rounding/…)
+      - Enum lockdown checks (Phase B: activation, classification labels)
+      - Contrast / minimal-pair sanity
+      - Content completeness (audio, hotspots, commonWords, mnemonic, funFact)
+
+    The overall `ready` boolean is true iff there are zero failing checks.
+    `score` is a 0-100 heuristic based on pass ratio + severity weight.
+    """
+    checks: List[Dict[str, Any]] = []
+    card_ipa = (card.get("ipa") or "").strip()
+    card_category = (card.get("category") or "").strip().lower()
+    card_dialects = card.get("dialects") or []
+
+    # -------------------------------------------------------------- canonical
+    canonical_docs: Dict[str, dict] = {}  # dialect(GenAm/RP) → row
+    if not card_ipa:
+        checks.append(_check("canonical.ipa", "canonical", "fail",
+                             "Il simbolo IPA è vuoto.", "critical"))
+    else:
+        for d in card_dialects:
+            cd = _CARD_DIALECT_TO_CANONICAL.get(d)
+            if not cd:
+                continue
+            row = await db.canonical_phonemes.find_one({"dialect": cd, "ipa": card_ipa}, {"_id": 0})
+            if row:
+                canonical_docs[cd] = row
+        if not canonical_docs:
+            checks.append(_check(
+                "canonical.match", "canonical", "fail",
+                f"/{card_ipa}/ non trovato nell'inventario canonical per nessuno dei dialetti {card_dialects}.",
+                "critical",
+            ))
+        else:
+            checks.append(_check(
+                "canonical.match", "canonical", "pass",
+                f"/{card_ipa}/ presente in canonical: {', '.join(canonical_docs.keys())}.",
+            ))
+
+    # Prefer GenAm as the reference row when available
+    ref_row = canonical_docs.get("GenAm") or canonical_docs.get("RP") or {}
+    ref_kind = ref_row.get("kind")
+
+    # -------------------------------------------------------------- category / kind
+    if ref_kind:
+        if ref_kind == card_category:
+            checks.append(_check("canonical.category", "canonical", "pass",
+                                 f"Category '{card_category}' coincide con canonical.kind '{ref_kind}'."))
+        else:
+            checks.append(_check(
+                "canonical.category", "canonical", "fail",
+                f"Category '{card_category}' non coincide con canonical.kind '{ref_kind}'.",
+                "high",
+            ))
+
+    # -------------------------------------------------------------- feature parity (vowel/diphthong)
+    if ref_kind in ("vowel", "diphthong") and ref_row:
+        parity_map = [
+            ("Height",    "height"),
+            ("Backness",  "backness"),
+            ("Rounding",  "rounding"),
+            ("Tenseness", "tenseness"),
+        ]
+        for feature_label, canonical_field in parity_map:
+            card_val = _get_feature(card, feature_label)
+            canon_val = ref_row.get(canonical_field)
+            if card_val is None or canon_val is None:
+                continue  # missing on either side → skip (content check will catch)
+            if card_val.lower() == canon_val.lower():
+                checks.append(_check(
+                    f"parity.{canonical_field}", "canonical", "pass",
+                    f"Feature '{feature_label}' = '{card_val}' concorda con canonical.",
+                ))
+            else:
+                checks.append(_check(
+                    f"parity.{canonical_field}", "canonical", "fail",
+                    f"Contraddizione: feature '{feature_label}' = '{card_val}' ma canonical dice '{canon_val}'.",
+                    "high",
+                ))
+    elif ref_kind == "consonant" and ref_row:
+        for feature_label, canonical_field in [("Voicing", "voicing"), ("Place", "place"), ("Manner", "manner")]:
+            card_val = _get_feature(card, feature_label)
+            canon_val = ref_row.get(canonical_field)
+            if card_val is None or canon_val is None:
+                continue
+            if card_val.lower() == canon_val.lower():
+                checks.append(_check(
+                    f"parity.{canonical_field}", "canonical", "pass",
+                    f"Feature '{feature_label}' = '{card_val}' concorda con canonical.",
+                ))
+            else:
+                checks.append(_check(
+                    f"parity.{canonical_field}", "canonical", "fail",
+                    f"Contraddizione: feature '{feature_label}' = '{card_val}' ma canonical dice '{canon_val}'.",
+                    "high",
+                ))
+
+    # -------------------------------------------------------------- enum lockdown
+    bad_activation = [
+        m for m in (card.get("facialMuscles") or [])
+        if (m.get("activation") or "").upper() not in _ACTIVATION_ENUM
+    ]
+    if not (card.get("facialMuscles") or []):
+        checks.append(_check("enum.activation", "enum", "warn",
+                             "Nessun facialMuscle definito.", "low"))
+    elif bad_activation:
+        offenders = ", ".join(sorted({(m.get("activation") or "∅") for m in bad_activation}))
+        checks.append(_check(
+            "enum.activation", "enum", "fail",
+            f"facialMuscles.activation fuori enum HIGH/MODERATE/LOW: {offenders}",
+            "high",
+        ))
+    else:
+        checks.append(_check("enum.activation", "enum", "pass",
+                             "Tutte le attivazioni sono conformi all'enum HIGH/MODERATE/LOW."))
+
+    deprecated_labels = [
+        c.get("label") for c in (card.get("classification") or [])
+        if c.get("label") in _DEPRECATED_CLASSIFICATION_LABELS
+    ]
+    if deprecated_labels:
+        checks.append(_check(
+            "enum.classification", "enum", "fail",
+            f"Etichette di classification deprecate: {', '.join(deprecated_labels)}.",
+            "high",
+        ))
+    else:
+        checks.append(_check(
+            "enum.classification", "enum", "pass",
+            "Nessuna etichetta di classification deprecata.",
+        ))
+
+    # -------------------------------------------------------------- contrast / minimal-pair
+    contrast_val = _get_feature(card, "Contrast")
+    if contrast_val:
+        m = _CONTRAST_RE.search(contrast_val)
+        if not m:
+            checks.append(_check(
+                "contrast.format", "contrast", "warn",
+                "Feature 'Contrast' non nel formato '/A/ vs /B/: ...' — impossibile validare.",
+                "low",
+            ))
+        else:
+            a, b = m.group(1), m.group(2)
+            if card_ipa not in (a, b):
+                checks.append(_check(
+                    "contrast.self", "contrast", "fail",
+                    f"La coppia '/{a}/ vs /{b}/' non contiene il fonema della card /{card_ipa}/.",
+                    "high",
+                ))
+            else:
+                # verify the OTHER symbol exists in canonical for the same dialect
+                other = b if a == card_ipa else a
+                found_other = False
+                for cd in canonical_docs.keys():
+                    r = await db.canonical_phonemes.find_one({"dialect": cd, "ipa": other}, {"_id": 0, "ipa": 1})
+                    if r:
+                        found_other = True
+                        break
+                if found_other:
+                    checks.append(_check(
+                        "contrast.pair", "contrast", "pass",
+                        f"Coppia contrastiva /{card_ipa}/ vs /{other}/ verificata su canonical.",
+                    ))
+                else:
+                    checks.append(_check(
+                        "contrast.pair", "contrast", "fail",
+                        f"Il fonema di confronto /{other}/ non esiste in canonical per {list(canonical_docs.keys())}.",
+                        "high",
+                    ))
+
+    minpairs_val = _get_feature(card, "Minimal pairs")
+    if minpairs_val:
+        # Split on commas → each item should be 'wordA/wordB'
+        bad_pairs: List[str] = []
+        good_count = 0
+        for raw in [p.strip() for p in minpairs_val.split(",") if p.strip()]:
+            if "/" not in raw:
+                bad_pairs.append(raw)
+                continue
+            a, b = [w.strip() for w in raw.split("/", 1)]
+            if not a or not b or a == b:
+                bad_pairs.append(raw)
+                continue
+            # Must differ in at least 1 letter but not by more than ~3 (proxy for single-phoneme diff)
+            diff_len = abs(len(a) - len(b))
+            if diff_len > 3:
+                bad_pairs.append(raw)
+                continue
+            good_count += 1
+        if bad_pairs:
+            checks.append(_check(
+                "minimal_pairs.format", "contrast", "warn",
+                f"{len(bad_pairs)} coppia/e minime malformate: {', '.join(bad_pairs[:3])}",
+                "medium",
+            ))
+        if good_count >= 2:
+            checks.append(_check(
+                "minimal_pairs.count", "contrast", "pass",
+                f"{good_count} coppie minime plausibili.",
+            ))
+        elif good_count == 1:
+            checks.append(_check(
+                "minimal_pairs.count", "contrast", "warn",
+                "Solo 1 coppia minima valida — ne servono almeno 2 per una buona scheda.",
+                "medium",
+            ))
+
+    # -------------------------------------------------------------- content completeness
+    audio = card.get("audio") or {}
+    def _has_audio_for(d: str) -> bool:
+        entry = audio.get(d)
+        if not isinstance(entry, dict):
+            return False
+        # Any non-empty string value or non-empty list of URLs counts as "audio present"
+        for v in entry.values():
+            if isinstance(v, str) and v.strip():
+                return True
+            if isinstance(v, list) and any(isinstance(x, str) and x.strip() for x in v):
+                return True
+        return False
+
+    audio_present = [d for d in card_dialects if _has_audio_for(d)]
+    if not card_dialects:
+        checks.append(_check("content.audio", "content", "warn", "Nessun dialetto dichiarato.", "medium"))
+    elif len(audio_present) == len(card_dialects):
+        checks.append(_check("content.audio", "content", "pass",
+                             f"Audio presente per tutti i dialetti ({', '.join(audio_present)})."))
+    elif audio_present:
+        missing = [d for d in card_dialects if d not in audio_present]
+        checks.append(_check(
+            "content.audio", "content", "warn",
+            f"Audio mancante per: {', '.join(missing)}.", "medium",
+        ))
+    else:
+        checks.append(_check(
+            "content.audio", "content", "fail",
+            f"Nessun audio caricato per i dialetti {card_dialects}.",
+            "high",
+        ))
+
+    hs_count = len(card.get("hotspots") or [])
+    if hs_count >= 3:
+        checks.append(_check("content.hotspots", "content", "pass",
+                             f"{hs_count} hotspots definiti."))
+    elif hs_count >= 1:
+        checks.append(_check(
+            "content.hotspots", "content", "warn",
+            f"Solo {hs_count} hotspot(s) — ne servono almeno 3 per pubblicare.", "medium",
+        ))
+    else:
+        checks.append(_check(
+            "content.hotspots", "content", "fail",
+            "Nessun hotspot definito.", "high",
+        ))
+
+    cw_count = len(card.get("commonWords") or [])
+    if cw_count >= 6:
+        checks.append(_check("content.commonWords", "content", "pass",
+                             f"{cw_count} common words."))
+    elif cw_count >= 3:
+        checks.append(_check(
+            "content.commonWords", "content", "warn",
+            f"Solo {cw_count} common words — target ≥6.", "low",
+        ))
+    else:
+        checks.append(_check(
+            "content.commonWords", "content", "fail",
+            f"Solo {cw_count} common words — target ≥6.", "medium",
+        ))
+
+    classification_count = len(card.get("classification") or [])
+    if classification_count >= 3:
+        checks.append(_check("content.classification", "content", "pass",
+                             f"{classification_count} chip di classification."))
+    else:
+        checks.append(_check(
+            "content.classification", "content", "warn",
+            f"Solo {classification_count} chip di classification (target ≥3).", "low",
+        ))
+
+    mnemonic = card.get("mnemonic") or {}
+    if mnemonic.get("text") or mnemonic.get("body") or mnemonic.get("phrase"):
+        checks.append(_check("content.mnemonic", "content", "pass", "Mnemonic presente."))
+    else:
+        checks.append(_check(
+            "content.mnemonic", "content", "warn",
+            "Nessun mnemonic definito.", "low",
+        ))
+
+    fun_fact = card.get("funFact") or {}
+    if fun_fact and (fun_fact.get("body") or fun_fact.get("text")):
+        checks.append(_check("content.funFact", "content", "pass", "Fun fact presente."))
+    else:
+        checks.append(_check(
+            "content.funFact", "content", "warn",
+            "Nessun fun fact definito.", "low",
+        ))
+
+    # -------------------------------------------------------------- summary
+    pass_n = sum(1 for c in checks if c["status"] == "pass")
+    warn_n = sum(1 for c in checks if c["status"] == "warn")
+    fail_n = sum(1 for c in checks if c["status"] == "fail")
+    total  = max(1, len(checks))
+    # Weighted score: pass=1.0, warn=0.5, fail=0.0
+    score = int(round(100.0 * (pass_n + warn_n * 0.5) / total))
+    ready = fail_n == 0
+
+    return {
+        "ready": ready,
+        "score": score,
+        "summary": {"pass": pass_n, "warn": warn_n, "fail": fail_n, "total": len(checks)},
+        "checks": checks,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Router factory (so we can inject the shared db + admin dependency)
 # --------------------------------------------------------------------------- #
 def build_phoneme_cards_router(db, get_admin_user):
@@ -480,6 +829,21 @@ def build_phoneme_cards_router(db, get_admin_user):
         PUT /admin/phonemes/{id} to save. Zero LLM involvement.
         """
         return await build_autofill_payload(db, ipa=ipa, dialect=dialect)
+
+    # ------------------------------------------------------------------ #
+    # Phase E — Readiness checklist (correctness + contradiction detection)
+    # ------------------------------------------------------------------ #
+    @router.get("/admin/phonemes/{card_id}/readiness")
+    async def admin_readiness(card_id: str, admin: dict = Depends(get_admin_user)):
+        """
+        Run the deterministic readiness suite against the current DB doc.
+        Returns {ready, score, summary, checks[]} — pure diagnostics,
+        no DB writes. See build_readiness_report() for the full check set.
+        """
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+        return await build_readiness_report(db, doc)
 
     @router.get("/admin/phonemes/{card_id}", response_model=PhonemeCardResponse)
     async def admin_get(card_id: str, admin: dict = Depends(get_admin_user)):
