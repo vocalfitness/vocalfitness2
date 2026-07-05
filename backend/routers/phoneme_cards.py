@@ -25,7 +25,11 @@ but only return ``published == True`` documents.
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+import json as json_mod
+import logging
+import os
 import re
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -808,6 +812,209 @@ async def build_readiness_report(db, card: dict) -> Dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
+# Phase F — AI-assisted drafting (Claude Sonnet 4.5 via Emergent LLM Key)
+# --------------------------------------------------------------------------- #
+# Strict guardrails:
+#   • ONLY narrative fields (mnemonic, funFact) — never structural/phonetic data
+#   • Canonical row is passed as ground truth in the prompt — no hallucination
+#   • Response is JSON-only, parsed & validated
+#   • Preview-only endpoint — admin reviews and applies client-side
+#   • Every draft carries a `confidence` float; low-confidence drafts are
+#     rendered with a warning banner in the editor
+_AI_DRAFT_ALLOWED_FIELDS = {"mnemonic", "funFact"}
+_AI_DRAFT_MODEL = ("anthropic", "claude-sonnet-4-5-20250929")
+_AI_DRAFT_SYSTEM = (
+    "You are a phonetics pedagogy assistant helping create English pronunciation "
+    "training cards for adult learners of Steve Dapper's VocalFitness method. "
+    "Return STRICT JSON only. No prose outside JSON. No markdown fences. "
+    "Do not invent linguistic facts — use only the profile provided. "
+    "Avoid superlative rankings like 'most common' or 'rarest' unless the profile "
+    "explicitly cites a corpus. Prefer 'commonly occurs', 'appears in words such as'."
+)
+
+
+def _canonical_profile_lines(canon: dict, kind: str) -> str:
+    """Format the canonical row as a bullet list for the LLM prompt."""
+    lines: List[str] = [f"- Kind: {kind}"]
+    for key in ("height", "backness", "rounding", "tenseness", "duration",
+                "voicing", "manner", "place", "lexical_set"):
+        v = canon.get(key)
+        if v:
+            lines.append(f"- {key.replace('_', ' ').title()}: {v}")
+    if canon.get("example_words"):
+        ex = ", ".join(canon["example_words"][:8])
+        lines.append(f"- Example words (canonical): {ex}")
+    if canon.get("notes"):
+        lines.append(f"- Notes: {canon['notes']}")
+    if canon.get("dialect_notes"):
+        lines.append(f"- Dialect notes: {canon['dialect_notes']}")
+    return "\n".join(lines)
+
+
+def _build_ai_draft_prompt(ipa: str, dialect: str, canon: dict,
+                            kind: str, fields: List[str],
+                            existing: Optional[Dict[str, Any]] = None) -> str:
+    """Compose the user-message body for the drafting LLM call."""
+    shape_parts: List[str] = []
+    if "mnemonic" in fields:
+        shape_parts.append(
+            '"mnemonic": {\n'
+            '    "phrase": "<short English sentence 6-12 words featuring /'
+            + ipa + '/ in AT LEAST 3 different words>",\n'
+            '    "highlights": ["<word1>", "<word2>", "<word3>"],\n'
+            '    "note": "<1-2 sentence coaching note for how to practice>",\n'
+            '    "confidence": <float 0.0-1.0>\n'
+            '  }'
+        )
+    if "funFact" in fields:
+        shape_parts.append(
+            '"funFact": {\n'
+            '    "headline": "<3-6 word attention-grabbing title, no clickbait>",\n'
+            '    "body": "<2-3 sentence pedagogical fact; factually verifiable; '
+            'no invented statistics>",\n'
+            '    "confidence": <float 0.0-1.0>\n'
+            '  }'
+        )
+    shape = "{\n  " + ",\n  ".join(shape_parts) + "\n}"
+
+    existing_hint = ""
+    if existing:
+        existing_hint = (
+            "\nThe following fields are ALREADY populated (do NOT reuse them "
+            "verbatim — produce something distinct):\n"
+            + json_mod.dumps(existing, ensure_ascii=False, indent=2)
+        )
+
+    return (
+        f"Generate draft pedagogical content for the English phoneme /{ipa}/ "
+        f"in the {dialect} dialect.\n\n"
+        f"Canonical linguistic profile:\n{_canonical_profile_lines(canon, kind)}\n\n"
+        f"Fields to draft: {', '.join(fields)}\n\n"
+        f"Return JSON matching this exact shape:\n{shape}\n\n"
+        "Rules:\n"
+        "- Use only phonetic terms present in the profile. Do NOT invent claims.\n"
+        "- Highlights (if applicable) must be a subset of words in the phrase.\n"
+        "- Set confidence 0.9+ only when certain. Use 0.5-0.7 for creative/subjective "
+        "content. Set 0.0 to abstain and return null for that field."
+        f"{existing_hint}"
+    )
+
+
+def _parse_llm_json(raw: str) -> Dict[str, Any]:
+    """Extract the first {...} JSON object from an LLM response, tolerating fences."""
+    raw = raw.strip()
+    # Strip common markdown fences
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    # Extract the first balanced {...} block
+    start = raw.find("{")
+    if start == -1:
+        raise ValueError("Nessun oggetto JSON trovato nella risposta LLM.")
+    depth = 0
+    end = -1
+    for i, ch in enumerate(raw[start:], start=start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end == -1:
+        raise ValueError("Oggetto JSON non chiuso nella risposta LLM.")
+    return json_mod.loads(raw[start:end])
+
+
+async def generate_ai_draft(db, card: dict, dialect: str,
+                             fields: List[str]) -> Dict[str, Any]:
+    """
+    Call Claude Sonnet 4.5 via Emergent LLM Key and return parsed drafts.
+
+    Raises HTTPException on setup / API / parse errors. This function never
+    persists anything — it only returns a preview blob for the editor.
+    """
+    # ---- Validation
+    fields = [f for f in fields if f in _AI_DRAFT_ALLOWED_FIELDS]
+    if not fields:
+        raise HTTPException(status_code=400,
+                            detail=f"fields deve contenere almeno uno di {_AI_DRAFT_ALLOWED_FIELDS}")
+    if dialect not in ("GenAm", "RP"):
+        raise HTTPException(status_code=400, detail="dialect deve essere 'GenAm' o 'RP'")
+
+    ipa = (card.get("ipa") or "").strip()
+    if not ipa:
+        raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
+
+    canon = await db.canonical_phonemes.find_one(
+        {"dialect": dialect, "ipa": ipa}, {"_id": 0},
+    )
+    if not canon:
+        raise HTTPException(
+            status_code=404,
+            detail=f"/{ipa}/ non presente nell'inventario canonical per {dialect}. "
+                   "Autofill non applicabile."
+        )
+
+    # ---- LLM setup
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY non configurata.")
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError as e:
+        raise HTTPException(status_code=500,
+                            detail=f"Libreria emergentintegrations non disponibile: {e}")
+
+    kind = canon.get("kind", "vowel")
+    existing = {
+        f: card.get(f) for f in fields if card.get(f)  # pass current content so LLM produces something new
+    } or None
+    prompt = _build_ai_draft_prompt(ipa, dialect, canon, kind, fields, existing)
+
+    session_id = f"phoneme-draft-{ipa}-{uuid.uuid4().hex[:8]}"
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=session_id,
+        system_message=_AI_DRAFT_SYSTEM,
+    )
+    chat.with_model(*_AI_DRAFT_MODEL)
+
+    try:
+        raw = await chat.send_message(UserMessage(text=prompt))
+    except Exception as e:  # noqa: BLE001 — bubble up as HTTP for the admin UI
+        logging.exception("AI draft LLM call failed for /%s/", ipa)
+        raise HTTPException(status_code=502, detail=f"Errore chiamata LLM: {e}")
+
+    try:
+        parsed = _parse_llm_json(str(raw))
+    except (ValueError, json_mod.JSONDecodeError) as e:
+        logging.warning("Failed to parse LLM JSON for /%s/: %s\nRaw: %s", ipa, e, raw)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Risposta LLM non parsabile come JSON: {e}",
+        )
+
+    # Filter to requested fields only; ensure minimum shape
+    drafts: Dict[str, Any] = {}
+    for f in fields:
+        v = parsed.get(f)
+        if isinstance(v, dict):
+            drafts[f] = v
+
+    return {
+        "drafts": drafts,
+        "model": f"{_AI_DRAFT_MODEL[0]}/{_AI_DRAFT_MODEL[1]}",
+        "session_id": session_id,
+        "dialect": dialect,
+        "ipa": ipa,
+        "generated_at": _now_iso(),
+        "status": "bozza",
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Router factory (so we can inject the shared db + admin dependency)
 # --------------------------------------------------------------------------- #
 def build_phoneme_cards_router(db, get_admin_user):
@@ -873,6 +1080,41 @@ def build_phoneme_cards_router(db, get_admin_user):
         if not doc:
             raise HTTPException(status_code=404, detail="Fonema non trovato")
         return await build_readiness_report(db, doc)
+
+    # ------------------------------------------------------------------ #
+    # Phase F — AI-assisted drafting (Claude Sonnet 4.5, preview-only)
+    # ------------------------------------------------------------------ #
+    class AiDraftRequest(BaseModel):
+        fields: List[str] = Field(default_factory=lambda: ["mnemonic", "funFact"])
+        dialect: Optional[str] = None  # 'GenAm' | 'RP'; auto-detected if omitted
+
+    @router.post("/admin/phonemes/{card_id}/ai-draft")
+    async def admin_ai_draft(
+        card_id: str,
+        payload: AiDraftRequest,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """
+        Generate draft narrative content (mnemonic, funFact) via Claude Sonnet 4.5.
+        Preview-only: the returned drafts are NOT persisted. Every draft carries
+        a confidence flag and status='bozza'.
+        """
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+
+        # Auto-detect dialect if not explicitly requested
+        dialect = payload.dialect
+        if not dialect:
+            ds = doc.get("dialects") or []
+            if "AmE" in ds or "GenAm" in ds:
+                dialect = "GenAm"
+            elif "RP" in ds:
+                dialect = "RP"
+            else:
+                dialect = "GenAm"
+
+        return await generate_ai_draft(db, doc, dialect, payload.fields)
 
     @router.get("/admin/phonemes/{card_id}", response_model=PhonemeCardResponse)
     async def admin_get(card_id: str, admin: dict = Depends(get_admin_user)):

@@ -41,6 +41,23 @@ const ACTIVATION_TERMS = ['HIGH', 'MODERATE', 'LOW'];
 const HEIGHT_LABEL_ALIASES = ['height', 'altezza'];
 
 // ============================================================
+// ConfidencePill — visual indicator for LLM draft confidence [0..1]
+// ============================================================
+const ConfidencePill = ({ value }) => {
+  const v = typeof value === 'number' ? value : 0;
+  const pct = Math.round(v * 100);
+  const cls = v >= 0.8 ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
+            : v >= 0.5 ? 'text-amber-300 border-amber-500/40 bg-amber-500/10'
+            : 'text-rose-300 border-rose-500/40 bg-rose-500/10';
+  const label = v >= 0.8 ? 'alta' : v >= 0.5 ? 'media' : 'bassa';
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border ${cls}`}>
+      confidence {pct}% · {label}
+    </span>
+  );
+};
+
+// ============================================================
 // Blank template for /new
 // ============================================================
 const BLANK = {
@@ -270,6 +287,74 @@ export default function PhonemeAdminEditorPage() {
   const [readiness, setReadiness] = useState(null);
   const [readinessLoading, setReadinessLoading] = useState(false);
   const [readinessError, setReadinessError] = useState('');
+
+  // ─── Phase F — AI drafting (Claude Sonnet 4.5 preview-only) ────────
+  const [aiDraftLoading, setAiDraftLoading] = useState(false);
+  const [aiDraftPreview, setAiDraftPreview] = useState(null); // {drafts:{mnemonic,funFact}, model, dialect, ipa, status}
+  const [aiDraftError, setAiDraftError] = useState('');
+  const [aiDraftFields, setAiDraftFields] = useState({ mnemonic: true, funFact: true });
+
+  const requestAiDraft = async () => {
+    setAiDraftError('');
+    setAiDraftPreview(null);
+    if (isNew) {
+      setAiDraftError('Salva prima la scheda: il draft AI legge il canonical inventory sull\'IPA salvato.');
+      return;
+    }
+    const fields = Object.entries(aiDraftFields).filter(([, v]) => v).map(([k]) => k);
+    if (fields.length === 0) {
+      setAiDraftError('Seleziona almeno un campo da generare.');
+      return;
+    }
+    setAiDraftLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/phonemes/${routeId}/ai-draft`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ fields }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch { /* ignore */ }
+        throw new Error(detail);
+      }
+      const data = await res.json();
+      setAiDraftPreview(data);
+    } catch (e) {
+      setAiDraftError(e.message);
+    } finally {
+      setAiDraftLoading(false);
+    }
+  };
+
+  const applyAiDraft = () => {
+    if (!aiDraftPreview?.drafts) return;
+    const drafts = aiDraftPreview.drafts;
+    setCard((prev) => {
+      const next = { ...prev };
+      if (drafts.mnemonic) {
+        next.mnemonic = {
+          ...(prev.mnemonic || {}),
+          phrase: drafts.mnemonic.phrase || prev.mnemonic?.phrase || '',
+          highlights: drafts.mnemonic.highlights || prev.mnemonic?.highlights || [],
+          note: drafts.mnemonic.note || prev.mnemonic?.note || '',
+        };
+      }
+      if (drafts.funFact) {
+        next.funFact = {
+          ...(prev.funFact || {}),
+          headline: drafts.funFact.headline || prev.funFact?.headline || '',
+          body: drafts.funFact.body || prev.funFact?.body || '',
+        };
+      }
+      return next;
+    });
+    const applied = Object.keys(drafts).join(', ');
+    setAiDraftPreview(null);
+    setToast(`Bozza AI applicata: ${applied} · rileggi e correggi prima di salvare.`);
+    setTimeout(() => setToast(''), 4500);
+  };
 
   const fetchReadiness = async () => {
     if (isNew) {
@@ -759,6 +844,125 @@ export default function PhonemeAdminEditorPage() {
                 );
               })}
             </ul>
+          )}
+        </Section>
+
+        {/* ================== PHASE F — AI DRAFTING (Claude Sonnet 4.5) ================== */}
+        <Section title="AI drafting · Claude Sonnet 4.5 (bozze)" icon={<Sparkles className="w-4 h-4" />}>
+          <div className="rounded-xl border border-fuchsia-500/25 bg-fuchsia-500/5 p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-fuchsia-300 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-fuchsia-100/90 leading-relaxed">
+                <p className="font-bold text-fuchsia-200 mb-1">Bozze generate da LLM · sempre da revisionare</p>
+                <p>
+                  Il modello usa il profilo canonical (IPA + dialetto + Wells set) come ground truth e non
+                  può inventare feature fonetiche. Ogni bozza porta un flag <code className="text-orange-300">confidence</code>{' '}
+                  e <b>non viene salvata automaticamente</b> — tu decidi se applicarla e poi correggerla prima di{' '}
+                  <i>Salva</i>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <label className="flex items-center gap-2 text-xs text-slate-300">
+              <Switch
+                checked={aiDraftFields.mnemonic}
+                onCheckedChange={(v) => setAiDraftFields((s) => ({ ...s, mnemonic: v }))}
+                data-testid="editor-aidraft-toggle-mnemonic"
+              />
+              <span className={aiDraftFields.mnemonic ? 'text-fuchsia-200 font-bold' : 'text-slate-500'}>Mnemonic</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs text-slate-300">
+              <Switch
+                checked={aiDraftFields.funFact}
+                onCheckedChange={(v) => setAiDraftFields((s) => ({ ...s, funFact: v }))}
+                data-testid="editor-aidraft-toggle-funFact"
+              />
+              <span className={aiDraftFields.funFact ? 'text-fuchsia-200 font-bold' : 'text-slate-500'}>Fun fact</span>
+            </label>
+            <Button
+              onClick={requestAiDraft}
+              disabled={aiDraftLoading || isNew}
+              className="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold"
+              data-testid="editor-aidraft-request-btn"
+            >
+              {aiDraftLoading ? (
+                <><span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />Genero bozza…</>
+              ) : (
+                <><Sparkles className="w-4 h-4 mr-2" />Genera bozza AI</>
+              )}
+            </Button>
+          </div>
+
+          {aiDraftError && (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2 mb-3" data-testid="editor-aidraft-error">
+              <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-rose-200 leading-relaxed">{aiDraftError}</p>
+            </div>
+          )}
+
+          {aiDraftPreview && (
+            <div className="rounded-xl border border-fuchsia-500/30 bg-slate-900/70 p-4" data-testid="editor-aidraft-preview">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                  <p className="text-[10px] text-fuchsia-300/80 uppercase tracking-widest font-bold">
+                    Bozza · {aiDraftPreview.dialect} · <span className="text-slate-400 normal-case font-mono">{aiDraftPreview.model}</span>
+                  </p>
+                  <p className="text-[10px] text-amber-300/70 mt-0.5 italic">Rileggi con attenzione prima di applicare.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={() => setAiDraftPreview(null)}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                    data-testid="editor-aidraft-cancel-btn"
+                  >
+                    Scarta
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={applyAiDraft}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+                    data-testid="editor-aidraft-apply-btn"
+                  >
+                    <Check className="w-4 h-4 mr-1.5" /> Applica al form
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {aiDraftPreview.drafts?.mnemonic && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3" data-testid="editor-aidraft-mnemonic">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] text-fuchsia-300/80 uppercase tracking-wider font-bold">Mnemonic</p>
+                      <ConfidencePill value={aiDraftPreview.drafts.mnemonic.confidence} />
+                    </div>
+                    <p className="text-sm text-slate-100 italic mb-2">&ldquo;{aiDraftPreview.drafts.mnemonic.phrase}&rdquo;</p>
+                    {Array.isArray(aiDraftPreview.drafts.mnemonic.highlights) && aiDraftPreview.drafts.mnemonic.highlights.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {aiDraftPreview.drafts.mnemonic.highlights.map((h, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded-full bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-200 text-[11px] font-mono">{h}</span>
+                        ))}
+                      </div>
+                    )}
+                    {aiDraftPreview.drafts.mnemonic.note && (
+                      <p className="text-xs text-slate-400 leading-relaxed">{aiDraftPreview.drafts.mnemonic.note}</p>
+                    )}
+                  </div>
+                )}
+                {aiDraftPreview.drafts?.funFact && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3" data-testid="editor-aidraft-funFact">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] text-fuchsia-300/80 uppercase tracking-wider font-bold">Fun fact</p>
+                      <ConfidencePill value={aiDraftPreview.drafts.funFact.confidence} />
+                    </div>
+                    <p className="text-sm text-cyan-200 font-bold mb-1">{aiDraftPreview.drafts.funFact.headline}</p>
+                    <p className="text-xs text-slate-200 leading-relaxed">{aiDraftPreview.drafts.funFact.body}</p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </Section>
 
