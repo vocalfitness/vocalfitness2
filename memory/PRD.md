@@ -12,6 +12,30 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme CMS · Correzioni Architettura (issue utente) — DONE ✅
+Tre bug critici segnalati dall'utente dopo Phase F+ sono stati risolti:
+
+**FIX 1 · IPA equivalence layer** (`/r/` e `/g/` batch fallivano con 404)
+- Card usa ASCII `r` (0x72) o IPA `ɡ` (0x261), canonical usa IPA `ɹ` (0x279) o ASCII `g` (0x67) → mismatch Unicode
+- **Backend** `_IPA_EQUIVALENTS` map + `_ipa_equivalents()` helper: normalizzazione whole-symbol + substring per length marks (`:` ↔ `ː`)
+- Applicato in: `build_autofill_payload`, `generate_ai_draft`, `build_readiness_report`, `compute_frequency_chart`
+- Estensibile per future coppie (`a` ↔ `ɑ`, aspiration marks, ecc.)
+
+**FIX 2 · Mnemonic phrase/audio stale** (audio non corrisponde alla frase quando editata)
+- **Backend `admin_batch_fill`**: `new_audio = cur_audio if new_phrase == cur_phrase else ''` (svuota solo se cambia)
+- **Frontend `applyAiDraft`**: stessa logica lato client applica-al-form
+- **Editor UI**: help text "⚠️ Se hai modificato la frase, l'audio potrebbe non corrispondere" + bottone "Svuota" (rose-500) con testid `editor-field-mnemonic-audio-clear`
+
+**FIX 3 · Card pubblicate via CMS non appaiono sul frontend** (`PhonemeLibraryPage` leggeva `PHONEMES` statico con solo 2 entries)
+- **Frontend `PhonemeLibraryPage`**: fetch `/api/phonemes` on-mount → `dbPhonemes` state
+- Merge intelligente: `dbPhonemes[id]` override `entry.status='published'`; `PublishedCard` preferisce dato DB su PHONEMES statico
+- Fallback graceful su errore rete (usa PHONEMES statico)
+- Verificato: publish di i-kit via CMS → appare immediatamente su `/lms/phonemes` con badge PREMIUM + status DISPONIBILE
+
+**Test agent iter_22**: **12/12 backend + frontend PASS**, 0 fail, 0 action items, `retest_needed: False`
+
+
+
 ### 05/07/2026 — Phoneme CMS · Batch AI-fill (Fase F+) — DONE ✅
 - [x] **Backend** `POST /api/admin/phonemes/{id}/batch-fill`: combina autofill deterministico (canonical → features/knobs/classification/vowelChartPosition) + AI drafting Claude Sonnet 4.5 (mnemonic/funFact) + persistenza atomica come `bozza` (published=false)
 - [x] **Safety guards**:
