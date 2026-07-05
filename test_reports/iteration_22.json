@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 22 — verified all 3 user-reported architectural fixes. Backend: 12/12 pytest passing in new test_phoneme_batch_fill_iter22.py covering: IPA equivalence layer (r↔ɹ, g↔ɡ) via autofill+batch-fill+readiness, mnemonic audio clear response shape, public /api/phonemes contract, publish/unpublish workflow for i-kit (properly reverted), and regression checks (canonical=84, u-foot readiness≥90). Frontend: Playwright verified FIX 2 admin editor 'Frase mnemonica' section — audio field has warning help text 'Se hai modificato la frase…', Svuota button appears when audio non-empty and correctly clears the input. FIX 3 verified /lms/phonemes fetches /api/phonemes on mount → shows exactly 2 published cards (u-foot, i-fleece) with '2 CARD PUBBLICATE · 42 IN PRODUZIONE' header stats, rest as IN PREPARAZIONE LockedCards.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_batch_fill_iter22.py",
+    "/app/test_reports/pytest/iter22_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "phoneme_cards.py _ipa_equivalents() helper (lines 296-343) is elegant: whole-symbol map + substring substitution for length marks handles both single-char (r/ɹ, g/ɡ) and compound-symbol (iː vs i:) cases. Well-defended.",
+    "admin_batch_fill mnemonic audio clear (line ~1288): `new_audio = cur_m.get('audio', '') if new_phrase == cur_m.get('phrase', '') else ''` — precise: only clears when the AI-generated phrase actually differs from the current one. Preserves user-recorded audio when overwrite=true is used but the phrase happens to be unchanged (rare but correct). No regression risk.",
+    "PhonemeLibraryPage.jsx dbPhonemes fetch (lines 293-323) fails silently on network error and falls back to static PHONEMES — good graceful degradation. Consider adding a subtle 'stale data' banner if the fetch fails, so admins can debug when a newly-published card doesn't appear. Not blocking.",
+    "PhonemeAdminEditorPage.jsx mnemonic audio field (lines 1141-1163) uses conditional-render for the Svuota button (`{card.mnemonic?.audio && (<Button …/>)}`). Clean UX — button appears only when there's something to clear. data-testid, title tooltip, and destructive-styled outline (rose-500) all in place.",
+    "Consider extending _IPA_EQUIVALENTS with a few more pedagogical variants (e.g. 'a' vs 'ɑ' in some contexts, aspiration marks) proactively as more canonical entries are added — the map is well-positioned as a single source of truth for future symbol drift."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phoneme_batch_fill_iter22.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 — IPA equivalence for r/g via autofill+batch-fill+readiness canonical.match=pass; publish/unpublish i-kit workflow with revert; canonical count 84; u-foot readiness regression)",
+    "frontend": "100% (FIX2: warning help text present in 'Frase mnemonica' section, Svuota button visible when audio populated, clicking Svuota clears input to empty string; FIX3: /lms/phonemes fetches /api/phonemes and shows 2 published cards + '2 CARD PUBBLICATE · 42 IN PRODUZIONE' header)"
+  },
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None permanent. Publish-toggle test for i-kit set published=true then reverted to published=false in a try/finally block; verified with a final GET that i-kit is not in public /api/phonemes list. r-red and g-get were already batch-filled from previous local verification — running batch-fill again returns 200 (no autofill fields to apply since already set), which is the expected behavior and confirms the IPA equivalence layer resolves both card IPAs to their canonical entries.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 iter22 fixes are fully verified and covered by test_phoneme_batch_fill_iter22.py (12 tests, ~2s runtime). Run this suite after any changes to: (1) _IPA_EQUIVALENTS map or _ipa_equivalents() helper, (2) admin_batch_fill mnemonic audio-clear logic (~line 1288), (3) /api/phonemes public endpoint, (4) PhonemeLibraryPage.jsx dbPhonemes fetch. Current DB state after this iteration: r-red readiness=69% (canonical.match=pass), g-get canonical.match=pass, u-foot published=true readiness=100%, i-fleece published=true, i-kit published=false (reverted), all other cards published=false. The old test_phoneme_batch_fill_iter21.py suite still relies on os.environ REACT_APP_BACKEND_URL being set — the new iter22 suite has a .env fallback so pytest can run standalone.",
+  "rca of the issue": "N/A — all 3 fixes confirmed working. (1) Codepoint mismatch resolved via _IPA_EQUIVALENTS map + _ipa_equivalents() helper used in build_autofill_payload / generate_ai_draft / build_readiness_report / compute_frequency_chart lookups; r-red and g-get now find their canonical entries transparently. (2) admin_batch_fill compares new AI-phrase vs cur mnemonic.phrase and blanks the audio URL when they differ, plus editor UI adds a warning help text and Svuota button [data-testid='editor-field-mnemonic-audio-clear'] to allow manual clear. (3) PhonemeLibraryPage.jsx now fetches /api/phonemes on mount into dbPhonemes state, filter merges DB status override so any card present in DB is treated as status:'published', and PublishedCard prefers dbPhonemes[id] over the static PHONEMES map. Header stats '2 CARD PUBBLICATE' confirms live DB drives the UI."
+}

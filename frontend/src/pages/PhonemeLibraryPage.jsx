@@ -291,16 +291,45 @@ const PhonemeLibraryPage = () => {
   const [groupFilter, setGroupFilter] = useState('all');
   const [paywallEntry, setPaywallEntry] = useState(null);
 
+  // Fetch published cards from the CMS so newly-published phonemes appear here
+  // without needing to hand-edit the static PHONEMES map / catalogue status.
+  const [dbPhonemes, setDbPhonemes] = useState({});   // {id: cardObj}
+  const [dbLoaded, setDbLoaded] = useState(false);
+
   const isPremium = hasPremiumAccess(user);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const res = await fetch(`${API}/api/phonemes`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const list = await res.json();
+        if (cancelled) return;
+        const byId = {};
+        for (const c of list) byId[c.id] = c;
+        setDbPhonemes(byId);
+      } catch (e) {
+        // Fail silently — fall back to static PHONEMES entries
+        console.warn('[PhonemeLibraryPage] failed to fetch DB phonemes:', e.message);
+      } finally {
+        if (!cancelled) setDbLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const stats = useMemo(() => getInventoryTotals(), []);
 
-  const filtered = useMemo(
-    () => groupFilter === 'all' ? CATALOGUE : CATALOGUE.filter(e => e.group === groupFilter),
-    [groupFilter]
-  );
+  // Merge static catalogue with dynamic DB state: any card with a matching
+  // DB entry is treated as `status:'published'`, overriding the static value.
+  const filtered = useMemo(() => {
+    const base = groupFilter === 'all' ? CATALOGUE : CATALOGUE.filter(e => e.group === groupFilter);
+    return base.map(e => (dbPhonemes[e.id] ? { ...e, status: 'published' } : e));
+  }, [groupFilter, dbPhonemes]);
 
   const handleLockedClick = (entry) => setPaywallEntry(entry);
 
@@ -419,7 +448,8 @@ const PhonemeLibraryPage = () => {
           {filtered.map((entry, i) => {
             const group = GROUPS.find(g => g.id === entry.group) || GROUPS[0];
             if (entry.status === 'published') {
-              const phoneme = PHONEMES[entry.id];
+              // Prefer live DB card (published via CMS) over the frozen static PHONEMES map
+              const phoneme = dbPhonemes[entry.id] || PHONEMES[entry.id];
               if (!phoneme) return null;
               const locked = entry.access === 'premium' && !isPremium;
               return (

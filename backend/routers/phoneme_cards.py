@@ -232,10 +232,14 @@ async def compute_frequency_chart(
 
     # Force-include the target ipa if outside top-N (swap in for the last slot)
     if ipa and not any(d["ipa"] == ipa for d in top):
-        target = await db.canonical_phonemes.find_one(
-            {"dialect": dialect_val, "ipa": ipa},
-            {"_id": 0, "ipa": 1, "frequency_rank": 1},
-        )
+        target = None
+        for candidate in _ipa_equivalents(ipa):
+            target = await db.canonical_phonemes.find_one(
+                {"dialect": dialect_val, "ipa": candidate},
+                {"_id": 0, "ipa": 1, "frequency_rank": 1},
+            )
+            if target:
+                break
         if target:
             top = top[:-1] + [target] if top else [target]
 
@@ -302,6 +306,46 @@ _BACKNESS_TO_X = {
     "Front": 5, "Central": 50, "Back": 95,
     "Central/Back": 70, "Back (unrounded)": 90,
 }
+
+
+# Common IPA equivalences seen in pedagogical vs strict transcriptions.
+# When looking up a symbol in canonical, we try each equivalent form in order.
+_IPA_EQUIVALENTS: Dict[str, List[str]] = {
+    "r":  ["r",  "ɹ"],   # ASCII 'r' vs IPA turned-r (both used for English rhotic)
+    "ɹ":  ["ɹ",  "r"],
+    "g":  ["g",  "ɡ"],   # ASCII 'g' (0x67) vs IPA opentail-g (0x261) — visually identical
+    "ɡ":  ["ɡ",  "g"],
+    ":":  ["ː", ":"],    # ASCII colon length mark vs IPA triangular colon
+    "ː":  ["ː", ":"],
+}
+
+
+def _ipa_equivalents(ipa: str) -> List[str]:
+    """Return an ordered list of canonical-lookup candidates for a card IPA symbol.
+
+    Also handles compound symbols like 'iː' (2 chars) where only the length mark
+    differs between conventions: 'i:' ↔ 'iː'.
+    """
+    if not ipa:
+        return []
+    candidates = [ipa]
+    # Whole-symbol replacements from the map
+    if ipa in _IPA_EQUIVALENTS:
+        for alt in _IPA_EQUIVALENTS[ipa]:
+            if alt not in candidates:
+                candidates.append(alt)
+    # Substitute ':' ↔ 'ː' anywhere in the string (length mark drift)
+    if ":" in ipa:
+        alt = ipa.replace(":", "ː")
+        if alt not in candidates:
+            candidates.append(alt)
+    if "ː" in ipa:
+        alt = ipa.replace("ː", ":")
+        if alt not in candidates:
+            candidates.append(alt)
+    return candidates
+
+
 
 
 def _compose_autofill_for_vowel(canonical: dict) -> Dict[str, Any]:
@@ -417,16 +461,21 @@ async def build_autofill_payload(db, ipa: str, dialect: str) -> Dict[str, Any]:
     """Fetch the canonical row for (dialect, ipa) and compose the autofill blob.
 
     Raises HTTPException 404 if the phoneme is not in the canonical inventory.
+    Attempts common IPA equivalents (e.g. ASCII 'r' ↔ IPA 'ɹ', ASCII 'g' ↔ IPA 'ɡ',
+    ':' ↔ 'ː') before giving up.
     """
     if dialect not in ("GenAm", "RP"):
         raise HTTPException(status_code=400, detail="dialect deve essere 'GenAm' o 'RP'")
     if not ipa:
         raise HTTPException(status_code=400, detail="ipa obbligatorio")
 
-    doc = await db.canonical_phonemes.find_one(
-        {"dialect": dialect, "ipa": ipa}, {"_id": 0},
-    )
-    if not doc:
+    for candidate in _ipa_equivalents(ipa):
+        doc = await db.canonical_phonemes.find_one(
+            {"dialect": dialect, "ipa": candidate}, {"_id": 0},
+        )
+        if doc:
+            break
+    else:
         raise HTTPException(
             status_code=404,
             detail=f"Fonema '{ipa}' non presente nell'inventario canonical per dialetto {dialect}.",
@@ -519,9 +568,11 @@ async def build_readiness_report(db, card: dict) -> Dict[str, Any]:
             cd = _CARD_DIALECT_TO_CANONICAL.get(d)
             if not cd:
                 continue
-            row = await db.canonical_phonemes.find_one({"dialect": cd, "ipa": card_ipa}, {"_id": 0})
-            if row:
-                canonical_docs[cd] = row
+            for candidate in _ipa_equivalents(card_ipa):
+                row = await db.canonical_phonemes.find_one({"dialect": cd, "ipa": candidate}, {"_id": 0})
+                if row:
+                    canonical_docs[cd] = row
+                    break
         if not canonical_docs:
             checks.append(_check(
                 "canonical.match", "canonical", "fail",
@@ -946,9 +997,13 @@ async def generate_ai_draft(db, card: dict, dialect: str,
     if not ipa:
         raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
 
-    canon = await db.canonical_phonemes.find_one(
-        {"dialect": dialect, "ipa": ipa}, {"_id": 0},
-    )
+    canon = None
+    for candidate in _ipa_equivalents(ipa):
+        canon = await db.canonical_phonemes.find_one(
+            {"dialect": dialect, "ipa": candidate}, {"_id": 0},
+        )
+        if canon:
+            break
     if not canon:
         raise HTTPException(
             status_code=404,
@@ -1228,11 +1283,15 @@ def build_phoneme_cards_router(db, get_admin_user):
                     cur_m = doc.get("mnemonic") or {}
                     if payload.overwrite or _is_empty_or_default(cur_m.get("phrase")):
                         m = drafts["mnemonic"]
+                        new_phrase = m.get("phrase") or cur_m.get("phrase", "")
+                        # If phrase changes, ANY previously-recorded audio no longer matches → clear it
+                        new_audio = cur_m.get("audio", "") if new_phrase == cur_m.get("phrase", "") else ""
                         update_fields["mnemonic"] = {
                             **cur_m,
-                            "phrase":     m.get("phrase")     or cur_m.get("phrase", ""),
+                            "phrase":     new_phrase,
                             "highlights": m.get("highlights") or cur_m.get("highlights", []),
                             "note":       m.get("note")       or cur_m.get("note", ""),
+                            "audio":      new_audio,
                         }
                         applied["ai"].append("mnemonic")
                         ai_confidences["mnemonic"] = float(m.get("confidence", 0.0))

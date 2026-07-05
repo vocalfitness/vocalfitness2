@@ -334,11 +334,16 @@ export default function PhonemeAdminEditorPage() {
     setCard((prev) => {
       const next = { ...prev };
       if (drafts.mnemonic) {
+        const prevPhrase = prev.mnemonic?.phrase || '';
+        const newPhrase = drafts.mnemonic.phrase || prevPhrase;
+        // Clear audio when phrase changes — a recorded WAV no longer matches
+        const newAudio = newPhrase === prevPhrase ? (prev.mnemonic?.audio || '') : '';
         next.mnemonic = {
           ...(prev.mnemonic || {}),
-          phrase: drafts.mnemonic.phrase || prev.mnemonic?.phrase || '',
+          phrase: newPhrase,
           highlights: drafts.mnemonic.highlights || prev.mnemonic?.highlights || [],
           note: drafts.mnemonic.note || prev.mnemonic?.note || '',
+          audio: newAudio,
         };
       }
       if (drafts.funFact) {
@@ -1133,14 +1138,29 @@ export default function PhonemeAdminEditorPage() {
                 data-testid="editor-field-mnemonic-note"
               />
             </Field>
-            <Field label="Audio (URL)">
-              <Input
-                value={card.mnemonic?.audio || ''}
-                onChange={(e) => setField(['mnemonic', 'audio'], e.target.value)}
-                placeholder="/api/uploads/elevenlabs/…mp3"
-                className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs"
-                data-testid="editor-field-mnemonic-audio"
-              />
+            <Field label="Audio (URL)" help="⚠️ Se hai modificato la frase mnemonica, l'audio potrebbe non corrispondere più. Svuota il campo e rigenera con ElevenLabs.">
+              <div className="flex gap-2">
+                <Input
+                  value={card.mnemonic?.audio || ''}
+                  onChange={(e) => setField(['mnemonic', 'audio'], e.target.value)}
+                  placeholder="/api/uploads/elevenlabs/…mp3"
+                  className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs flex-1"
+                  data-testid="editor-field-mnemonic-audio"
+                />
+                {card.mnemonic?.audio && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setField(['mnemonic', 'audio'], '')}
+                    className="border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
+                    data-testid="editor-field-mnemonic-audio-clear"
+                    title="Svuota audio (utile quando la frase è cambiata)"
+                  >
+                    Svuota
+                  </Button>
+                )}
+              </div>
             </Field>
           </div>
         </Section>
