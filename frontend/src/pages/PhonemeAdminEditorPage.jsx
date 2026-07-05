@@ -748,7 +748,8 @@ export default function PhonemeAdminEditorPage() {
                 <p>
                   Il grafico è ora <b>calcolato automaticamente</b> dal <code className="text-orange-300">canonical_phonemes</code> inventory
                   (rank di frequenza reale per categoria + dialetto). Non è più possibile inserire percentuali arbitrarie o IPA a mano
-                  per evitare corruzione dei dati fonetici. Basta salvare la scheda: il grafico si aggiornerà da solo sulla card pubblica.
+                  per evitare corruzione dei dati fonetici. <b className="text-cyan-200">Salva la scheda per ricalcolare</b> il grafico dopo aver
+                  modificato IPA, categoria o dialetti.
                 </p>
               </div>
             </div>

@@ -203,8 +203,16 @@ async def compute_frequency_chart(
     if category not in ("vowel", "consonant", "diphthong"):
         return []
 
-    # Pick the card's dialect — prefer RP if the card is RP-only, else GenAm
-    dialect_val = "RP" if (dialects and dialects == ["RP"]) else "GenAm"
+    # Pick the card's dialect with explicit precedence:
+    #   GenAm wins if present (default American), else RP if present, else GenAm.
+    if dialects and "GenAm" in dialects:
+        dialect_val = "GenAm"
+    elif dialects and "AmE" in dialects:
+        dialect_val = "GenAm"  # AmE is the label used on cards for GenAm
+    elif dialects and "RP" in dialects:
+        dialect_val = "RP"
+    else:
+        dialect_val = "GenAm"
 
     docs = await db.canonical_phonemes.find(
         {"dialect": dialect_val, "kind": category, "frequency_rank": {"$ne": None}},

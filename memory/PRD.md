@@ -12,6 +12,31 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme System Rebuild · Phase C (Frequency Chart Lockdown) — DONE ✅
+- [x] **Backend `/app/backend/routers/phoneme_cards.py`**:
+  - Nuova funzione `compute_frequency_chart(db, ipa, category, dialects, n=9)` — calcola i 9 bar da `canonical_phonemes` ordinati per `frequency_rank` ASC, con IPA target forzato in coda se fuori top-N, altezze normalizzate lineari 30→100 dal rank più alto al più basso, `active:true` sul target
+  - `_inject_computed_chart(db, doc)` — helper che sovrascrive `frequencyChart` in ogni read (mai ritorna dati legacy)
+  - Iniezione in `GET /admin/phonemes/{id}`, `GET /phonemes/{id}`, `POST /admin/phonemes`, `PUT /admin/phonemes/{id}`
+  - Defense-in-depth: `admin_update` fa pop di `frequencyChart` prima del `$set`; `admin_create` inserisce `frequencyChart=[]` a prescindere dal payload
+  - Dialect precedence esplicita: GenAm o AmE presente → GenAm; solo RP → RP; fallback GenAm
+- [x] **Frontend `PhonemeAdminEditorPage.jsx`**:
+  - Sezione "Grafico di frequenza · read-only" sostituisce il Repeater editabile
+  - Info banner "Bloccato dal Phase C" (spiega il lockdown + prompt "Salva la scheda per ricalcolare")
+  - Anteprima calcolata: 9 barre grafiche con `data-testid='editor-freq-preview'` + `editor-freq-bar-N` (bar attivo arancione, altri slate)
+  - `ADVANCED_KEYS` non include più `frequencyChart` — il JSON expert mode non permette override
+- [x] **Test agent v3 iter_16**: **8/8 backend + 11/11 frontend PASS**, 0 fail, `retest_needed: False`, `action_items: []`
+  - Anti-tampering PUT con `{ipa:"FAKE",height:999}` silenziosamente stripped, altri campi legittimi (dialectNote) applicati
+  - Parity admin vs public GET verificata
+  - Card pubblica /lms/phoneme/u-foot: 9 barre canonical, /ʊ/ attiva
+  - Zero regressioni Fase A/B
+
+**Prossime fasi in coda:**
+- Fase D: Autofill Stage 1 deterministico (`POST /admin/phonemes/autofill`)
+- Fase E: Correctness checks readiness (minimal pairs validator, contradiction detector)
+- Fase F: AI drafting Stage 2 (bozza-only, confidence flags)
+
+
+
 ### 03/07/2026 — Phoneme System Rebuild · Phase B (Bug fix P1 controlled vocabulary) — DONE ✅
 - [x] **Backend** `/app/backend/routers/canonical_phonemes.py`: aggiunto `ACTIVATION_TERMS = ["HIGH","MODERATE","LOW"]` ed esposto in `controlled_vocabulary` accanto ai 7 termini height IPA.
 - [x] **Backend** `/app/backend/routers/phoneme_cards.py::ensure_phoneme_seed`: 4 patch idempotenti one-shot per correggere docs legacy in Mongo (matching solo su valori esatti, preserva user edits):
