@@ -12,6 +12,27 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 05/07/2026 — Phoneme CMS · Batch AI-fill (Fase F+) — DONE ✅
+- [x] **Backend** `POST /api/admin/phonemes/{id}/batch-fill`: combina autofill deterministico (canonical → features/knobs/classification/vowelChartPosition) + AI drafting Claude Sonnet 4.5 (mnemonic/funFact) + persistenza atomica come `bozza` (published=false)
+- [x] **Safety guards**:
+  - `published=true` senza `overwrite:true` → 409 (rifiuta di sovrascrivere schede pubblicate)
+  - Preserva campi già valorizzati (solo `_is_empty_or_default` viene compilato); flag `overwrite:true` per forzare
+  - `frequencyChart` mai toccato (resta canonical-computed on read)
+  - `include_ai:false` → solo autofill deterministico (per test veloci senza LLM)
+- [x] **Dialect fallback**: itera su preferred → dichiarati → tutti i candidati fino al primo hit canonical (risolve /e/ e-dress → RP, /ɛ/ resta GenAm)
+- [x] **Frontend** `PhonemeAdminPage.jsx`:
+  - Bottone toolbar "Batch bozze AI" (fuchsia)
+  - Modal con: warning safety, checkbox include_ai, lista con checkbox per ogni card in bozza, pre-selezione automatica delle card con `readinessScore<70`
+  - Bottoni "Tutte"/"Nessuna" per bulk-toggle
+  - Progress bar con `currentId` durante il batch, bottone "Interrompi dopo la scheda corrente"
+  - Results panel: ok/err per riga con score badge color-coded, refresh automatico della lista principale
+  - Modal-close guards: backdrop-click disabilitato durante `batchRunning` E quando `batchResults` è popolato (evita di perdere il report per errore)
+- [x] **Test agent iter_20+21**: **10/10 backend + frontend PASS**, 0 fail, `retest_needed: False`, `action_items: []` dopo il fix del dialect fallback + modal close guard
+
+**Roadmap Fonemi (A→F+) COMPLETATA al 100%.**
+
+
+
 ### 05/07/2026 — Phoneme System Rebuild · Phase F (AI drafting Stage 2) — DONE ✅
 - [x] **Integration**: Claude Sonnet 4.5 (`anthropic/claude-sonnet-4-5-20250929`) via `emergentintegrations.llm.chat.LlmChat` + `EMERGENT_LLM_KEY`. Playbook consultato prima dell'implementazione.
 - [x] **Backend** `/app/backend/routers/phoneme_cards.py`:
