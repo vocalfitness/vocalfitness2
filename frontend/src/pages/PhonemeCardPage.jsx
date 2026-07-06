@@ -983,7 +983,7 @@ const PhonemeCardPage = () => {
                 Laboratorio interattivo · Pink Trombone Vocal Tract
               </p>
             </div>
-            <PinkTromboneEmbed phonemeId={phoneme.id} />
+            <PinkTromboneEmbed phonemeId={phoneme.id} phonemeIpa={phoneme.ipa} />
             <p className="text-[10px] text-cyan-500/50 italic mt-3 text-center">
               Modello fisico originale di Neil Thapen (MIT). Esplora come la posizione di lingua,
               palato, velo e labbra modifica il suono in tempo reale, oppure clicca un simbolo IPA

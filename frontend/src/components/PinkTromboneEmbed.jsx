@@ -34,20 +34,59 @@ const VOWEL_TARGETS = [
 // Map phoneme card IDs to (a) the matching vowel-chart symbol used as
 // initial posture for the Pink Trombone and (b) the ElevenLabs reference
 // recording of the Professor's isolated phoneme.
+//
+// The ``defaultSym`` fallback is now resolved dynamically from the
+// phoneme's own IPA (via ``resolveDefaultSym`` below) so *every* card —
+// present or future, seeded or batch-drafted — picks the correct
+// trapezoid target without needing an explicit entry here. This entry
+// map is used only for the reference-audio URL and any hand-tuned
+// overrides that deviate from the pure IPA match.
 const PHONEME_DEFAULTS = {
   'u-foot':   { defaultSym: 'ʊ', referenceAudio: '/api/uploads/elevenlabs/glottal_u_foot_mIrm7gNC_1781555727.mp3' },
   'i-fleece': { defaultSym: 'i', referenceAudio: '/api/uploads/elevenlabs/i_fleece_isolated_v3_mIrm7gNC_1782662697.mp3' },
 };
 const FALLBACK_DEFAULTS = { defaultSym: 'ʊ', referenceAudio: null };
 
-export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
-  const profile = PHONEME_DEFAULTS[phonemeId] || FALLBACK_DEFAULTS;
-  const defaultTarget = VOWEL_TARGETS.find(v => v.sym === profile.defaultSym) || VOWEL_TARGETS[0];
+/**
+ * Resolve the trapezoid target symbol for a given phoneme card.
+ *
+ * Precedence:
+ *   1. Explicit override in ``PHONEME_DEFAULTS[phonemeId]``.
+ *   2. Direct match of ``phonemeIpa`` against a ``VOWEL_TARGETS.sym`` —
+ *      also strips the length marker (``ː`` / ``:``) so ``/uː/`` matches
+ *      the ``u`` node on the trapezoid.
+ *   3. FALLBACK_DEFAULTS.defaultSym (``ʊ``).
+ */
+function resolveDefaultSym(phonemeId, phonemeIpa) {
+  if (phonemeId && PHONEME_DEFAULTS[phonemeId]) return PHONEME_DEFAULTS[phonemeId].defaultSym;
+  if (phonemeIpa) {
+    const stripped = phonemeIpa.replace(/[ːː:]/g, '').trim();
+    const direct = VOWEL_TARGETS.find(v => v.sym === stripped);
+    if (direct) return direct.sym;
+    // Diphthongs / broad phonemes — take the first character as anchor
+    // (e.g. /eɪ/ → e, /aʊ/ → ɑ closest, /oʊ/ → ɔ closest).
+    const firstChar = VOWEL_TARGETS.find(v => v.sym === stripped[0]);
+    if (firstChar) return firstChar.sym;
+  }
+  return FALLBACK_DEFAULTS.defaultSym;
+}
+
+export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', className = '' }) => {
+  const explicitProfile = PHONEME_DEFAULTS[phonemeId];
+  const defaultSym = resolveDefaultSym(phonemeId, phonemeIpa);
+  const profile = explicitProfile || { defaultSym, referenceAudio: null };
+  const defaultTarget = VOWEL_TARGETS.find(v => v.sym === defaultSym) || VOWEL_TARGETS[0];
 
   const iframeRef = useRef(null);
   const refAudioRef = useRef(null);
   const [iframeReady, setIframeReady] = useState(false);
   const [activeVowel, setActiveVowel] = useState(defaultTarget.sym);
+  // Free-form dragging position (0..1 in chart coords). When set, the
+  // trapezoid renders an extra "you are here" cursor at this location.
+  // The preset target chosen by ``activeVowel`` still highlights normally
+  // — a drag simply overlays the continuous morph indicator on top so the
+  // user can see exactly where the tract is being pushed.
+  const [dragPos, setDragPos] = useState(null);
   const [refPlaying, setRefPlaying] = useState(false);
   const [error, setError] = useState('');
   const [tractOpen, setTractOpen] = useState(false);
@@ -72,6 +111,9 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
       loudness: target.intensity,
     });
     setActiveVowel(target.sym);
+    // Clicking a preset resets the free-form cursor — the tract now
+    // sits exactly on the target.
+    setDragPos(null);
   }, [sendParams]);
 
   // Listen for "ready" handshake from the iframe. When the popup is first
@@ -122,6 +164,11 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
       intensity: Math.max(0.5, Math.min(1.0, intensity)),
       frequency: Math.max(80, Math.min(220, freq)),
     });
+    // Continuous morph → update the free-form cursor. Do NOT clear
+    // ``activeVowel`` (keep the last preset highlighted so the user
+    // can visually compare the free-form position to the nearest
+    // canonical target).
+    setDragPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
   };
 
   return (
@@ -188,6 +235,19 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', className = '' }) => {
                 </g>
               );
             })}
+            {/* Free-form drag cursor — "you are here" indicator that
+                tracks the mouse while the user morphs the tract in
+                continuous mode. Rendered above the preset targets so
+                the position is unambiguous. */}
+            {dragPos && (
+              <g className="phonetics-lab-wrapper__cursor" data-testid="phonetics-lab-vowel-cursor" aria-hidden="true">
+                <circle
+                  cx={14 + dragPos.x * (206 - 14)}
+                  cy={14 + dragPos.y * (166 - 14)}
+                  r={7}
+                />
+              </g>
+            )}
           </svg>
           <p className="phonetics-lab-wrapper__hint">
             Modello: <span>Pink Trombone</span> (Neil Thapen, MIT)
@@ -312,6 +372,17 @@ const styles = `
     font-size:10px; pointer-events:none; text-anchor:middle;
   }
   .phonetics-lab-wrapper__target.is-active text { fill: #0f172a; font-weight:700; }
+  .phonetics-lab-wrapper__cursor circle {
+    fill: rgba(255,255,255,0.35);
+    stroke: #f8fafc;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 6px rgba(248,250,252,0.65));
+    animation: plw-cursor-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes plw-cursor-pulse {
+    0%,100% { r: 6; opacity: 0.85; }
+    50%     { r: 8; opacity: 1;    }
+  }
   .phonetics-lab-wrapper__hint {
     font-size:10px; color: var(--plw-muted); line-height:1.6; margin:8px 0 0;
   }
@@ -330,12 +401,15 @@ const styles = `
   /* ---- Top-left popup that hosts the Pink Trombone iframe ---- */
   .phonetics-lab-popup {
     position: fixed; inset: 0; z-index: 70;
-    background: rgba(2, 6, 12, 0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     padding: 24px;
     animation: plw-fade-in .25s ease-out;
+    /* Backdrop is non-blocking so the user can keep dragging on the
+       vowel trapezoid below while the popup is open. Interactive
+       elements inside the card re-enable pointer events. */
+    pointer-events: none;
+    background: transparent;
   }
+  .phonetics-lab-popup > * { pointer-events: auto; }
   @keyframes plw-fade-in { from { opacity:0; } to { opacity:1; } }
   @keyframes plw-slide-tl { from { opacity:0; transform: translate(-12px,-12px) scale(.96); } to { opacity:1; transform:none; } }
   .phonetics-lab-popup__card {
