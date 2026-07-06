@@ -643,12 +643,12 @@ const PhonemeCardPage = () => {
           {/* BOTTOM PANEL — synthesis row: example sentences */}
           <div className="bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border-t border-cyan-500/15 px-5 sm:px-8 py-5">
             <div className="grid sm:grid-cols-3 gap-4">
-              {phoneme.exampleSentences.map((ex, i) => (
+              {(phoneme.exampleSentences || []).map((ex, i) => (
                 <div key={i} className="flex items-center gap-3" data-testid={`phoneme-example-${i}`}>
-                  <AudioPlayButton size="md" src={audio.examples[i]} label={`Play "${ex.text}"`} onPlayingChange={setAudioPlaying} />
+                  <AudioPlayButton size="md" src={audio.examples?.[i]} label={`Play "${ex.text || ''}"`} onPlayingChange={setAudioPlaying} />
                   <p className="text-sm text-cyan-100 leading-tight">
-                    {ex.text.split(' ').map((w, j) => {
-                      const isHighlight = ex.highlights.some(h => w.toLowerCase().includes(h.toLowerCase()));
+                    {(ex.text || '').split(' ').map((w, j) => {
+                      const isHighlight = (ex.highlights || []).some(h => w.toLowerCase().includes(h.toLowerCase()));
                       return (
                         <span key={j} className={isHighlight ? 'text-orange-400 font-bold' : ''}>{w}{' '}</span>
                       );
