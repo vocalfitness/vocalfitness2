@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import HotspotVisualEditor from '../components/HotspotVisualEditor';
 import ImageUploader from '../components/ImageUploader';
+import VideoUploader from '../components/VideoUploader';
+import VideoLinkInput from '../components/VideoLinkInput';
 import BulkAudioGenerator from '../components/BulkAudioGenerator';
 import PhonemeLivePreview from '../components/PhonemeLivePreview';
 import { PHONEME_CATALOGUE } from '../data/phonemeCatalogue';
@@ -1044,26 +1046,54 @@ export default function PhonemeAdminEditorPage() {
           </div>
         </Section>
 
-        {/* ================== ASSETS ================== */}
-        <Section title="Immagini della scheda" icon={<ImageIcon className="w-4 h-4" />}>
+        {/* ================== ASSETS (image + video upload + video link) ================== */}
+        <Section title="Media della scheda" icon={<ImageIcon className="w-4 h-4" />}>
           <p className="text-xs text-slate-400 mb-3">
-            Carica le 4 immagini anatomiche direttamente (trascina un file oppure clicca &quot;Upload&quot;), o incolla un URL esistente.
+            Per ogni vista carica un&apos;immagine statica <span className="text-cyan-300">e/o</span> un video (upload
+            fino a 10 MB o link YouTube / Vimeo). Le tre opzioni convivono: usa quella che rende meglio il gesto articolatorio.
           </p>
-          <div className="grid gap-5">
+          <div className="grid gap-6">
             {[
               ['sideView',       'Side view (sagittale)', 'Vista laterale — sfondo della card principale. Usata anche dall\'editor visuale hotspot.'],
               ['frontView',      'Front view (frontale)', 'Attivazione muscoli facciali — mostrata nel modal front-view.'],
               ['frontViewClean', 'Front view — clean',    'Ritaglio circolare per la miniatura HUD sulla card principale.'],
               ['articulatory',   'Articulatory deep-dive', 'Diagramma articolatorio dettagliato — modal "Deep dive".'],
             ].map(([key, label, help]) => (
-              <Field key={key} label={label} help={help}>
-                <ImageUploader
-                  value={card.assets?.[key] || ''}
-                  onChange={(url) => setField(['assets', key], url)}
-                  placeholder="Trascina un'immagine qui, clicca Upload, o incolla un URL"
-                  testId={`editor-field-assets-${key}`}
-                />
-              </Field>
+              <div
+                key={key}
+                className="rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 space-y-3"
+                data-testid={`editor-media-slot-${key}`}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-bold text-cyan-100">{label}</p>
+                  <p className="text-[10px] text-slate-500 max-w-[52ch] text-right">{help}</p>
+                </div>
+
+                <Field label="Immagine">
+                  <ImageUploader
+                    value={card.assets?.[key] || ''}
+                    onChange={(url) => setField(['assets', key], url)}
+                    placeholder="Trascina un&apos;immagine qui, clicca Upload, o incolla un URL"
+                    testId={`editor-field-assets-${key}`}
+                  />
+                </Field>
+
+                <Field label="Video (upload · max 10 MB)">
+                  <VideoUploader
+                    value={card.assets?.[`${key}Video`] || ''}
+                    onChange={(url) => setField(['assets', `${key}Video`], url)}
+                    testId={`editor-field-assets-${key}-video`}
+                  />
+                </Field>
+
+                <Field label="Video link (YouTube · Vimeo · MP4 URL)">
+                  <VideoLinkInput
+                    value={card.assets?.[`${key}VideoLink`] || ''}
+                    onChange={(url) => setField(['assets', `${key}VideoLink`], url)}
+                    testId={`editor-field-assets-${key}-videoLink`}
+                  />
+                </Field>
+              </div>
             ))}
           </div>
         </Section>

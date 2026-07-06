@@ -11,6 +11,30 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 06/07/2026 — Phoneme CMS · Media della scheda (video upload + link) — DONE ✅
+La sezione "Immagini della scheda" è stata rinominata **"Media della scheda"** ed estesa:
+per ognuna delle 4 viste (sideView / frontView / frontViewClean / articulatory) l'admin
+ora dispone di **3 input paralleli**:
+1. Immagine (`assets.<key>`) — come prima, `ImageUploader`.
+2. Video upload (`assets.<key>Video`) — nuovo componente `VideoUploader` con limite
+   client-side 10 MB, gate su estensione (MP4/WebM/MOV/AVI/MKV), preview `<video controls>`.
+3. Video link (`assets.<key>VideoLink`) — nuovo componente `VideoLinkInput` con parser
+   YouTube (`youtu.be`, `youtube.com/watch|shorts|embed`) + Vimeo + URL diretti MP4;
+   preview `<iframe>` embed inline per YouTube/Vimeo, `<video>` per file, warning per URL
+   non riconosciuti.
+
+**File nuovi**
+- `/app/frontend/src/components/VideoUploader.jsx`
+- `/app/frontend/src/components/VideoLinkInput.jsx` (con export `parseVideoUrl` per test unitari)
+
+**Backend** — nessuna modifica: `PhonemeCardBase.assets: Dict[str, Any]` accetta già chiavi
+arbitrarie; endpoint `POST /api/admin/upload` già whitelistato per video (mp4/webm/mov/avi/mkv,
+max 100 MB server-side). Il 10 MB client-side è un guard-rail UX per la sezione media.
+
+**Test manuale end-to-end**: PUT su `u-foot` con `assets.sideViewVideoLink=<youtube>` + reload
+editor mostra embed YouTube live-preview inline sotto l'input.
+
+
 
 ### 06/07/2026 — §3.1 Muscle Rule automatizzata + admin-preview drafts — DONE ✅
 Utente aveva segnalato: "questi dati devono essere visibili a destra dell'immagine (modal Facial Muscle Activation), e all'interno del modulo collassato del backend che ora è vuoto. Automatizza §3.1 su tutte le card presenti e future."
