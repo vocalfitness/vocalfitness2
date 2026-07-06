@@ -1,25 +1,28 @@
 import React, { useEffect, useState, useMemo } from 'react';
 
 /**
- * SagittalOverlay — SVG overlay that sits on top of the clean sagittal
- * illustration and renders the DERIVED overlay bundle stored on each
- * phoneme card:
+ * SagittalOverlay — clean, embedded-style anatomical annotations on top
+ * of the sagittal illustration.
  *
- *   • ``anatomicalLabels`` (string[])  — subset of the 12 canonical
- *     landmarks. Each label is drawn as: a small anchor dot on the
- *     anatomy + a thin leader line to a text tag rendered with the
- *     card's HUD typography (cyan uppercase, tracking-wider).
+ * Style mirrors the reference labels baked into the printed cards:
+ *   • pure WHITE text, mixed-case, thin sans-serif (no uppercase, no
+ *     tight tracking).
+ *   • hairline WHITE leader lines terminating in a tiny WHITE dot on the
+ *     anatomy landmark.
+ *   • labels sit CLOSE to the face — leader lengths are short and text
+ *     tags float just outside the anatomy outline.
  *
- *   • ``airflowArrows``   — 1..N arrow descriptors with a shape (oral-smooth,
- *     oral-turbulent, nasal, lateral, blocked). Rendered as animated
- *     cyan strokes that flow along a quadratic Bézier.
+ * The big cyan airflow curve that used to sweep across the face has been
+ * removed — the AIRFLOW indicator in the HUD badge already conveys the
+ * information and the arrow obscured the character.
  *
- *   • ``voicing``          — 'Voiced' → three pulsing bars at the vocal
- *     folds anchor; 'Voiceless' → same bars but static / desaturated.
- *
- * Positioning: all coordinates are 0..100 percentages. The parent must
- * render this component absolutely inside a positioned container that
- * matches the aspect ratio of the sagittal image.
+ * Positioning uses absolute-positioned HTML on top of a plain SVG. This
+ * guarantees:
+ *   1. The anchor dots are TRUE circles (border-radius: 50% on a square
+ *      DOM element), regardless of the SVG viewBox aspect scaling.
+ *   2. Text is rendered by the browser text engine (crisp, real
+ *      font-metric spacing) instead of the SVG text engine that gets
+ *      distorted by ``preserveAspectRatio``.
  */
 export default function SagittalOverlay({
   card,
@@ -44,176 +47,83 @@ export default function SagittalOverlay({
     return canonicalLabels.filter((l) => wanted.has(l.id));
   }, [canonicalLabels, card?.anatomicalLabels]);
 
-  const arrows = card?.airflowArrows || [];
-  const voiced = (card?.voicing || '').toLowerCase() === 'voiced';
-  // Vocal-folds landmark position — canonical anchor used by the
-  // voicing indicator so the graphic sits exactly on the larynx.
-  const vfAnchor = (canonicalLabels || []).find((l) => l.id === 'vocal-folds')?.anchor
-                    || { x: 47, y: 76 };
-
   return (
-    <svg
+    <div
       className={`pointer-events-none ${className}`}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      xmlns="http://www.w3.org/2000/svg"
+      style={{ position: 'absolute', inset: 0 }}
       data-testid="sagittal-overlay"
     >
-      <defs>
-        {/* Airflow gradient — cyan → transparent so the arrows read as
-            'flowing' rather than static strokes. */}
-        <linearGradient id="airflow-cyan" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#22d3ee" stopOpacity="0.15" />
-          <stop offset="0.5" stopColor="#67e8f9" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#22d3ee" stopOpacity="0.15" />
-        </linearGradient>
-        <marker id="arrow-cyan" viewBox="0 0 8 8" refX="6" refY="4"
-                markerWidth="2.4" markerHeight="2.4" orient="auto-start-reverse">
-          <path d="M0,0 L8,4 L0,8 z" fill="#67e8f9" />
-        </marker>
-        <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="0.4" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
+      {/* Leader lines — drawn with a plain SVG that fills the same box.
+          Non-scaling stroke keeps the hairline crisp regardless of the
+          container size. */}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        {activeLabels.map((l) => (
+          <line
+            key={`leader-${l.id}`}
+            x1={l.anchor.x}
+            y1={l.anchor.y}
+            x2={l.leader.x}
+            y2={l.leader.y}
+            stroke="#ffffff"
+            strokeOpacity="0.72"
+            strokeWidth="0.18"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
 
-      {/* ============================= Airflow arrows ============================= */}
-      {arrows.map((a, i) => {
-        const p = a.path || [];
-        if (p.length < 3) return null;
-        const dPath = `M ${p[0].x} ${p[0].y} Q ${p[1].x} ${p[1].y} ${p[2].x} ${p[2].y}`;
-        const styleKey = a.type || 'oral-smooth';
-        const strokeDash = {
-          'oral-smooth':    '',
-          'oral-turbulent': '1.2 0.6',
-          'nasal':          '2 1',
-          'lateral':        '',
-          'blocked':        '0.6 0.6',
-        }[styleKey] || '';
-        return (
-          <g key={`arrow-${i}`} className={`sag-arrow sag-arrow--${styleKey}`}>
-            <path
-              d={dPath}
-              fill="none"
-              stroke="url(#airflow-cyan)"
-              strokeWidth={styleKey === 'blocked' ? 1.0 : 0.7}
-              strokeLinecap="round"
-              strokeDasharray={strokeDash}
-              markerEnd={styleKey === 'blocked' ? '' : 'url(#arrow-cyan)'}
-              filter="url(#glow-cyan)"
-            />
-            {/* 'X' marker on the closure point for stop consonants */}
-            {styleKey === 'blocked' && (
-              <g transform={`translate(${p[2].x} ${p[2].y})`}>
-                <line x1="-1.4" y1="-1.4" x2="1.4" y2="1.4" stroke="#f87171" strokeWidth="0.6" />
-                <line x1="-1.4" y1="1.4"  x2="1.4" y2="-1.4" stroke="#f87171" strokeWidth="0.6" />
-              </g>
-            )}
-          </g>
-        );
-      })}
-
-      {/* ========================== Anatomical labels ============================= */}
+      {/* Anchor dots + text tags — plain HTML absolutely positioned so
+          the dots render as perfect circles and text uses browser font
+          metrics (no aspect-ratio distortion). */}
       {activeLabels.map((l) => {
-        const a = l.anchor;
-        const t = l.leader;
         const text = lang === 'en' ? l.labelEn : l.labelIt;
-        // Text-anchor decision — if leader is on the left of anchor, text
-        // right-aligns to end at the leader; if right, left-align.
-        const textAnchor = t.x < a.x ? 'end' : 'start';
-        const textDX = t.x < a.x ? -0.8 : 0.8;
+        // Text anchor logic: if leader endpoint is to the LEFT of the
+        // anatomy anchor, right-align text so it ends at the leader.
+        const textAlignsRight = l.leader.x < l.anchor.x;
         return (
-          <g key={l.id} className="sag-label" data-testid={`sagittal-label-${l.id}`}>
-            {/* Leader line */}
-            <line
-              x1={a.x} y1={a.y} x2={t.x} y2={t.y}
-              stroke="#67e8f9" strokeWidth="0.25" strokeOpacity="0.7"
+          <React.Fragment key={l.id}>
+            {/* Landmark dot on the anatomy */}
+            <span
+              className="absolute rounded-full bg-white"
+              style={{
+                left: `${l.anchor.x}%`,
+                top:  `${l.anchor.y}%`,
+                width: '6px',
+                height: '6px',
+                transform: 'translate(-50%, -50%)',
+                boxShadow: '0 0 4px rgba(255,255,255,0.85)',
+              }}
+              data-testid={`sagittal-anchor-${l.id}`}
             />
-            {/* Anchor dot on the anatomy */}
-            <circle cx={a.x} cy={a.y} r="0.7" fill="#22d3ee"
-                    stroke="#0f172a" strokeWidth="0.15"
-                    filter="url(#glow-cyan)" />
-            {/* End-of-leader tick + text tag */}
-            <circle cx={t.x} cy={t.y} r="0.35" fill="#67e8f9" />
-            <text
-              x={t.x + textDX}
-              y={t.y + 0.4}
-              fill="#a5f3fc"
-              fontSize="1.85"
-              fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
-              fontWeight="700"
-              letterSpacing="0.15"
-              textAnchor={textAnchor}
-              style={{ textTransform: 'uppercase' }}
+            {/* Text tag at the leader endpoint */}
+            <span
+              className="absolute text-white select-none"
+              style={{
+                left: `${l.leader.x}%`,
+                top:  `${l.leader.y}%`,
+                transform: textAlignsRight
+                  ? 'translate(-100%, -50%) translateX(-6px)'
+                  : 'translate(0, -50%) translateX(6px)',
+                fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+                fontSize: 'clamp(10px, 1.35vw, 15px)',
+                fontWeight: 400,
+                letterSpacing: '0.01em',
+                textShadow: '0 1px 2px rgba(0,0,0,0.85)',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.1,
+              }}
+              data-testid={`sagittal-label-${l.id}`}
             >
               {text}
-            </text>
-          </g>
+            </span>
+          </React.Fragment>
         );
       })}
-
-      {/* =========================== Voicing indicator ============================ */}
-      <g
-        className={`sag-voicing ${voiced ? 'sag-voicing--voiced' : 'sag-voicing--voiceless'}`}
-        transform={`translate(${vfAnchor.x + 4} ${vfAnchor.y})`}
-        data-testid={`sagittal-voicing-${voiced ? 'voiced' : 'voiceless'}`}
-      >
-        {/* Three vertical bars — like an equaliser. Voiced = animated
-            pulse, voiceless = static + desaturated. */}
-        {[0, 1, 2].map((i) => (
-          <rect
-            key={i}
-            x={i * 1.4}
-            y="-1.4"
-            width="0.9"
-            height="2.8"
-            rx="0.3"
-            fill={voiced ? '#22d3ee' : '#475569'}
-            opacity={voiced ? 0.95 : 0.4}
-            filter={voiced ? 'url(#glow-cyan)' : ''}
-          >
-            {voiced && (
-              <animate
-                attributeName="height"
-                values="1.2;3.2;1.6;2.8;1.2"
-                dur="1.4s"
-                begin={`${i * 0.15}s`}
-                repeatCount="indefinite"
-              />
-            )}
-            {voiced && (
-              <animate
-                attributeName="y"
-                values="-0.6;-1.6;-0.8;-1.4;-0.6"
-                dur="1.4s"
-                begin={`${i * 0.15}s`}
-                repeatCount="indefinite"
-              />
-            )}
-          </rect>
-        ))}
-        {/* Muted-cross overlay for voiceless — a slate diagonal that
-            reads instantly as "off". */}
-        {!voiced && (
-          <line x1="-0.4" y1="-1.8" x2="4.4" y2="1.8"
-                stroke="#94a3b8" strokeWidth="0.35" strokeOpacity="0.85" />
-        )}
-      </g>
-
-      {/* Arrow-flow animation */}
-      <style>{`
-        .sag-arrow--oral-smooth path,
-        .sag-arrow--oral-turbulent path,
-        .sag-arrow--nasal path,
-        .sag-arrow--lateral path {
-          stroke-dashoffset: 0;
-          animation: sag-flow 2.2s linear infinite;
-        }
-        @keyframes sag-flow {
-          from { stroke-dashoffset: 6; }
-          to   { stroke-dashoffset: 0; }
-        }
-      `}</style>
-    </svg>
+    </div>
   );
 }
