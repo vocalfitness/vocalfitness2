@@ -19,16 +19,28 @@ import { BACKEND_URL } from '../lib/backend';
 
 const IFRAME_URL = '/lms/vocal-lab/pink-trombone-original.html';
 
+// Vowel targets on the IPA trapezoid.
+//
+// ``x``/``y``       — normalised (0..1) coords for rendering the dot on the SVG.
+// ``freq``          — glottis default frequency (Hz) at rest.
+// ``tense``         — glottis tenseness 0..1 (~ vocal-fold stiffness).
+// ``intensity``     — legacy internal knob (kept for compat with old callers).
+// ``tongueIndex``   — Pink Trombone tract-index of the tongue-tip centre
+//                      (12.9 front-most .. 29.1 back-most; canonical Thapen range).
+// ``tongueDiameter``— cross-section opening at the tongue centre (2.05 closed .. 3.50 open).
+// These two last fields drive the ACTUAL vowel shape — without them the
+// tract stays in the rest posture and only the pitch/tenseness change.
+// Values below are calibrated against Ladefoged's F1/F2 vowel targets.
 const VOWEL_TARGETS = [
-  { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE', freq: 138, tense: 0.85, intensity: 0.85 },
-  { sym: 'ɪ', x: 0.22, y: 0.20, label: '/ɪ/ KIT',     freq: 130, tense: 0.55, intensity: 0.80 },
-  { sym: 'e', x: 0.18, y: 0.45, label: '/e/ DRESS',   freq: 128, tense: 0.65, intensity: 0.80 },
-  { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',    freq: 132, tense: 0.55, intensity: 0.85 },
-  { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER', freq: 125, tense: 0.70, intensity: 0.90 },
-  { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT',freq: 122, tense: 0.70, intensity: 0.85 },
-  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',    freq: 120, tense: 0.55, intensity: 0.85 },
-  { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',  freq: 130, tense: 0.85, intensity: 0.85 },
-  { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',   freq: 120, tense: 0.45, intensity: 0.75 },
+  { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE',  freq: 138, tense: 0.85, intensity: 0.85, tongueIndex: 12.9, tongueDiameter: 2.10 },
+  { sym: 'ɪ', x: 0.22, y: 0.20, label: '/ɪ/ KIT',      freq: 130, tense: 0.55, intensity: 0.80, tongueIndex: 14.0, tongueDiameter: 2.40 },
+  { sym: 'e', x: 0.18, y: 0.45, label: '/e/ DRESS',    freq: 128, tense: 0.65, intensity: 0.80, tongueIndex: 15.5, tongueDiameter: 2.85 },
+  { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',     freq: 132, tense: 0.55, intensity: 0.85, tongueIndex: 17.0, tongueDiameter: 3.25 },
+  { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER',  freq: 125, tense: 0.70, intensity: 0.90, tongueIndex: 25.0, tongueDiameter: 3.45 },
+  { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT', freq: 122, tense: 0.70, intensity: 0.85, tongueIndex: 26.5, tongueDiameter: 3.10 },
+  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',     freq: 120, tense: 0.55, intensity: 0.85, tongueIndex: 27.5, tongueDiameter: 2.65 },
+  { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',   freq: 130, tense: 0.85, intensity: 0.85, tongueIndex: 28.5, tongueDiameter: 2.20 },
+  { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',    freq: 120, tense: 0.45, intensity: 0.75, tongueIndex: 20.0, tongueDiameter: 2.90 },
 ];
 
 // Map phoneme card IDs to (a) the matching vowel-chart symbol used as
@@ -109,6 +121,12 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
       tenseness: target.tense,
       intensity: target.intensity,
       loudness: target.intensity,
+      // The two fields below are what actually moves the tongue on
+      // the sagittal cross-section — see pink-trombone-original.html
+      // ``applyParams`` for how they map onto ``Tract.tongueIndex`` /
+      // ``Tract.tongueDiameter``.
+      tongueIndex: target.tongueIndex,
+      tongueDiameter: target.tongueDiameter,
     });
     setActiveVowel(target.sym);
     // Clicking a preset resets the free-form cursor — the tract now
@@ -280,41 +298,46 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
         </div>
       </div>
 
-      {/* ============= Pink Trombone popup (top-left, draggable backdrop) ============= */}
+      {/* ============= Pink Trombone popup — floating card, no backdrop ============= */}
+      {/* The popup used to wrap in a full-viewport ``.phonetics-lab-popup``
+          layer with ``pointer-events: none`` to keep the trapezoid drag
+          alive underneath. That approach broke the iframe: clicks on
+          the pink cavity area fell through to elements behind because
+          the wrapper's ``pointer-events: none`` was inherited by the
+          iframe on some browsers (WebKit, in particular). The card is
+          now positioned directly with ``position: fixed`` — no wrapper,
+          no backdrop, no inheritance surprises. */}
       {tractOpen && (
         <div
-          className="phonetics-lab-popup"
+          className="phonetics-lab-popup__card"
           role="dialog"
           aria-modal="true"
           data-testid="phonetics-lab-popup"
-          onClick={(e) => { if (e.target === e.currentTarget) closeTract(); }}
         >
-          <div className="phonetics-lab-popup__card">
-            <div className="phonetics-lab-popup__head">
-              <span className="phonetics-lab-popup__title">
-                Pink Trombone · <span className="phonetics-lab-popup__ipa">/{activeVowel}/</span>
-              </span>
-              <button
-                type="button"
-                className="phonetics-lab-popup__close"
-                onClick={closeTract}
-                aria-label="Chiudi tratto vocale"
-                data-testid="phonetics-lab-popup-close"
-              >×</button>
-            </div>
-            <iframe
-              ref={iframeRef}
-              src={IFRAME_URL}
-              title="Pink Trombone interactive vocal tract"
-              className="phonetics-lab-popup__iframe"
-              data-testid="phonetics-lab-iframe"
-              sandbox="allow-scripts allow-same-origin"
-            />
-            <p className="phonetics-lab-popup__legend">
-              Sezione sagittale interattiva — tocca / trascina su lingua, palato, velo, labbra.
-              L&rsquo;audio si attiva al primo tocco.
-            </p>
+          <div className="phonetics-lab-popup__head">
+            <span className="phonetics-lab-popup__title">
+              Pink Trombone · <span className="phonetics-lab-popup__ipa">/{activeVowel}/</span>
+            </span>
+            <button
+              type="button"
+              className="phonetics-lab-popup__close"
+              onClick={closeTract}
+              aria-label="Chiudi tratto vocale"
+              data-testid="phonetics-lab-popup-close"
+            >×</button>
           </div>
+          <iframe
+            ref={iframeRef}
+            src={IFRAME_URL}
+            title="Pink Trombone interactive vocal tract"
+            className="phonetics-lab-popup__iframe"
+            data-testid="phonetics-lab-iframe"
+            sandbox="allow-scripts allow-same-origin"
+          />
+          <p className="phonetics-lab-popup__legend">
+            Sezione sagittale interattiva — tocca / trascina su lingua, palato, velo, labbra.
+            L&rsquo;audio si attiva al primo tocco.
+          </p>
         </div>
       )}
     </div>
@@ -436,21 +459,15 @@ const styles = `
   }
 
   /* ---- Top-left popup that hosts the Pink Trombone iframe ---- */
-  .phonetics-lab-popup {
-    position: fixed; inset: 0; z-index: 70;
-    padding: 24px;
-    animation: plw-fade-in .25s ease-out;
-    /* Backdrop is non-blocking so the user can keep dragging on the
-       vowel trapezoid below while the popup is open. Interactive
-       elements inside the card re-enable pointer events. */
-    pointer-events: none;
-    background: transparent;
-  }
-  .phonetics-lab-popup > * { pointer-events: auto; }
+  /* The card positions itself directly with position: fixed — no
+     wrapper, no backdrop. This keeps the trapezoid interactive
+     underneath (drag / click on presets works while the popup is
+     open) AND lets the iframe capture all mouse events on the pink
+     cavity for tract-shape drags. */
   @keyframes plw-fade-in { from { opacity:0; } to { opacity:1; } }
   @keyframes plw-slide-tl { from { opacity:0; transform: translate(-12px,-12px) scale(.96); } to { opacity:1; transform:none; } }
   .phonetics-lab-popup__card {
-    position: absolute; top: 24px; left: 24px;
+    position: fixed; top: 24px; left: 24px; z-index: 70;
     width: min(440px, calc(100vw - 48px));
     max-height: calc(100vh - 48px);
     background: #ffffff; border-radius: 16px;
@@ -459,6 +476,8 @@ const styles = `
     overflow: hidden;
     animation: plw-slide-tl .3s cubic-bezier(.2,.8,.2,1);
   }
+  @keyframes plw-fade-in { from { opacity:0; } to { opacity:1; } }
+  @keyframes plw-slide-tl { from { opacity:0; transform: translate(-12px,-12px) scale(.96); } to { opacity:1; transform:none; } }
   .phonetics-lab-popup__head {
     display:flex; align-items:center; justify-content:space-between;
     gap: 10px; padding: 10px 14px;

@@ -1930,6 +1930,21 @@ function redraw(highResTimestamp)
         alwaysVoice = p.alwaysVoice;
         if (UI && UI.alwaysVoiceButton) UI.alwaysVoiceButton.switchedOn = p.alwaysVoice;
       }
+      // Vocal-tract shape: front/back tongue position + how open the tract
+      // is at that point. Parent sends these to reproduce a specific vowel
+      // posture (canonical values per Neil Thapen's original ranges:
+      //   tongueIndex     ~12.9 (front) .. 29.1 (back)
+      //   tongueDiameter  ~2.05 (closed) .. 3.50 (open) ).
+      if (typeof Tract !== 'undefined') {
+        if (typeof p.tongueIndex === 'number') {
+          Tract.tongueIndex = Math.max(Tract.tongueLowerIndexBound || 12,
+                                       Math.min(Tract.tongueUpperIndexBound || 29, p.tongueIndex));
+        }
+        if (typeof p.tongueDiameter === 'number') {
+          Tract.tongueDiameter = Math.max(Tract.innerTongueControlRadius || 2.05,
+                                          Math.min(Tract.outerTongueControlRadius || 3.5, p.tongueDiameter));
+        }
+      }
     } catch (_) {}
   }
 
