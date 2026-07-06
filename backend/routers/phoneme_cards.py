@@ -60,6 +60,11 @@ class PhonemeCardBase(BaseModel):
     knobs: List[Dict[str, Any]] = Field(default_factory=list)
     exampleSentences: List[Dict[str, Any]] = Field(default_factory=list)
     facialMuscles: List[Dict[str, Any]] = Field(default_factory=list)
+    # §3.2 DERIVED overlay bundle — auto-populated at save from the
+    # canonical inventory. See ``anatomical_overlay.compute_overlay``.
+    anatomicalLabels: List[str] = Field(default_factory=list)
+    airflowArrows: List[Dict[str, Any]] = Field(default_factory=list)
+    voicing: str = ""
     vowelChartPosition: Dict[str, Any] = Field(default_factory=dict)
     classification: List[Dict[str, Any]] = Field(default_factory=list)
     funFact: Optional[Dict[str, Any]] = None
@@ -385,6 +390,32 @@ async def apply_muscle_rule_to_doc(db, doc: dict) -> List[Dict[str, str]]:
     muscles = compose_facial_muscles(ipa, kind)
     doc["facialMuscles"] = muscles
     return muscles
+
+
+async def apply_overlay_rule_to_doc(db, doc: dict) -> Dict[str, Any]:
+    """Compute and write the DERIVED overlay bundle (§3.2) into ``doc``.
+
+    Populates ``anatomicalLabels``, ``airflowArrows`` and ``voicing``
+    from the matching ``canonical_phonemes`` row. Like §3.1 this field
+    is ALWAYS overwritten on save — the canonical inventory is the
+    single source of truth for what to render on the sagittal view.
+    """
+    from .anatomical_overlay import compute_overlay
+    ipa = (doc.get("ipa") or "").strip()
+    if not ipa:
+        return {}
+    canonical = None
+    for cand in _ipa_equivalents(ipa):
+        canonical = await db.canonical_phonemes.find_one({"ipa": cand}, {"_id": 0})
+        if canonical:
+            break
+    if not canonical:
+        canonical = {"kind": doc.get("category", "vowel"), "manner": "", "place": "", "voicing": "Voiceless"}
+    bundle = compute_overlay(canonical)
+    doc["anatomicalLabels"] = bundle["anatomicalLabels"]
+    doc["airflowArrows"]    = bundle["airflowArrows"]
+    doc["voicing"]          = bundle["voicing"]
+    return bundle
 
 
 def _compose_autofill_for_vowel(canonical: dict) -> Dict[str, Any]:
@@ -1659,6 +1690,9 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         # overwrite whatever the payload provided so the field is deterministic
         # for every present and future card.
         await apply_muscle_rule_to_doc(db, doc)
+        # §3.2 lockdown: anatomicalLabels + airflowArrows + voicing are
+        # DERIVED from the canonical inventory (place / manner / kind).
+        await apply_overlay_rule_to_doc(db, doc)
         doc["createdAt"] = now
         doc["updatedAt"] = now
         doc["createdBy"] = admin.get("username")
@@ -1698,6 +1732,11 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         merged = {**existing, **update_fields}
         muscles_new = await apply_muscle_rule_to_doc(db, merged)
         update_fields["facialMuscles"] = muscles_new
+        # §3.2 overlay bundle — same idempotent recompute on every update.
+        overlay_new = await apply_overlay_rule_to_doc(db, merged)
+        update_fields["anatomicalLabels"] = overlay_new["anatomicalLabels"]
+        update_fields["airflowArrows"]    = overlay_new["airflowArrows"]
+        update_fields["voicing"]          = overlay_new["voicing"]
 
         if not update_fields:
             existing_computed = dict(existing)
@@ -1759,6 +1798,16 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
 
         await coll.insert_one(clone)
         return _to_response(clone)
+
+    @router.get("/canonical/anatomical-labels")
+    async def get_canonical_anatomical_labels():
+        """Return the 12 shared anatomical landmarks used by the overlay.
+
+        Position-fixed on the standard Steve Dapper sagittal template.
+        Cached client-side; refresh only when the template art changes.
+        """
+        from .anatomical_overlay import CANONICAL_ANATOMICAL_LABELS
+        return {"labels": CANONICAL_ANATOMICAL_LABELS}
 
     # ------------------------------------------------------------------ #
     # PUBLIC — read only, published only (admin JWT reveals drafts too)
@@ -1911,5 +1960,29 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
             muscle_fixed += 1
     if muscle_fixed:
         patched.append(f"facialMuscles.§3.1×{muscle_fixed}")
+
+    # 7) §3.2 overlay backfill — anatomicalLabels/airflowArrows/voicing
+    #    derived from canonical_phonemes (place, manner, kind, voicing).
+    overlay_fixed = 0
+    async for card in coll.find({}, {"_id": 0, "id": 1, "ipa": 1, "category": 1,
+                                     "anatomicalLabels": 1, "airflowArrows": 1, "voicing": 1}):
+        try:
+            new_bundle = await apply_overlay_rule_to_doc(db, dict(card))
+        except Exception:  # noqa: BLE001
+            continue
+        old_labels = list(card.get("anatomicalLabels") or [])
+        old_arrows = card.get("airflowArrows") or []
+        old_voicing = card.get("voicing") or ""
+        if (old_labels != new_bundle["anatomicalLabels"]
+                or old_arrows != new_bundle["airflowArrows"]
+                or old_voicing != new_bundle["voicing"]):
+            await coll.update_one({"id": card["id"]}, {"$set": {
+                "anatomicalLabels": new_bundle["anatomicalLabels"],
+                "airflowArrows":    new_bundle["airflowArrows"],
+                "voicing":          new_bundle["voicing"],
+            }})
+            overlay_fixed += 1
+    if overlay_fixed:
+        patched.append(f"overlay.§3.2×{overlay_fixed}")
 
     return {"inserted": inserted, "skipped": skipped, "patched": patched}

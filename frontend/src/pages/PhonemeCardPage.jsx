@@ -18,6 +18,7 @@ import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
+import SagittalOverlay from '../components/SagittalOverlay';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -534,6 +535,16 @@ const PhonemeCardPage = () => {
               iframeClassName="absolute inset-0 w-full h-full bg-slate-950 border-0"
               testId="phoneme-side-image"
             />
+            {/* §3.2 SagittalOverlay — anatomical labels + airflow arrows +
+                voicing indicator. Sits *above* the still image, *below*
+                the interactive hotspots. Hidden when the video is playing
+                (the video already tells the story visually). */}
+            {!sideVideoActive && (
+              <SagittalOverlay
+                card={phoneme}
+                className="absolute inset-0 w-full h-full z-20"
+              />
+            )}
 
             {/* Dev coord picker — marker dots for picked positions */}
             {coordPickerEnabled && pickedCoords.map((c, i) => (
