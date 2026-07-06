@@ -99,7 +99,7 @@ const ListenButton = ({ src, label = 'Listen', testId }) => {
 };
 
 // ------- Published mini-card ---------------------------------------------
-const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, dialectMismatch = false, onLockedClick }) => {
+const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, dialectMismatch = false, onLockedClick, onDialectMismatchClick }) => {
   const isoAudio = phoneme.audio?.[dialect]?.isolated || phoneme.audio?.AmE?.isolated;
   const isPremium = entry.access === 'premium';
   const displayIpa = getIpaForDialect(entry, dialect);
@@ -108,20 +108,27 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, dialectM
                 : null;
 
   const handleClick = (e) => {
+    if (dialectMismatch) {
+      // Educational side-quest: instead of silently blocking the visitor,
+      // pop the "how this phoneme is realised in your accent" dialog so
+      // the mismatch becomes a teaching moment.
+      e.preventDefault();
+      e.stopPropagation();
+      onDialectMismatchClick?.(entry);
+      return;
+    }
     if (locked) {
       e.preventDefault();
       e.stopPropagation();
-      // Mismatched cards silently do nothing — the mute overlay explains
-      // the situation. Only premium-locked cards trigger the paywall.
-      if (!dialectMismatch) onLockedClick?.(entry);
+      onLockedClick?.(entry);
     }
   };
 
   return (
     <Link
-      to={locked ? '#' : `/lms/phoneme/${entry.id}`}
+      to={(locked || dialectMismatch) ? '#' : `/lms/phoneme/${entry.id}`}
       onClick={handleClick}
-      className={`group relative block ${locked ? 'cursor-pointer' : ''}`}
+      className={`group relative block ${locked || dialectMismatch ? 'cursor-pointer' : ''}`}
       data-testid={`phoneme-library-card-${entry.id}`}
       data-locked={locked ? 'true' : 'false'}
       data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
@@ -223,7 +230,7 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, dialectM
 };
 
 // ------- Locked placeholder card -----------------------------------------
-const LockedCard = ({ entry, group, dialect, index }) => {
+const LockedCard = ({ entry, group, dialect, index, dialectMismatch = false, onDialectMismatchClick }) => {
   const displayIpa = getIpaForDialect(entry, dialect);
   const altIpa = (dialect === 'AmE' && entry.ipa && entry.ipa !== displayIpa) ? entry.ipa
                 : (dialect === 'RP'  && entry.ipaUS && entry.ipaUS !== displayIpa) ? entry.ipaUS
@@ -233,8 +240,10 @@ const LockedCard = ({ entry, group, dialect, index }) => {
                     : null;
   return (
     <div
-      className="relative block cursor-not-allowed"
+      className={`relative block ${dialectMismatch ? 'cursor-pointer' : 'cursor-not-allowed'}`}
       data-testid={`phoneme-library-locked-${entry.id}`}
+      data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
+      onClick={() => { if (dialectMismatch) onDialectMismatchClick?.(entry); }}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className={`relative h-full rounded-3xl border border-dashed ${group.border} bg-slate-900/40 backdrop-blur-sm p-6 overflow-hidden opacity-75 transition-opacity hover:opacity-95`}>
@@ -331,6 +340,8 @@ const PhonemeLibraryPage = () => {
   const { user } = useAuth();
   const [groupFilter, setGroupFilter] = useState('all');
   const [paywallEntry, setPaywallEntry] = useState(null);
+  // Dialect-mismatch educational dialog (see handleDialectMismatch below)
+  const [dialectDialogEntry, setDialectDialogEntry] = useState(null);
 
   // Fetch published cards from the CMS so newly-published phonemes appear here
   // without needing to hand-edit the static PHONEMES map / catalogue status.
@@ -373,6 +384,17 @@ const PhonemeLibraryPage = () => {
   }, [groupFilter, dbPhonemes]);
 
   const handleLockedClick = (entry) => setPaywallEntry(entry);
+  const handleDialectMismatch = (entry) => setDialectDialogEntry(entry);
+
+  // Suggested US-equivalent card when clicking a grey-outed RP-only phoneme.
+  // Mapping is canonical: each RP-exclusive phoneme has a documented US
+  // realisation via a different (or rhotic-adjacent) phoneme.
+  const DIALECT_REDIRECTS = {
+    'o-lot':     { toId: 'a-palm',  toIpa: '/ɑ/',  toLabel: 'PALM' },
+    'ie-near':   { toId: 'i-kit',   toIpa: '/ɪr/', toLabel: 'KIT + /r/' },
+    'ee-square': { toId: 'e-dress', toIpa: '/ɛr/', toLabel: 'DRESS + /r/' },
+    'ue-cure':   { toId: 'u-foot',  toIpa: '/ʊr/', toLabel: 'FOOT + /r/' },
+  };
 
   return (
     <div className="min-h-screen bg-[#04070d] text-slate-200" data-testid="phoneme-library-page">
@@ -391,9 +413,10 @@ const PhonemeLibraryPage = () => {
            !important overrides the final state of the lib-fade-up
            animation (which sets opacity:1). */
         .lib-card-dialect-mute            { opacity: 0.4 !important; filter: saturate(0.3) grayscale(0.35); }
-        .lib-card-dialect-mute:hover      { opacity: 0.75 !important; filter: saturate(0.6) grayscale(0.15); transition: opacity .3s ease, filter .3s ease; }
-        .lib-card-dialect-mute a,
-        .lib-card-dialect-mute .cursor-pointer { pointer-events: none; cursor: not-allowed; }
+        .lib-card-dialect-mute:hover      { opacity: 0.75 !important; filter: saturate(0.6) grayscale(0.15); transition: opacity .3s ease, filter .3s ease; cursor: help; }
+        /* Do NOT disable pointer events — we want clicks to open the
+           educational dialog. The click handler in <PublishedCard>
+           routes to onDialectMismatchClick instead of navigating. */
       `}</style>
 
       {/* Ambient drifting blobs */}
@@ -528,9 +551,10 @@ const PhonemeLibraryPage = () => {
                     group={group}
                     dialect={dialect}
                     index={i}
-                    locked={locked || dialectMismatch}
+                    locked={locked}
                     dialectMismatch={dialectMismatch}
                     onLockedClick={handleLockedClick}
+                    onDialectMismatchClick={handleDialectMismatch}
                   />
                 </div>
               );
@@ -542,7 +566,14 @@ const PhonemeLibraryPage = () => {
                 style={{ animationDelay: `${i * 50}ms` }}
                 data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
               >
-                <LockedCard entry={entry} group={group} dialect={dialect} index={i} dialectMismatch={dialectMismatch} />
+                <LockedCard
+                  entry={entry}
+                  group={group}
+                  dialect={dialect}
+                  index={i}
+                  dialectMismatch={dialectMismatch}
+                  onDialectMismatchClick={handleDialectMismatch}
+                />
               </div>
             );
           })}
@@ -600,6 +631,77 @@ const PhonemeLibraryPage = () => {
           onClose={() => setPaywallEntry(null)}
         />
       )}
+      {/* ---------- Dialect-mismatch educational dialog ---------- */}
+      {dialectDialogEntry && (() => {
+        const e = dialectDialogEntry;
+        const redirect = DIALECT_REDIRECTS[e.id];
+        const isRP = e.dialectScope === 'RP-only';
+        const activeAccent = isRP ? 'RP britannico' : 'American English';
+        const otherAccent  = isRP ? 'American English' : 'RP britannico';
+        return (
+          <div
+            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setDialectDialogEntry(null)}
+            data-testid="phoneme-library-dialect-dialog"
+          >
+            <div
+              className="relative max-w-lg w-full bg-slate-900 border border-cyan-500/40 rounded-2xl p-6 shadow-2xl"
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setDialectDialogEntry(null)}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors"
+                aria-label="Chiudi"
+                data-testid="phoneme-library-dialect-dialog-close"
+              >×</button>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-4xl leading-none">{isRP ? '🇬🇧' : '🇺🇸'}</span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-orange-300 font-bold">
+                    fonema mono-dialetto
+                  </p>
+                  <h3 className="text-xl font-black text-white">
+                    /{e.ipa}/ · {e.subtitle}
+                  </h3>
+                </div>
+              </div>
+              <p className="text-cyan-100/85 text-sm leading-relaxed mb-4">
+                Il fonema <b className="text-white">/{e.ipa}/</b> esiste solo in <b>{activeAccent}</b>. In <b>{otherAccent}</b> {isRP
+                  ? <>si è fuso con un altro suono oppure viene sostituito da un fonema rotico</>
+                  : <>non esiste come suono distinto</>}. Sentirlo pronunciato nell&rsquo;accento sbagliato confonderebbe le tue orecchie: sarebbe un fonema diverso.
+              </p>
+              {redirect ? (
+                <div className="bg-slate-950/60 border border-cyan-500/30 rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold mb-2">
+                    equivalente in {otherAccent}
+                  </p>
+                  <p className="text-cyan-50 text-sm mb-3">
+                    In {otherAccent.split(' ')[0]}, parole come{' '}
+                    <span className="font-semibold text-white">{(e.words || []).slice(0,2).join(', ') || '…'}</span>{' '}
+                    si pronunciano con il fonema{' '}
+                    <b className="font-mono text-orange-300">{redirect.toIpa}</b>{' '}
+                    <span className="text-slate-400">({redirect.toLabel})</span>.
+                  </p>
+                  <Link
+                    to={`/lms/phoneme/${redirect.toId}`}
+                    onClick={() => setDialectDialogEntry(null)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-900 font-bold text-sm hover:scale-[1.02] transition-transform"
+                    data-testid="phoneme-library-dialect-dialog-cta"
+                  >
+                    Esplora /{redirect.toIpa.replace(/\//g,'')}/ {redirect.toLabel}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-slate-400 text-xs italic">
+                  Consiglio: cambia il toggle US⇄UK nell&rsquo;header per riattivare questa scheda.
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
