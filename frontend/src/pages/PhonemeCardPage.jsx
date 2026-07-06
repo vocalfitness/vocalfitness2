@@ -522,8 +522,11 @@ const PhonemeCardPage = () => {
           {/* Scanline accent */}
           <div className="phoneme-scanline" />
 
-          {/* Background image (clean anatomical side-view, square ratio capped at viewport height) */}
-          <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '1 / 1', maxHeight: '85vh' }}>
+          {/* Background image (clean anatomical side-view, square ratio capped at viewport height).
+              maxWidth also clamped to 85vh so the box stays truly square — without it, w-full
+              wins and the container becomes a wide rectangle that horizontally stretches the
+              §3.2 SagittalOverlay coordinates (anchors calibrated for a 1:1 aspect). */}
+          <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '1 / 1', maxHeight: '85vh', maxWidth: '85vh' }}>
             <PhonemeAssetMedia
               imageUrl={phoneme.assets?.sideView}
               videoUploadUrl={phoneme.assets?.sideViewVideo}
@@ -611,7 +614,11 @@ const PhonemeCardPage = () => {
             </div>
 
             {/* RIGHT-CENTER (aligned with Airflow/Voicing panel below):
-                Circular Front-View thumbnail with HUD scanner ring */}
+                Circular Front-View thumbnail with HUD scanner ring.
+                Hidden entirely when no front-view asset exists — otherwise
+                the <img> renders a broken-image placeholder that shows
+                its alt text ("front-view") inside the disc. */}
+            {(phoneme.assets?.frontViewClean || phoneme.assets?.frontView) && (
             <button
               type="button"
               onClick={() => setShowFrontView(true)}
@@ -670,6 +677,7 @@ const PhonemeCardPage = () => {
                 Open facial muscle map
               </span>
             </button>
+            )}
 
             {/* Side-view VIDEO CTA — wrapper anchored to the right, same width
                 as the Front View disc (w-32/40/48) so its horizontal axis is

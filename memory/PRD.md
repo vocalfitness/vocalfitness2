@@ -1243,3 +1243,43 @@ AdminDatabaseTab.jsx   56 righe
 - SMTP usa Zoho App-Specific Password
 - In produzione configurare variabili d'ambiente su Emergent dashboard
 - JWT_SECRET_KEY da cambiare in produzione
+
+## Changelog — 06/07/2026 (Sagittal Overlay §3.2 polish)
+
+### Fix visivi Sagittal Overlay `/e/` (bozza)
+- **Container quadrato reale**: aggiunto `maxWidth: 85vh` alla `imageContainerRef`
+  in `PhonemeCardPage.jsx` per evitare stiramento orizzontale delle coordinate
+  SVG (che sono calibrate su aspect 1:1).
+- **Placeholder pulito**: `PhonemeAssetMedia.jsx` ora renderizza un `<div>` scuro
+  quando `imageUrl` è vuoto, invece dell'icona "broken image" con testo alt.
+- **Front-view button condizionale**: nascosto interamente quando né
+  `frontViewClean` né `frontView` esistono (evita testo "front-view"
+  fantasma nel cerchio HUD).
+- **Frecce airflow ridotte**: `strokeWidth` 1.1→0.7, `markerWidth/Height` 4→2.4
+  in `SagittalOverlay.jsx` per un rendering più delicato/proporzionato.
+- **Riposizionamento etichette anatomiche** in `anatomical_overlay.py`:
+  - `vocal-folds` leader → `(20, 88)` (era `(72, 88)`, collideva con badge
+    Airflow/Voicing in basso a destra).
+  - `tongue-body` leader → `(78, 78)` (era `(28, 84)`, sovrapposto a
+    tongue-root/vocal-folds).
+- **Path airflow vocali riposizionato** a `(58,56)→(45,50)→(33,48)` per
+  fermarsi prima delle labbra e non collidere con `upper-lip`/`lower-lip`.
+- **IPA equivalence `e ↔ ɛ`** aggiunta a `_IPA_EQUIVALENTS` in
+  `phoneme_cards.py` (DRESS lexset in italiano `/e/`, canonical `/ɛ/`).
+
+### Verifica in Preview
+- Login admin → `/lms/phoneme/e-dress` mostra correttamente:
+  LABBRO SUPERIORE, LABBRO INFERIORE, CORPO DELLA LINGUA, CORDE VOCALI,
+  freccia airflow curva, indicatore voicing animato a 3 barre.
+- Produzione (`vocalfitness.org`): endpoint `/api/canonical/anatomical-labels`
+  restituisce `0` etichette — deploy §3.2 pendente. **User action**: click
+  "Deploy" da dashboard Emergent per attivare le etichette in live.
+
+### Next Actions
+- P0: user validation su Preview dopo upload immagine `/e/` su Preview
+  (attualmente immagine è su Produzione, dove il canonical seed non è ancora
+  deployato).
+- P1: Integrazione ElevenLabs (voce Steve Dapper) per `mnemonic.phrase`.
+- P2: Toggle admin `showAnatomicalLabels` per opt-out per singola card.
+- P2: Testing agent v3 su tutta la feature §3.2 (fluida verifica end-to-end).
+

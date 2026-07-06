@@ -68,7 +68,7 @@ export default function SagittalOverlay({
           <stop offset="1" stopColor="#22d3ee" stopOpacity="0.15" />
         </linearGradient>
         <marker id="arrow-cyan" viewBox="0 0 8 8" refX="6" refY="4"
-                markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                markerWidth="2.4" markerHeight="2.4" orient="auto-start-reverse">
           <path d="M0,0 L8,4 L0,8 z" fill="#67e8f9" />
         </marker>
         <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
@@ -96,7 +96,7 @@ export default function SagittalOverlay({
               d={dPath}
               fill="none"
               stroke="url(#airflow-cyan)"
-              strokeWidth={styleKey === 'blocked' ? 1.6 : 1.1}
+              strokeWidth={styleKey === 'blocked' ? 1.0 : 0.7}
               strokeLinecap="round"
               strokeDasharray={strokeDash}
               markerEnd={styleKey === 'blocked' ? '' : 'url(#arrow-cyan)'}

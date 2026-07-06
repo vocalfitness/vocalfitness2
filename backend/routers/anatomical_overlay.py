@@ -36,10 +36,12 @@ CANONICAL_ANATOMICAL_LABELS: List[Dict[str, Any]] = [
     {"id": "soft-palate",       "labelIt": "Palato molle (velo)",    "labelEn": "Soft palate",     "anchor": {"x": 51, "y": 42}, "leader": {"x": 65, "y": 22}},
     {"id": "uvula",             "labelIt": "Ugola",                  "labelEn": "Uvula",           "anchor": {"x": 53, "y": 47}, "leader": {"x": 74, "y": 34}},
     {"id": "tongue-tip",        "labelIt": "Apice della lingua",     "labelEn": "Tongue tip",      "anchor": {"x": 42, "y": 53}, "leader": {"x": 24, "y": 72}},
-    {"id": "tongue-body",       "labelIt": "Corpo della lingua",     "labelEn": "Tongue body",     "anchor": {"x": 47, "y": 55}, "leader": {"x": 28, "y": 84}},
+    {"id": "tongue-body",       "labelIt": "Corpo della lingua",     "labelEn": "Tongue body",     "anchor": {"x": 47, "y": 55}, "leader": {"x": 78, "y": 78}},
     {"id": "tongue-root",       "labelIt": "Radice della lingua",    "labelEn": "Tongue root",     "anchor": {"x": 52, "y": 60}, "leader": {"x": 70, "y": 70}},
     {"id": "epiglottis",        "labelIt": "Epiglottide",            "labelEn": "Epiglottis",      "anchor": {"x": 51, "y": 66}, "leader": {"x": 72, "y": 62}},
-    {"id": "vocal-folds",       "labelIt": "Corde vocali",           "labelEn": "Vocal folds",     "anchor": {"x": 47, "y": 76}, "leader": {"x": 72, "y": 88}},
+    # Vocal-folds leader is placed on the LEFT side to avoid colliding
+    # with the bottom-right Airflow/Voicing HUD badge on the card.
+    {"id": "vocal-folds",       "labelIt": "Corde vocali",           "labelEn": "Vocal folds",     "anchor": {"x": 47, "y": 76}, "leader": {"x": 20, "y": 88}},
 ]
 
 
@@ -91,9 +93,11 @@ def _airflow_for_manner(manner: str, place: str) -> List[Dict[str, Any]]:
         return [{"type": "lateral", "path": [
             {"x": 60, "y": 55}, {"x": 45, "y": 52}, {"x": 30, "y": 48},
         ]}]
-    # Approximants + vowels: smooth oral airflow
+    # Approximants + vowels: smooth oral airflow (endpoint stops just
+    # before the lips at x≈33 so it doesn't collide with the upper/lower
+    # lip anchor labels)
     return [{"type": "oral-smooth", "path": [
-        {"x": 62, "y": 58}, {"x": 48, "y": 48}, {"x": 28, "y": 46},
+        {"x": 58, "y": 56}, {"x": 45, "y": 50}, {"x": 33, "y": 48},
     ]}]
 
 

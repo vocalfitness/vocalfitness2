@@ -135,6 +135,18 @@ export default function PhonemeAssetMedia({
 
   // ---- CASE A: only image -----------------------------------------------
   if (!hasVideo) {
+    // Empty asset slot → render a solid dark placeholder rather than a
+    // broken <img> icon + alt text. The overlay layer above still gets to
+    // draw labels/arrows for the phoneme even without a background image.
+    if (!hasImage) {
+      return (
+        <div
+          className={mediaClassName}
+          aria-label={alt}
+          data-testid={testId}
+        />
+      );
+    }
     return (
       <img
         src={imageUrl}

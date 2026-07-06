@@ -322,6 +322,10 @@ _IPA_EQUIVALENTS: Dict[str, List[str]] = {
     "ɡ":  ["ɡ",  "g"],
     ":":  ["ː", ":"],    # ASCII colon length mark vs IPA triangular colon
     "ː":  ["ː", ":"],
+    # Italian LMS convention: DRESS written as /e/ but canonical inventory
+    # uses /ɛ/ (open-mid). Same for FACE /eɪ/ vs /ɛɪ/ etc.
+    "e":  ["e",  "ɛ"],
+    "ɛ":  ["ɛ",  "e"],
 }
 
 
