@@ -1255,16 +1255,22 @@ const PhonemeCardPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ============== Articulatory deep-dive modal ============== */}
+      {/* ============== Articulatory deep-dive modal ==============
+          The media inside is 16:9. The modal width is derived from
+          the viewport height so a truly wide portrait image never
+          overflows vertically — width ≤ 95vw as a hard cap.
+          (Previous ``max-w-[min(95vw,92vh)] w-auto`` collapsed the
+          dialog to a tiny box on wide displays because 92vh and
+          w-auto fed on each other.) */}
       <Dialog open={showArticulatory} onOpenChange={setShowArticulatory}>
-        <DialogContent className="max-w-[min(95vw,92vh)] w-auto p-0 bg-slate-950 border border-cyan-500/30 text-cyan-50 overflow-hidden flex flex-col" data-testid="phoneme-articulatory-modal">
+        <DialogContent className="w-[min(95vw,150vh)] max-w-[95vw] p-0 bg-slate-950 border border-cyan-500/30 text-cyan-50 overflow-hidden flex flex-col" data-testid="phoneme-articulatory-modal">
           <DialogHeader className="p-4 border-b border-cyan-500/20 bg-slate-900/40 flex-shrink-0">
             <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
               <span className="text-orange-400">{phoneme.displayIpa}</span> · Articulatory Position — Deep Dive
             </DialogTitle>
           </DialogHeader>
           <div className="bg-slate-950 flex items-center justify-center">
-            <div className="relative w-full max-h-[80vh]" style={{ aspectRatio: '16 / 9' }}>
+            <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
               <PhonemeAssetMedia
                 imageUrl={phoneme.assets?.articulatory}
                 videoUploadUrl={phoneme.assets?.articulatoryVideo}
