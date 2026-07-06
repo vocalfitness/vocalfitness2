@@ -72,35 +72,38 @@ _VOWEL_LABELS_ALWAYS = ["upper-lip", "lower-lip", "tongue-body", "vocal-folds"]
 def _airflow_for_manner(manner: str, place: str) -> List[Dict[str, Any]]:
     """Return one or more airflow-arrow descriptors for the given manner.
 
-    Arrow path is a list of 3 points (start, control, end) in 0..100
-    coordinates that the frontend renders as a smooth quadratic Bézier.
-    ``type`` drives the visual style (dashed = obstructed, wavy =
-    turbulent, straight = smooth, dotted = nasal branch).
+    Paths are calibrated to stay INSIDE the vocal-tract cavity (roughly
+    x ∈ [35..55], y ∈ [42..52]) — the big cyan arrow that used to sweep
+    across the whole face has been retired.
+
+    Arrow path = 3 points (start, control, end) in 0..100 coords rendered
+    as a smooth quadratic Bézier. ``type`` drives the visual style
+    (dashed = obstructed, wavy = turbulent, straight = smooth, dotted =
+    nasal branch).
     """
     m = (manner or "").lower()
     if m == "plosive":
         # Airflow blocked at the closure point + burst outward
         return [{"type": "blocked", "path": [
-            {"x": 60, "y": 55}, {"x": 50, "y": 50}, {"x": 42, "y": 48},
+            {"x": 52, "y": 48}, {"x": 45, "y": 47}, {"x": 39, "y": 47},
         ]}]
     if m == "fricative":
         return [{"type": "oral-turbulent", "path": [
-            {"x": 60, "y": 55}, {"x": 45, "y": 50}, {"x": 28, "y": 48},
+            {"x": 52, "y": 48}, {"x": 44, "y": 47}, {"x": 36, "y": 47},
         ]}]
     if m == "nasal":
         # Velum lowers → airflow diverted through the nasal cavity
         return [{"type": "nasal", "path": [
-            {"x": 60, "y": 60}, {"x": 50, "y": 40}, {"x": 30, "y": 26},
+            {"x": 52, "y": 50}, {"x": 49, "y": 44}, {"x": 44, "y": 38},
         ]}]
     if m in ("lateral", "lateral approximant"):
         return [{"type": "lateral", "path": [
-            {"x": 60, "y": 55}, {"x": 45, "y": 52}, {"x": 30, "y": 48},
+            {"x": 52, "y": 50}, {"x": 44, "y": 49}, {"x": 36, "y": 48},
         ]}]
-    # Approximants + vowels: smooth oral airflow (endpoint stops just
-    # before the lips at x≈33 so it doesn't collide with the upper/lower
-    # lip anchor labels)
+    # Approximants + vowels: smooth oral airflow curving UP over the
+    # tongue and forward toward the lips — contained inside the tract.
     return [{"type": "oral-smooth", "path": [
-        {"x": 58, "y": 56}, {"x": 45, "y": 50}, {"x": 33, "y": 48},
+        {"x": 53, "y": 50}, {"x": 46, "y": 44}, {"x": 38, "y": 47},
     ]}]
 
 

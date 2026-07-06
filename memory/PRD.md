@@ -1244,7 +1244,35 @@ AdminDatabaseTab.jsx   56 righe
 - In produzione configurare variabili d'ambiente su Emergent dashboard
 - JWT_SECRET_KEY da cambiare in produzione
 
-## Changelog — 06/07/2026 (Sagittal Overlay §3.2 polish)
+## Changelog — 06/07/2026 (Sagittal Overlay §3.2 – Barlow Condensed style)
+
+### Restyling secondo riferimento printed-card
+- **Font**: importato **Barlow Condensed** (Google Fonts, weights 300/400/500)
+  in `frontend/public/index.html`. Fallback: Roboto Condensed → Fira Sans
+  Condensed → system.
+- **SagittalOverlay.jsx rifatto** (HTML absolute-position + SVG hairline
+  per leader):
+  - Testo bianco puro (`#ffffff`), sentence-case, **font condensato tall/narrow**.
+  - `fontSize: clamp(14px, 1.4vw, 20px)`, `fontWeight: 400`, `lineHeight: 1.05`.
+  - Solo pallino bianco al lato anatomico (raggio ~5px, cerchio vero via
+    `border-radius: 50%` HTML); nessun pallino al lato del testo.
+  - Leader line bianca, `strokeWidth=1` con `vectorEffect="non-scaling-stroke"`.
+  - Supporto multi-line (`max-width: 18ch`, `white-space: normal`).
+- **Frecce airflow ripristinate** ma **piccole e contenute** dentro la
+  cavità orale (`x ∈ 36..53`, `y ∈ 44..50`) — non più il grande arco che
+  copriva il volto. Colore teal (`#5eead4`), marker più piccolo.
+- **Ratio card**: ripristinato **16:9** (era stato erroneamente forzato a
+  1:1) — `aspectRatio: '16 / 9', maxHeight: 85vh`.
+- **Coordinate label ravvicinate**: leader endpoints ora molto vicini agli
+  anchor (breve tratto orizzontale/diagonale in stile printed-card).
+
+### Note per test end-to-end
+- Preview `u-foot` mostra ancora l'immagine con **etichette baked**: le
+  etichette digitali overlay si sovrappongono → è previsto finché
+  l'utente non carica una **immagine PULITA** su Preview (l'ha caricata
+  in produzione, DB diversi).
+- `e-dress` su Preview non ha ancora `sideView`: bisogna caricare l'asset.
+
 
 ### Fix visivi Sagittal Overlay `/e/` (bozza)
 - **Container quadrato reale**: aggiunto `maxWidth: 85vh` alla `imageContainerRef`
