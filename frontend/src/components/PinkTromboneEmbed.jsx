@@ -156,19 +156,18 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top)  / rect.height;
-    const tense = 0.9 - y * 0.55;
-    const intensity = 0.65 + (1 - y) * 0.25;
-    const freq = 125 + (0.5 - x) * 30;
-    sendParams({
-      tenseness: Math.max(0.3, Math.min(0.95, tense)),
-      intensity: Math.max(0.5, Math.min(1.0, intensity)),
-      frequency: Math.max(80, Math.min(220, freq)),
+    const tense = Math.max(0.3, Math.min(0.95, 0.9 - y * 0.55));
+    const intensity = Math.max(0.5, Math.min(1.0, 0.65 + (1 - y) * 0.25));
+    const freq = Math.max(80, Math.min(220, 125 + (0.5 - x) * 30));
+    sendParams({ tenseness: tense, intensity, frequency: freq });
+    // Continuous morph → update the free-form cursor + the live-params
+    // read-out. We keep ``activeVowel`` intact so the last preset stays
+    // highlighted as a reference anchor.
+    setDragPos({
+      x: Math.max(0, Math.min(1, x)),
+      y: Math.max(0, Math.min(1, y)),
+      freq, tense, intensity,
     });
-    // Continuous morph → update the free-form cursor. Do NOT clear
-    // ``activeVowel`` (keep the last preset highlighted so the user
-    // can visually compare the free-form position to the nearest
-    // canonical target).
-    setDragPos({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
   };
 
   return (
@@ -246,6 +245,31 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
                   cy={14 + dragPos.y * (166 - 14)}
                   r={7}
                 />
+                {/* Live parameter read-out anchored to the cursor —
+                    reveals in real time the vocal-tract knobs being
+                    pushed as the user morphs (pedagogical value: shows
+                    the physical mapping between mouth position and
+                    acoustic parameters). Positioned to the right of
+                    the cursor when in the left half of the chart, and
+                    to the left when in the right half — always stays
+                    inside the trapezoid. */}
+                <g className="phonetics-lab-wrapper__cursor-label">
+                  {(() => {
+                    const cx = 14 + dragPos.x * (206 - 14);
+                    const cy = 14 + dragPos.y * (166 - 14);
+                    const rightSide = dragPos.x > 0.55;
+                    const lx = rightSide ? cx - 62 : cx + 12;
+                    const ly = cy - 20;
+                    return (
+                      <>
+                        <rect x={lx} y={ly} width="52" height="34" rx="4" />
+                        <text x={lx + 4} y={ly + 10}>{Math.round(dragPos.freq)} Hz</text>
+                        <text x={lx + 4} y={ly + 20}>tense {dragPos.tense.toFixed(2)}</text>
+                        <text x={lx + 4} y={ly + 30}>int   {dragPos.intensity.toFixed(2)}</text>
+                      </>
+                    );
+                  })()}
+                </g>
               </g>
             )}
           </svg>
@@ -382,6 +406,19 @@ const styles = `
   @keyframes plw-cursor-pulse {
     0%,100% { r: 6; opacity: 0.85; }
     50%     { r: 8; opacity: 1;    }
+  }
+  .phonetics-lab-wrapper__cursor-label rect {
+    fill: rgba(2, 6, 12, 0.86);
+    stroke: rgba(248, 250, 252, 0.35);
+    stroke-width: 0.5;
+  }
+  .phonetics-lab-wrapper__cursor-label text {
+    fill: #f8fafc;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 6.5px;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    dominant-baseline: hanging;
   }
   .phonetics-lab-wrapper__hint {
     font-size:10px; color: var(--plw-muted); line-height:1.6; margin:8px 0 0;
