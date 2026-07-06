@@ -1,40 +1,33 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { parseVideoUrl } from './VideoLinkInput';
 
 /**
  * PhonemeAssetMedia — smart image/video swap for the public phoneme card.
  *
- * Behaviour (per Vocal-Fitness product spec, 06/07/2026):
- *   • image only              → renders the <img> just like before.
- *   • video (upload or link)  → renders the video as a chromeless,
- *     autoplaying, muted, looping surface — visually indistinguishable
- *     from a static image (no player controls, no branding).
- *   • image + video           → image is the default; a subtle "play"
- *     affordance appears on hover, and clicking anywhere on the surface
- *     cross-fades to the video (fluid transition, 500 ms). Clicking
- *     again returns to the image. Keyboard (Enter/Space) also toggles.
+ * The component is CONTROLLED: the parent owns the ``videoActive`` state.
+ * This is required because sibling components (e.g. articulatory hotspots
+ * on the hero surface) need to react to the video mode too (hide when
+ * the video plays, restore when the image comes back).
  *
- * The three video providers are handled transparently:
- *   • uploaded file            → <video autoplay muted loop playsinline>
- *   • YouTube (parsed by parseVideoUrl) → <iframe> with autoplay=1,
- *     mute=1, controls=0, loop=1, modestbranding=1, playsinline=1
- *   • Vimeo                    → <iframe> with autoplay=1, muted=1,
- *     loop=1, controls=0, background=1 (background-mode = zero UI)
- *   • direct .mp4/.webm/.mov   → <video> element same as upload
+ * Rendering rules (per Vocal-Fitness product spec, 06/07/2026):
+ *   • image only              → renders <img> just like before
+ *   • video only              → renders the chromeless video (autoplay,
+ *                              muted, loop, playsinline) permanently
+ *   • image + video (default) → renders <img>. When ``videoActive`` flips
+ *     to true, the video layer fades in over 500 ms and takes over.
  *
- * Props:
- *   imageUrl        — optional static image URL (from card.assets.<key>)
- *   videoUploadUrl  — optional uploaded video URL (card.assets.<key>Video)
- *   videoLinkUrl    — optional external video URL (card.assets.<key>VideoLink)
- *   alt             — accessibility label for both image and video
- *   className       — Tailwind classes applied to the wrapper (positioning)
- *   mediaClassName  — Tailwind classes applied to both <img> and <video>
- *                     — must include fit/size classes so the swap is seamless
- *   testId          — data-testid root. Sub-testids: `${testId}-video`,
- *                     `${testId}-toggle`.
- *   forcePlayIcon   — if true, always show the play affordance (default:
- *                     shown only when both image and video are configured).
+ * Provider handling
+ *   • uploaded file           → <video autoplay muted loop playsinline>
+ *   • YouTube                 → <iframe> controls=0 &modestbranding=1
+ *   • Vimeo                   → <iframe> background=1 (fully chromeless)
+ *   • direct .mp4/.webm/.mov  → <video>
+ *
+ * IMPORTANT — pointer events:
+ *   The iframe used to be ``pointer-events-none`` so an internal toggle
+ *   button could receive clicks. That broke Vimeo's own initialisation
+ *   handshake on Safari. The toggle button now lives in the parent
+ *   (outside the video surface), so we leave pointer events on the
+ *   iframe intact.
  */
 export default function PhonemeAssetMedia({
   imageUrl,
@@ -43,15 +36,14 @@ export default function PhonemeAssetMedia({
   alt = '',
   className = '',
   mediaClassName = '',
+  iframeClassName = '',
+  videoActive = false,
   testId,
-  forcePlayIcon = false,
 }) {
   const API = process.env.REACT_APP_BACKEND_URL;
-  const [showVideo, setShowVideo] = useState(false);
   const videoElRef = useRef(null);
 
-  // Resolve a single "video source" descriptor. Upload wins over link
-  // when both are supplied (higher fidelity, no network dependency).
+  // Resolve a single video source. Uploaded file wins over external link.
   const videoResolved = useMemo(() => {
     if (videoUploadUrl) {
       const src = videoUploadUrl.startsWith('/api/')
@@ -63,57 +55,49 @@ export default function PhonemeAssetMedia({
       const parsed = parseVideoUrl(videoLinkUrl);
       if (!parsed) return null;
       if (parsed.provider === 'youtube') {
-        // Chromeless YouTube: no controls, no branding, muted autoplay,
-        // playlist=<id> is the documented loop trick for single videos.
         const params = new URLSearchParams({
-          autoplay: '1',
-          mute: '1',
-          controls: '0',
-          loop: '1',
-          playlist: parsed.id,
-          modestbranding: '1',
-          rel: '0',
-          playsinline: '1',
-          iv_load_policy: '3',
-          disablekb: '1',
-          fs: '0',
+          autoplay: '1', mute: '1', controls: '0', loop: '1',
+          playlist: parsed.id, modestbranding: '1', rel: '0',
+          playsinline: '1', iv_load_policy: '3', disablekb: '1', fs: '0',
         });
         return { type: 'iframe', src: `${parsed.embed}?${params.toString()}` };
       }
       if (parsed.provider === 'vimeo') {
+        // background=1 → truly chromeless: no play button, no title, muted autoplay loop.
         return {
           type: 'iframe',
           src: `${parsed.embed}?autoplay=1&muted=1&loop=1&controls=0&background=1&byline=0&title=0&portrait=0`,
         };
       }
-      if (parsed.provider === 'file') {
-        return { type: 'file', src: parsed.embed };
-      }
+      if (parsed.provider === 'file') return { type: 'file', src: parsed.embed };
     }
     return null;
   }, [videoUploadUrl, videoLinkUrl, API]);
 
   const hasImage = Boolean(imageUrl);
   const hasVideo = Boolean(videoResolved);
-
-  // When there is no image, the video is always "on" — it visually
-  // stands in for the image. When both exist we start with the image.
   const alwaysVideo = hasVideo && !hasImage;
-  const displayingVideo = alwaysVideo || showVideo;
+  const displayingVideo = alwaysVideo || (hasVideo && videoActive);
 
-  // Pause the local <video> element when it's not visible (perf + battery).
+  // Perf: pause the local <video> element when it's not visible.
+  // ``play()`` returns a Promise which **rejects** silently when the
+  // browser refuses (autoplay policy, unsupported source, network error).
+  // We must swallow the rejection — an unhandled promise error otherwise
+  // trips CRA's dev overlay and looks like a hard app crash.
   useEffect(() => {
     const el = videoElRef.current;
     if (!el) return;
     if (displayingVideo) {
-      // rewind so the toggle-back-to-video feels instantaneous
-      try { el.currentTime = 0; el.play(); } catch { /* autoplay policy */ }
+      try {
+        el.currentTime = 0;
+        const p = el.play();
+        if (p && typeof p.catch === 'function') p.catch(() => { /* silent */ });
+      } catch { /* ignore sync throw */ }
     } else {
       try { el.pause(); } catch { /* ignore */ }
     }
   }, [displayingVideo, videoResolved]);
 
-  // ---------------------------------------------------------------- render
   const renderVideoNode = () => {
     if (!videoResolved) return null;
     if (videoResolved.type === 'file') {
@@ -121,26 +105,29 @@ export default function PhonemeAssetMedia({
         <video
           ref={videoElRef}
           src={videoResolved.src}
-          autoPlay
-          muted
-          loop
-          playsInline
+          autoPlay muted loop playsInline
           preload="auto"
           aria-label={alt}
           className={mediaClassName}
+          onError={(e) => {
+            // Silent — a failed video load must not crash the card;
+            // the underlying <img> is still rendered behind us.
+            // eslint-disable-next-line no-console
+            console.warn('PhonemeAssetMedia: video source failed', e?.currentTarget?.error);
+          }}
           data-testid={testId ? `${testId}-video` : undefined}
         />
       );
     }
-    // iframe (YouTube / Vimeo). pointer-events-none because the parent
-    // button owns the toggle click — the iframe would otherwise swallow it.
+    // iframe → NO object-contain, NO pointer-events-none. Just fill.
     return (
       <iframe
         src={videoResolved.src}
         title={alt || 'video'}
-        allow="autoplay; encrypted-media; picture-in-picture"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
         frameBorder="0"
-        className={`${mediaClassName} pointer-events-none`}
+        className={iframeClassName || mediaClassName.replace(/object-\S+/g, '').trim()}
         data-testid={testId ? `${testId}-video` : undefined}
       />
     );
@@ -158,19 +145,14 @@ export default function PhonemeAssetMedia({
     );
   }
 
-  // ---- CASE B: only video (video acts as an image) ----------------------
+  // ---- CASE B: only video ------------------------------------------------
   if (alwaysVideo) {
-    return (
-      <div className={className}>
-        {renderVideoNode()}
-      </div>
-    );
+    return <div className={className}>{renderVideoNode()}</div>;
   }
 
-  // ---- CASE C: image + video (click to fade to video) -------------------
+  // ---- CASE C: image + video (parent-controlled) ------------------------
   return (
     <div className={`relative ${className}`}>
-      {/* Image layer */}
       <img
         src={imageUrl}
         alt={alt}
@@ -179,7 +161,6 @@ export default function PhonemeAssetMedia({
         }`}
         data-testid={testId}
       />
-      {/* Video layer */}
       <div
         className={`absolute inset-0 transition-opacity duration-500 ${
           displayingVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -187,45 +168,19 @@ export default function PhonemeAssetMedia({
       >
         {renderVideoNode()}
       </div>
-
-      {/* Toggle overlay — always covers the surface so click anywhere
-          swaps. On top of the iframe (which we disabled pointer events on)
-          so YouTube/Vimeo can't steal the click. */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setShowVideo((v) => !v); }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setShowVideo((v) => !v);
-          }
-        }}
-        className="absolute inset-0 z-20 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-inherit"
-        aria-label={displayingVideo ? 'Torna all\'immagine' : 'Riproduci video'}
-        aria-pressed={displayingVideo}
-        data-testid={testId ? `${testId}-toggle` : undefined}
-      >
-        {/* Play affordance — center pulse, only when image is showing */}
-        {(!displayingVideo || forcePlayIcon) && (
-          <span
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-cyan-500/70 backdrop-blur-sm flex items-center justify-center transition-all duration-300 shadow-[0_0_28px_rgba(34,211,238,0.6)] pointer-events-none ${
-              displayingVideo
-                ? 'opacity-0 scale-50'
-                : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-hover:scale-100 scale-90'
-            }`}
-          >
-            <Play className="w-7 h-7 sm:w-8 sm:h-8 text-white fill-current ml-1" />
-          </span>
-        )}
-        {/* Subtle idle pulse — tells the user "there's something to click"
-            without dominating the composition. Only when image is on. */}
-        {!displayingVideo && (
-          <span
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-cyan-400/70 shadow-[0_0_16px_rgba(34,211,238,0.9)] pointer-events-none phoneme-media-pulse"
-            aria-hidden="true"
-          />
-        )}
-      </button>
     </div>
   );
+}
+
+/**
+ * Utility: does this asset slot have any playable video source?
+ * Used by the parent to decide whether to render the toggle CTA.
+ */
+export function hasPlayableVideo(assets, key) {
+  if (!assets) return false;
+  const upload = assets[`${key}Video`];
+  const link = assets[`${key}VideoLink`];
+  if (upload) return true;
+  if (link && parseVideoUrl(link)) return true;
+  return false;
 }

@@ -17,7 +17,7 @@ import useDialect from '../hooks/useDialect';
 import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
-import PhonemeAssetMedia from '../components/PhonemeAssetMedia';
+import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -282,6 +282,9 @@ const PhonemeCardPage = () => {
   const { dialect, setDialect } = useDialect();
   const [openHotspot, setOpenHotspot] = useState(null);
   const [showFrontView, setShowFrontView] = useState(false);
+  const [sideVideoActive, setSideVideoActive] = useState(false);
+  const [frontVideoActive, setFrontVideoActive] = useState(false);
+  const [articulatoryVideoActive, setArticulatoryVideoActive] = useState(false);
   const [showArticulatory, setShowArticulatory] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -464,14 +467,6 @@ const PhonemeCardPage = () => {
         .hud-ring-a { animation: hudRotateA 14s linear infinite; }
         .hud-ring-b { animation: hudRotateB 22s linear infinite; }
         .hud-pulse  { animation: hudPulse 3.6s ease-in-out infinite; }
-
-        /* Idle pulse for the image→video toggle affordance
-           (PhonemeAssetMedia). Sits at the mouth area and breathes softly. */
-        @keyframes phonemeMediaPulse {
-          0%,100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.85; }
-          50%     { transform: translate(-50%, -50%) scale(1.65); opacity: 0.25; }
-        }
-        .phoneme-media-pulse { animation: phonemeMediaPulse 2.4s ease-in-out infinite; }
       `}</style>
 
       {/* Top bar */}
@@ -518,8 +513,10 @@ const PhonemeCardPage = () => {
               videoUploadUrl={phoneme.assets?.sideViewVideo}
               videoLinkUrl={phoneme.assets?.sideViewVideoLink}
               alt={`${phoneme.displayIpa} — articulatory side view`}
+              videoActive={sideVideoActive}
               className="absolute inset-0 w-full h-full bg-slate-950"
               mediaClassName="absolute inset-0 w-full h-full object-contain bg-slate-950"
+              iframeClassName="absolute inset-0 w-full h-full bg-slate-950 border-0"
               testId="phoneme-side-image"
             />
 
@@ -648,8 +645,52 @@ const PhonemeCardPage = () => {
               </span>
             </button>
 
-            {/* Hotspot overlay (above face zone — so hotspots remain clickable) */}
-            <div className="absolute inset-0 z-30 pointer-events-none">
+            {/* Side-view VIDEO CTA — sits beneath the Front View disc.
+                Only rendered when a video source is configured for sideView.
+                Serves as the sole affordance for image↔video toggling
+                (the image itself is no longer clickable / has no centre pulse). */}
+            {hasPlayableVideo(phoneme.assets, 'sideView') && (
+              <button
+                type="button"
+                onClick={() => setSideVideoActive((v) => !v)}
+                className="absolute top-[190px] sm:top-[230px] lg:top-[270px] right-4 sm:right-6 lg:right-10 z-30 group/vidcta w-40 sm:w-44 rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
+                aria-pressed={sideVideoActive}
+                aria-label={sideVideoActive ? 'Torna all\'immagine articolatoria' : 'Guarda l\'animazione articolatoria'}
+                data-testid="phoneme-side-video-cta"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    sideVideoActive
+                      ? 'bg-orange-500/90 shadow-[0_0_18px_rgba(251,146,60,0.7)]'
+                      : 'bg-cyan-500/85 shadow-[0_0_18px_rgba(34,211,238,0.6)] group-hover/vidcta:scale-110'
+                  }`}>
+                    {sideVideoActive ? (
+                      <span aria-hidden className="w-2.5 h-2.5 rounded-sm bg-white block" />
+                    ) : (
+                      <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                    )}
+                  </span>
+                  <div className="text-left leading-tight">
+                    <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/80 font-bold">
+                      Animazione
+                    </p>
+                    <p className="text-[11px] text-cyan-50 font-semibold">
+                      {sideVideoActive ? 'Stop · Torna alla foto' : 'Guarda il gesto'}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            )}
+
+            {/* Hotspot overlay (above face zone — so hotspots remain clickable).
+                Hidden when the side-view video is active — hotspots refer to the
+                still anatomical image and would clutter the video frame. */}
+            <div
+              className={`absolute inset-0 z-30 pointer-events-none transition-opacity duration-500 ${
+                sideVideoActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
+              aria-hidden={sideVideoActive}
+            >
               {(phoneme.hotspots || []).map((h) => (
                 <div key={h.id} className="pointer-events-auto">
                   <Hotspot hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} />
@@ -1024,10 +1065,34 @@ const PhonemeCardPage = () => {
                   videoUploadUrl={phoneme.assets?.frontViewVideo}
                   videoLinkUrl={phoneme.assets?.frontViewVideoLink}
                   alt={`${phoneme.displayIpa} front view`}
+                  videoActive={frontVideoActive}
                   className="absolute inset-0"
                   mediaClassName="absolute inset-0 w-full h-full object-contain"
+                  iframeClassName="absolute inset-0 w-full h-full border-0"
                   testId="phoneme-front-view-image"
                 />
+                {hasPlayableVideo(phoneme.assets, 'frontView') && (
+                  <button
+                    type="button"
+                    onClick={() => setFrontVideoActive((v) => !v)}
+                    className="absolute bottom-3 right-3 z-10 group/vidcta rounded-lg border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)] transition-all duration-300"
+                    aria-pressed={frontVideoActive}
+                    data-testid="phoneme-front-video-cta"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                        frontVideoActive ? 'bg-orange-500/90' : 'bg-cyan-500/85 group-hover/vidcta:scale-110'
+                      } transition-transform`}>
+                        {frontVideoActive
+                          ? <span className="w-2 h-2 rounded-sm bg-white block" />
+                          : <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />}
+                      </span>
+                      <span className="text-[10px] text-cyan-50 font-semibold uppercase tracking-wider">
+                        {frontVideoActive ? 'Foto' : 'Video'}
+                      </span>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
             <div className="lg:col-span-2 p-5 space-y-3 overflow-y-auto border-t lg:border-t-0 lg:border-l border-cyan-500/20">
@@ -1069,10 +1134,34 @@ const PhonemeCardPage = () => {
                 videoUploadUrl={phoneme.assets?.articulatoryVideo}
                 videoLinkUrl={phoneme.assets?.articulatoryVideoLink}
                 alt={`${phoneme.displayIpa} articulatory position deep dive`}
+                videoActive={articulatoryVideoActive}
                 className="absolute inset-0"
                 mediaClassName="absolute inset-0 w-full h-full object-contain"
+                iframeClassName="absolute inset-0 w-full h-full border-0"
                 testId="phoneme-articulatory-image"
               />
+              {hasPlayableVideo(phoneme.assets, 'articulatory') && (
+                <button
+                  type="button"
+                  onClick={() => setArticulatoryVideoActive((v) => !v)}
+                  className="absolute bottom-4 right-4 z-10 rounded-lg border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)] transition-all duration-300"
+                  aria-pressed={articulatoryVideoActive}
+                  data-testid="phoneme-articulatory-video-cta"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                      articulatoryVideoActive ? 'bg-orange-500/90' : 'bg-cyan-500/85'
+                    }`}>
+                      {articulatoryVideoActive
+                        ? <span className="w-2 h-2 rounded-sm bg-white block" />
+                        : <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />}
+                    </span>
+                    <span className="text-[10px] text-cyan-50 font-semibold uppercase tracking-wider">
+                      {articulatoryVideoActive ? 'Foto' : 'Video'}
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         </DialogContent>
