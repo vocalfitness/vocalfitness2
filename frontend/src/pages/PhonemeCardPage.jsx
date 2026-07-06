@@ -467,6 +467,21 @@ const PhonemeCardPage = () => {
         .hud-ring-a { animation: hudRotateA 14s linear infinite; }
         .hud-ring-b { animation: hudRotateB 22s linear infinite; }
         .hud-pulse  { animation: hudPulse 3.6s ease-in-out infinite; }
+
+        /* Peripheral-vision cue for the Animazione CTA when the video is
+           playing: a soft orange border-glow pulse. Amplitude kept low so
+           it registers as ambient motion, not as a distracting alarm. */
+        @keyframes ctaPlayingPulse {
+          0%, 100% {
+            box-shadow: 0 0 14px rgba(251,146,60,0.35),
+                        inset 0 0 0 1px rgba(251,146,60,0.4);
+          }
+          50% {
+            box-shadow: 0 0 28px rgba(251,146,60,0.75),
+                        inset 0 0 0 1.5px rgba(251,146,60,0.9);
+          }
+        }
+        .cta-playing-pulse { animation: ctaPlayingPulse 1.8s ease-in-out infinite; }
       `}</style>
 
       {/* Top bar */}
@@ -659,7 +674,11 @@ const PhonemeCardPage = () => {
                 <button
                   type="button"
                   onClick={() => setSideVideoActive((v) => !v)}
-                  className="pointer-events-auto group/vidcta w-full rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
+                  className={`pointer-events-auto group/vidcta w-full rounded-xl backdrop-blur-md px-3 py-2.5 transition-all duration-300 ${
+                    sideVideoActive
+                      ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
+                      : 'border border-cyan-500/40 bg-slate-900/85 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] hover:-translate-y-0.5'
+                  }`}
                   aria-pressed={sideVideoActive}
                   aria-label={sideVideoActive ? 'Torna all\'immagine articolatoria' : 'Guarda l\'animazione articolatoria'}
                   data-testid="phoneme-side-video-cta"
@@ -1082,7 +1101,11 @@ const PhonemeCardPage = () => {
                   <button
                     type="button"
                     onClick={() => setFrontVideoActive((v) => !v)}
-                    className="absolute bottom-3 right-3 z-10 group/vidcta rounded-lg border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)] transition-all duration-300"
+                    className={`absolute bottom-3 right-3 z-10 group/vidcta rounded-lg backdrop-blur-md px-3 py-2 transition-all duration-300 ${
+                      frontVideoActive
+                        ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
+                        : 'border border-cyan-500/40 bg-slate-900/85 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)]'
+                    }`}
                     aria-pressed={frontVideoActive}
                     data-testid="phoneme-front-video-cta"
                   >
@@ -1151,7 +1174,11 @@ const PhonemeCardPage = () => {
                 <button
                   type="button"
                   onClick={() => setArticulatoryVideoActive((v) => !v)}
-                  className="absolute bottom-4 right-4 z-10 rounded-lg border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)] transition-all duration-300"
+                  className={`absolute bottom-4 right-4 z-10 rounded-lg backdrop-blur-md px-3 py-2 transition-all duration-300 ${
+                    articulatoryVideoActive
+                      ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
+                      : 'border border-cyan-500/40 bg-slate-900/85 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_24px_rgba(251,146,60,0.45)]'
+                  }`}
                   aria-pressed={articulatoryVideoActive}
                   data-testid="phoneme-articulatory-video-cta"
                 >
