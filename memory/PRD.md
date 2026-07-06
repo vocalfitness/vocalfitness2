@@ -11,7 +11,31 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
-### 06/07/2026 — Phoneme CMS · Media della scheda (video upload + link) — DONE ✅
+### 06/07/2026 — Phoneme Card · Video rendering pubblico armonico — DONE ✅
+Nuovo componente `PhonemeAssetMedia.jsx` che gestisce le 3 casistiche di rendering media
+sulla card pubblica, sostituendo i vecchi `<img>` per sideView / frontView / articulatory:
+
+1. **Solo immagine** → identico a prima (backwards-compatible).
+2. **Solo video** (upload o link) → il video occupa lo stesso spazio dell'immagine ed è
+   completamente chromeless: `autoplay + muted + loop + playsinline`, nessun controllo
+   visibile. Player pausato quando il modal padre si chiude (perf).
+3. **Immagine + video** → l'immagine è il default; un piccolo pulse cyan sulla bocca segnala
+   la disponibilità del video; hover mostra un pulsante play centrale; click (o Enter/Space
+   con focus) cross-fade a 500 ms verso il video; secondo click ritorna all'immagine.
+
+**Provider embed**
+- Upload MP4/WebM/MOV → `<video>` nativo, zero UI.
+- Vimeo → iframe con `background=1&controls=0` → completamente chromeless.
+- YouTube → iframe con `controls=0&modestbranding=1&rel=0&disablekb=1&fs=0` — YouTube
+  mantiene per policy il branding e la barra titolo su hover. Raccomandato Vimeo/upload
+  per un look 100% pulito.
+
+**File nuovi/toccati**
+- `frontend/src/components/PhonemeAssetMedia.jsx` (nuovo, usa `parseVideoUrl`)
+- `frontend/src/pages/PhonemeCardPage.jsx` — 3 punti aggiornati + keyframe CSS
+  `phoneme-media-pulse` (2.4s ease-in-out) per l'affordance idle.
+
+
 La sezione "Immagini della scheda" è stata rinominata **"Media della scheda"** ed estesa:
 per ognuna delle 4 viste (sideView / frontView / frontViewClean / articulatory) l'admin
 ora dispone di **3 input paralleli**:

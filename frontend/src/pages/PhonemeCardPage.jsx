@@ -17,6 +17,7 @@ import useDialect from '../hooks/useDialect';
 import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
+import PhonemeAssetMedia from '../components/PhonemeAssetMedia';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -463,6 +464,14 @@ const PhonemeCardPage = () => {
         .hud-ring-a { animation: hudRotateA 14s linear infinite; }
         .hud-ring-b { animation: hudRotateB 22s linear infinite; }
         .hud-pulse  { animation: hudPulse 3.6s ease-in-out infinite; }
+
+        /* Idle pulse for the image→video toggle affordance
+           (PhonemeAssetMedia). Sits at the mouth area and breathes softly. */
+        @keyframes phonemeMediaPulse {
+          0%,100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.85; }
+          50%     { transform: translate(-50%, -50%) scale(1.65); opacity: 0.25; }
+        }
+        .phoneme-media-pulse { animation: phonemeMediaPulse 2.4s ease-in-out infinite; }
       `}</style>
 
       {/* Top bar */}
@@ -504,11 +513,14 @@ const PhonemeCardPage = () => {
 
           {/* Background image (clean anatomical side-view, square ratio capped at viewport height) */}
           <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '1 / 1', maxHeight: '85vh' }}>
-            <img
-              src={phoneme.assets.sideView}
+            <PhonemeAssetMedia
+              imageUrl={phoneme.assets?.sideView}
+              videoUploadUrl={phoneme.assets?.sideViewVideo}
+              videoLinkUrl={phoneme.assets?.sideViewVideoLink}
               alt={`${phoneme.displayIpa} — articulatory side view`}
-              className="absolute inset-0 w-full h-full object-contain bg-slate-950"
-              data-testid="phoneme-side-image"
+              className="absolute inset-0 w-full h-full bg-slate-950"
+              mediaClassName="absolute inset-0 w-full h-full object-contain bg-slate-950"
+              testId="phoneme-side-image"
             />
 
             {/* Dev coord picker — marker dots for picked positions */}
@@ -1006,12 +1018,17 @@ const PhonemeCardPage = () => {
           </DialogHeader>
           <div className="grid lg:grid-cols-5 gap-0 flex-1 overflow-hidden">
             <div className="lg:col-span-3 bg-slate-950 flex items-center justify-center overflow-auto p-2">
-              <img
-                src={phoneme.assets.frontView}
-                alt={`${phoneme.displayIpa} front view`}
-                className="max-w-full max-h-full w-auto h-auto object-contain"
-                data-testid="phoneme-front-view-image"
-              />
+              <div className="relative w-full max-w-full max-h-full" style={{ aspectRatio: '4 / 5' }}>
+                <PhonemeAssetMedia
+                  imageUrl={phoneme.assets?.frontView}
+                  videoUploadUrl={phoneme.assets?.frontViewVideo}
+                  videoLinkUrl={phoneme.assets?.frontViewVideoLink}
+                  alt={`${phoneme.displayIpa} front view`}
+                  className="absolute inset-0"
+                  mediaClassName="absolute inset-0 w-full h-full object-contain"
+                  testId="phoneme-front-view-image"
+                />
+              </div>
             </div>
             <div className="lg:col-span-2 p-5 space-y-3 overflow-y-auto border-t lg:border-t-0 lg:border-l border-cyan-500/20">
               <p className="text-[10px] text-cyan-300/70 uppercase tracking-widest font-bold">Muscle activation map</p>
@@ -1046,12 +1063,17 @@ const PhonemeCardPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="bg-slate-950 flex items-center justify-center">
-            <img
-              src={phoneme.assets.articulatory}
-              alt={`${phoneme.displayIpa} articulatory position deep dive`}
-              className="block w-full h-auto max-h-[80vh] object-contain"
-              data-testid="phoneme-articulatory-image"
-            />
+            <div className="relative w-full max-h-[80vh]" style={{ aspectRatio: '16 / 9' }}>
+              <PhonemeAssetMedia
+                imageUrl={phoneme.assets?.articulatory}
+                videoUploadUrl={phoneme.assets?.articulatoryVideo}
+                videoLinkUrl={phoneme.assets?.articulatoryVideoLink}
+                alt={`${phoneme.displayIpa} articulatory position deep dive`}
+                className="absolute inset-0"
+                mediaClassName="absolute inset-0 w-full h-full object-contain"
+                testId="phoneme-articulatory-image"
+              />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
