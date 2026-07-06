@@ -87,25 +87,54 @@ def _muscle_levels_for(ipa: str, kind: str) -> Tuple[str, str, str, str, str]:
     return ("LOW", "LOW", "LOW", "LOW", "LOW")
 
 
-def compose_facial_muscles(ipa: str, kind: str) -> List[Dict[str, str]]:
+def compose_facial_muscles(ipa: str, kind: str) -> List[Dict[str, Any]]:
     """Return the 5-muscle list in the shape the phoneme card model expects.
 
-    Detail strings describe the physiological role — deliberately terse and
-    non-superlative, mirroring the /ʊ/ FOOT card's published wording.
+    Legacy fields ``name`` and ``detail`` remain single ENGLISH strings
+    (unchanged to preserve backwards-compat with the muscle-rule test
+    suite and any downstream consumer that indexes by literal name).
+
+    New sibling fields ``nameLocalized`` and ``detailLocalized`` are
+    bilingual dicts ``{it, en}`` consumed by the frontend via
+    ``pickLang(m.nameLocalized || m.name, language)`` so the muscle map
+    modal renders in the user's active language.
 
     The 3-letter spec shorthand ``MOD`` is expanded to ``MODERATE`` at output
     time so the value matches the frontend's ``ACTIVATION_TERMS`` dropdown
-    enum (``HIGH`` | ``MODERATE`` | ``LOW``). This keeps the admin editor's
-    select rendered (instead of blank) and satisfies the enum lockdown in
-    the readiness suite."""
+    enum (``HIGH`` | ``MODERATE`` | ``LOW``)."""
     _LONG = {"HIGH": "HIGH", "MOD": "MODERATE", "LOW": "LOW"}
     oo, bucc, zyg, mass, ment = _muscle_levels_for(ipa, kind)
+    rows = [
+        ("Orbicularis oris",  "Orbicolare della bocca",
+         "lip rounding / closure",
+         "arrotondamento e chiusura delle labbra",
+         _LONG[oo]),
+        ("Buccinator",        "Buccinatore",
+         "cheek compression / oral pressure",
+         "compressione delle guance e pressione orale",
+         _LONG[bucc]),
+        ("Zygomaticus major", "Grande zigomatico",
+         "lip spreading (smile shape)",
+         "stiramento delle labbra (forma sorriso)",
+         _LONG[zyg]),
+        ("Masseter",          "Massetere",
+         "jaw elevation",
+         "elevazione della mandibola",
+         _LONG[mass]),
+        ("Mentalis",          "Mentoniero",
+         "lower-lip raise / protrusion",
+         "sollevamento e protrusione del labbro inferiore",
+         _LONG[ment]),
+    ]
     return [
-        {"name": "Orbicularis oris",  "activation": _LONG[oo],   "detail": "lip rounding / closure"},
-        {"name": "Buccinator",        "activation": _LONG[bucc], "detail": "cheek compression / oral pressure"},
-        {"name": "Zygomaticus major", "activation": _LONG[zyg],  "detail": "lip spreading (smile shape)"},
-        {"name": "Masseter",          "activation": _LONG[mass], "detail": "jaw elevation"},
-        {"name": "Mentalis",          "activation": _LONG[ment], "detail": "lower-lip raise / protrusion"},
+        {
+            "name":            en_name,
+            "nameLocalized":   {"it": it_name, "en": en_name},
+            "activation":      activation,
+            "detail":          en_detail,
+            "detailLocalized": {"it": it_detail, "en": en_detail},
+        }
+        for (en_name, it_name, en_detail, it_detail, activation) in rows
     ]
 
 

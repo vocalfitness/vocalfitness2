@@ -1,5 +1,38 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { VOCAL_LAB_PROFILES, VOCAL_LAB_PROFILE_ORDER } from '../data/vocalLabProfiles';
+import { useLanguage } from '../context/LanguageContext';
+import { pickLang } from '../lib/pickLang';
+
+// ─────────────────────────────────────────────────────────────────────
+// i18n dictionary for the Vocal Lab UI chrome. Data-driven strings
+// (profile labels/descriptions) live inside the profiles themselves as
+// bilingual dicts and are read via ``pickLang``.
+// ─────────────────────────────────────────────────────────────────────
+const LAB_I18N = {
+  title: { it: 'Laboratorio fonetico', en: 'Phonetics Lab' },
+  hint: {
+    it: 'Tocca o trascina sul tratto vocale per modificare la posizione della lingua. Usa i controlli sotto per modulare voce, intonazione e velo palatino.',
+    en: 'Tap or drag on the vocal tract to change the tongue position. Use the controls below to modulate voice, pitch and soft palate.',
+  },
+  activateBtn: { it: '▶ Attiva Phonetics Lab', en: '▶ Activate Phonetics Lab' },
+  activateNote: {
+    it: "Per attivare il sintetizzatore audio è necessaria un'interazione esplicita (vincolo dei browser).",
+    en: 'Activating the audio synthesiser requires an explicit user interaction (browser policy).',
+  },
+  canvasAria: {
+    it: 'Sezione sagittale interattiva del tratto vocale',
+    en: 'Interactive sagittal cross-section of the vocal tract',
+  },
+  pitch: { it: 'Intonazione f₀', en: 'Pitch f₀' },
+  tenseness: { it: 'Tensione', en: 'Tenseness' },
+  velum: { it: 'Velo palatino', en: 'Soft palate' },
+  voicingOn: { it: 'Voce attiva', en: 'Voicing on' },
+  legend: {
+    it: 'Il modello simula 44 sezioni cilindriche di tratto vocale + 28 sezioni nasali. La sorgente glottidea può essere sintetica (impulso LF) oppure un campione di voce clonata (ElevenLabs) pitch-shiftato in tempo reale.',
+    en: 'The model simulates 44 cylindrical vocal-tract sections + 28 nasal sections. The glottal source is either synthetic (LF-pulse) or a cloned voice sample (ElevenLabs) pitch-shifted in real time.',
+  },
+  langAria: { it: 'Cambia lingua', en: 'Switch language' },
+};
 
 /**
  * VocalLabEmbed — React wrapper around the standalone VocalLabEngine.
@@ -41,6 +74,8 @@ export const VocalLabEmbed = ({
   order = VOCAL_LAB_PROFILE_ORDER,
   className = '',
 }) => {
+  const { language, setLanguage } = useLanguage();
+  const t = (key) => pickLang(LAB_I18N[key], language);
   const rootRef = useRef(null);
   const engineRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -99,13 +134,29 @@ export const VocalLabEmbed = ({
       <style>{styles}</style>
       <div ref={rootRef} className="vocal-lab-engine" data-vl-root data-testid="vocal-lab-root">
         <div className="vocal-lab-engine__header">
-          <h3 className="vocal-lab-engine__title" data-vl-title>Phonetics Lab</h3>
-          <span className="vocal-lab-engine__ipa" data-vl-ipa>/ʊ/</span>
+          <h3 className="vocal-lab-engine__title" data-vl-title>{t('title')}</h3>
+          <div className="vocal-lab-engine__header-right">
+            {/* Inline IT/EN language switcher — flips the shared LanguageContext */}
+            <div className="vocal-lab-engine__lang" role="group" aria-label={t('langAria')}>
+              <button
+                type="button"
+                onClick={() => setLanguage('it')}
+                className={`vocal-lab-engine__lang-btn${language === 'it' ? ' vocal-lab-engine__lang-btn--active' : ''}`}
+                aria-pressed={language === 'it'}
+                data-testid="vocal-lab-lang-it"
+              >🇮🇹 IT</button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`vocal-lab-engine__lang-btn${language === 'en' ? ' vocal-lab-engine__lang-btn--active' : ''}`}
+                aria-pressed={language === 'en'}
+                data-testid="vocal-lab-lang-en"
+              >🇬🇧 EN</button>
+            </div>
+            <span className="vocal-lab-engine__ipa" data-vl-ipa>/ʊ/</span>
+          </div>
         </div>
-        <p className="vocal-lab-engine__hint">
-          Tocca o trascina sul tratto vocale per modificare la posizione della lingua.
-          Usa i controlli sotto per modulare voce, intonazione e velo palatino.
-        </p>
+        <p className="vocal-lab-engine__hint">{t('hint')}</p>
 
         <div className="vocal-lab-engine__stage">
           <canvas
@@ -113,13 +164,12 @@ export const VocalLabEmbed = ({
             className="vocal-lab-engine__canvas"
             width="720"
             height="320"
-            aria-label="Sezione sagittale interattiva del tratto vocale"
+            aria-label={t('canvasAria')}
             data-testid="vocal-lab-canvas"
           />
           <div className="vocal-lab-engine__overlay" data-vl-overlay data-visible="true">
             <div className="vocal-lab-engine__overlay-text">
-              Per attivare il sintetizzatore audio è necessaria un&apos;interazione esplicita
-              (vincolo dei browser).
+              {t('activateNote')}
             </div>
             <button
               className="vocal-lab-engine__activate"
@@ -127,7 +177,7 @@ export const VocalLabEmbed = ({
               type="button"
               data-testid="vocal-lab-activate"
             >
-              ▶ Attiva Phonetics Lab
+              {t('activateBtn')}
             </button>
           </div>
         </div>
@@ -135,7 +185,7 @@ export const VocalLabEmbed = ({
         <div className="vocal-lab-engine__controls">
           <label className="vocal-lab-engine__field">
             <span className="vocal-lab-engine__field-label">
-              Pitch f₀
+              {t('pitch')}
               <span className="vocal-lab-engine__field-value" data-vl-freq-value>130 Hz</span>
             </span>
             <input type="range" className="vocal-lab-engine__slider"
@@ -143,13 +193,13 @@ export const VocalLabEmbed = ({
           </label>
 
           <label className="vocal-lab-engine__field">
-            <span className="vocal-lab-engine__field-label">Tenseness</span>
+            <span className="vocal-lab-engine__field-label">{t('tenseness')}</span>
             <input type="range" className="vocal-lab-engine__slider"
                    min="0" max="1" step="0.01" defaultValue="0.6" data-vl-tenseness />
           </label>
 
           <label className="vocal-lab-engine__field">
-            <span className="vocal-lab-engine__field-label">Velo palatino</span>
+            <span className="vocal-lab-engine__field-label">{t('velum')}</span>
             <input type="range" className="vocal-lab-engine__slider"
                    min="0" max="0.6" step="0.01" defaultValue="0" data-vl-velum />
           </label>
@@ -157,7 +207,7 @@ export const VocalLabEmbed = ({
           <div className="vocal-lab-engine__field vocal-lab-engine__field--switch">
             <label className="vocal-lab-engine__switch">
               <input type="checkbox" data-vl-voicing defaultChecked />
-              Voicing on
+              {t('voicingOn')}
             </label>
           </div>
         </div>
@@ -167,26 +217,38 @@ export const VocalLabEmbed = ({
             const p = profiles[id];
             if (!p) return null;
             const isActive = id === activeId;
+            const localizedLabel = pickLang(p.label, language);
+            const chipText = localizedLabel?.split('—')[0]?.trim() || id;
+            const chipDesc = pickLang(p.description, language);
             return (
               <button
                 key={id}
                 type="button"
                 onClick={() => handleChipClick(id)}
+                title={chipDesc}
                 className={`vocal-lab-engine__chip${isActive ? ' vocal-lab-engine__chip--active' : ''}`}
                 data-vl-profile={id}
                 data-testid={`vocal-lab-profile-${id}`}
               >
-                {p.ipa} {p.label?.split('—')[0]?.trim() || id}
+                {p.ipa} {chipText}
               </button>
             );
           })}
         </div>
 
-        <p className="vocal-lab-engine__legend">
-          Il modello simula 44 sezioni cilindriche di tratto vocale + 28 sezioni nasali.
-          Il glottal source può essere sintetico (LF-pulse) oppure un campione di voce clonata
-          (ElevenLabs) pitch-shiftato in tempo reale.
-        </p>
+        {/* Active-profile articulatory description (bilingual) */}
+        {(() => {
+          const active = profiles[activeId];
+          const desc = active ? pickLang(active.description, language) : '';
+          if (!desc) return null;
+          return (
+            <p className="vocal-lab-engine__desc" data-testid="vocal-lab-active-description">
+              {desc}
+            </p>
+          );
+        })()}
+
+        <p className="vocal-lab-engine__legend">{t('legend')}</p>
       </div>
     </div>
   );
@@ -218,6 +280,38 @@ const styles = `
   .vocal-lab-engine__header {
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .vocal-lab-engine__header-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .vocal-lab-engine__lang {
+    display: inline-flex; gap: 4px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px; padding: 3px;
+  }
+  .vocal-lab-engine__lang-btn {
+    appearance: none; border: 0; background: transparent;
+    color: var(--vle-muted);
+    font-family: inherit; font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+    letter-spacing: 0.02em;
+  }
+  .vocal-lab-engine__lang-btn:hover { color: var(--vle-fg); }
+  .vocal-lab-engine__lang-btn--active {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--vle-accent);
+  }
+  .vocal-lab-engine__desc {
+    font-size: 13px; color: var(--vle-fg);
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid var(--vle-accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 14px 0 0;
+    line-height: 1.55;
   }
   .vocal-lab-engine__title {
     font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin: 0;

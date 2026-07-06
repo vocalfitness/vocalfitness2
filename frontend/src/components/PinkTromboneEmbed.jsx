@@ -1,5 +1,35 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { BACKEND_URL } from '../lib/backend';
+import { useLanguage } from '../context/LanguageContext';
+import { pickLang } from '../lib/pickLang';
+
+// i18n dictionary for the Pink Trombone chrome. The underlying iframe
+// (Neil Thapen's engine) is untouched — only React chrome is localised.
+const PT_I18N = {
+  caption: {
+    it: 'Pink Trombone · modello fisico interattivo del tratto vocale',
+    en: 'Pink Trombone · interactive physical model of the vocal tract',
+  },
+  refPlay:  { it: '🎙  Ascolta voce di Steve (riferimento)', en: '🎙  Listen to Steve\'s voice (reference)' },
+  refPause: { it: '⏸  Pausa riferimento',                   en: '⏸  Pause reference' },
+  errAudio: { it: 'Errore caricamento audio',               en: 'Audio loading error' },
+  trapezoidLegend: {
+    it: <>Trapezio vocalico IPA. <b>Clicca un simbolo</b> per aprire il tratto vocale interattivo (popup) e impostare la postura. <b>Trascina</b> per morfare in continuo.</>,
+    en: <>IPA vowel trapezoid. <b>Click a symbol</b> to open the interactive vocal tract (popup) and set the posture. <b>Drag</b> to morph continuously.</>,
+  },
+  axisFront: { it: 'anteriore', en: 'front' },
+  axisBack:  { it: 'posteriore', en: 'back' },
+  axisClose: { it: 'chiusa',    en: 'close' },
+  axisOpen:  { it: 'aperta',    en: 'open' },
+  modelInfoReady:    { it: ' · ✓ pronto',                    en: ' · ✓ ready' },
+  modelInfoNotReady: { it: ' · iframe non ancora caricato',  en: ' · iframe not loaded yet' },
+  popupClose:  { it: 'Chiudi tratto vocale',            en: 'Close vocal tract' },
+  iframeTitle: { it: 'Pink Trombone — tratto vocale interattivo', en: 'Pink Trombone interactive vocal tract' },
+  popupLegend: {
+    it: <>Sezione sagittale interattiva — tocca / trascina su lingua, palato, velo, labbra. L&rsquo;audio si attiva al primo tocco.</>,
+    en: <>Interactive sagittal cross-section — tap / drag on tongue, palate, velum, lips. Audio activates on first touch.</>,
+  },
+};
 
 /**
  * PinkTromboneEmbed — Mounts the authentic open-source `<pink-trombone>`
@@ -86,6 +116,8 @@ function resolveDefaultSym(phonemeId, phonemeIpa) {
 }
 
 export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', className = '' }) => {
+  const { language } = useLanguage();
+  const t = (key) => pickLang(PT_I18N[key], language);
   const explicitProfile = PHONEME_DEFAULTS[phonemeId];
   const defaultSym = resolveDefaultSym(phonemeId, phonemeIpa);
   const profile = explicitProfile || { defaultSym, referenceAudio: null };
@@ -160,11 +192,11 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
 
   const playReference = () => {
     const url = profile.referenceAudio;
-    if (!url) { setError('Audio di riferimento non ancora disponibile per questa scheda'); return; }
+    if (!url) { setError(language === 'it' ? 'Audio di riferimento non ancora disponibile per questa scheda' : 'Reference audio not yet available for this card'); return; }
     if (!refAudioRef.current) {
       refAudioRef.current = new Audio(`${BACKEND_URL}${url}`);
       refAudioRef.current.addEventListener('ended', () => setRefPlaying(false));
-      refAudioRef.current.addEventListener('error', () => { setRefPlaying(false); setError('Errore caricamento audio'); });
+      refAudioRef.current.addEventListener('error', () => { setRefPlaying(false); setError(pickLang(PT_I18N.errAudio, language)); });
     }
     if (refPlaying) { refAudioRef.current.pause(); setRefPlaying(false); }
     else { refAudioRef.current.currentTime = 0; refAudioRef.current.play().then(() => setRefPlaying(true)).catch(() => {}); }
@@ -205,7 +237,7 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
         <div className="phonetics-lab-wrapper__title">
           <span className="phonetics-lab-wrapper__ipa">/{defaultTarget.sym}/</span>
           <span className="phonetics-lab-wrapper__caption">
-            Pink Trombone · modello fisico interattivo del tratto vocale
+            {t('caption')}
           </span>
         </div>
         <button
@@ -214,7 +246,7 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
           className={`phonetics-lab-wrapper__reference ${refPlaying ? 'is-playing' : ''}`}
           data-testid="phonetics-lab-reference-btn"
         >
-          {refPlaying ? '⏸  Pausa riferimento' : '🎙  Ascolta voce di Steve (riferimento)'}
+          {refPlaying ? t('refPause') : t('refPlay')}
         </button>
       </div>
 
@@ -225,8 +257,7 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
       <div className="phonetics-lab-wrapper__grid phonetics-lab-wrapper__grid--compact">
         <div className="phonetics-lab-wrapper__chart-col">
           <p className="phonetics-lab-wrapper__legend">
-            Trapezio vocalico IPA. <b>Clicca un simbolo</b> per aprire il tratto vocale
-            interattivo (popup) e impostare la postura. <b>Trascina</b> per morfare in continuo.
+            {t('trapezoidLegend')}
           </p>
           <svg
             viewBox="0 0 220 180"
@@ -240,10 +271,10 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
             <polygon points="14,14 206,14 178,166 42,166"
                      fill="rgba(245,158,11,0.04)"
                      stroke="rgba(245,158,11,0.5)" strokeWidth="1.2" />
-            <text x="6"   y="10"  className="phonetics-lab-wrapper__axis">front</text>
-            <text x="180" y="10"  className="phonetics-lab-wrapper__axis">back</text>
-            <text x="6"   y="178" className="phonetics-lab-wrapper__axis">open</text>
-            <text x="178" y="178" className="phonetics-lab-wrapper__axis">open</text>
+            <text x="6"   y="10"  className="phonetics-lab-wrapper__axis">{t('axisFront')}</text>
+            <text x="180" y="10"  className="phonetics-lab-wrapper__axis">{t('axisBack')}</text>
+            <text x="6"   y="178" className="phonetics-lab-wrapper__axis">{t('axisOpen')}</text>
+            <text x="178" y="178" className="phonetics-lab-wrapper__axis">{t('axisOpen')}</text>
             {VOWEL_TARGETS.map(v => {
               const cx = 14 + v.x * (206 - 14);
               const cy = 14 + v.y * (166 - 14);
@@ -301,8 +332,8 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
             )}
           </svg>
           <p className="phonetics-lab-wrapper__hint">
-            Modello: <span>Pink Trombone</span> (Neil Thapen, MIT)
-            {iframeReady ? ' · ✓ pronto' : ' · iframe non ancora caricato'}
+            {language === 'it' ? 'Modello' : 'Model'}: <span>Pink Trombone</span> (Neil Thapen, MIT)
+            {iframeReady ? t('modelInfoReady') : t('modelInfoNotReady')}
           </p>
         </div>
       </div>
@@ -331,21 +362,20 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
               type="button"
               className="phonetics-lab-popup__close"
               onClick={closeTract}
-              aria-label="Chiudi tratto vocale"
+              aria-label={t('popupClose')}
               data-testid="phonetics-lab-popup-close"
             >×</button>
           </div>
           <iframe
             ref={iframeRef}
             src={IFRAME_URL}
-            title="Pink Trombone interactive vocal tract"
+            title={t('iframeTitle')}
             className="phonetics-lab-popup__iframe"
             data-testid="phonetics-lab-iframe"
             sandbox="allow-scripts allow-same-origin"
           />
           <p className="phonetics-lab-popup__legend">
-            Sezione sagittale interattiva — tocca / trascina su lingua, palato, velo, labbra.
-            L&rsquo;audio si attiva al primo tocco.
+            {t('popupLegend')}
           </p>
         </div>
       )}

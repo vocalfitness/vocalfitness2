@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * SagittalOverlay — printed-card-style anatomical annotations.
@@ -20,8 +21,10 @@ export default function SagittalOverlay({
   card,
   className = '',
   labels: labelsProp,
-  lang = 'it',
+  lang: langProp,
 }) {
+  const { language: ctxLang } = useLanguage();
+  const lang = langProp || ctxLang || 'it';
   const [canonicalLabels, setCanonicalLabels] = useState(labelsProp || null);
 
   useEffect(() => {

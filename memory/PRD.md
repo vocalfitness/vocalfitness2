@@ -1244,7 +1244,55 @@ AdminDatabaseTab.jsx   56 righe
 - In produzione configurare variabili d'ambiente su Emergent dashboard
 - JWT_SECRET_KEY da cambiare in produzione
 
-## Changelog — 06/07/2026 (Sagittal Overlay §3.2 – Barlow Condensed style)
+## Changelog — 06/07/2026 (Laboratorio fonetico bilingue EN/IT)
+
+### Nuove funzionalità
+- **Helper `pickLang`** (`frontend/src/lib/pickLang.js`) — legge stringhe da
+  oggetti bilingui `{it, en}` con fallback graceful, retrocompatibile con
+  stringhe singole.
+- **`VocalLabEmbed`** completamente bilinguato: titolo, hint istruzioni,
+  bottone attivazione, etichette controlli (Pitch/Tenseness/Soft palate/Voicing),
+  legenda modello. **Toggle IT🇮🇹/EN🇬🇧 visibile** nel header del lab
+  agganciato al `LanguageContext` globale (data-testid `vocal-lab-lang-it`,
+  `vocal-lab-lang-en`).
+- **`vocalLabProfiles.js`** convertito a struttura ricca bilingue:
+  `{ label: {it,en}, description: {it,en}, ...engine params }` con
+  **descrizioni articolatorie complete** per tutti i 5 profili (u-foot,
+  i-fleece, a-father, s-fric, m-nasal). La descrizione del profilo attivo
+  appare come callout evidenziato sotto le chip.
+- **`PinkTromboneEmbed`** bilinguato: caption, ARIA labels, legenda
+  trapezoide, assi (anteriore/posteriore/aperta/chiusa), bottone
+  reference-audio, popup close/legend/title.
+- **`SagittalOverlay`** aggancia automaticamente `LanguageContext` (le
+  etichette anatomiche già hanno `labelIt/labelEn` dall'endpoint canonico).
+- **Facial Muscle Activation modal** (`PhonemeCardPage.jsx`) bilinguato:
+  titolo, header sezione, descrizione, nomi muscoli + dettaglio (letti da
+  `nameLocalized`/`detailLocalized` con fallback al `name`/`detail` legacy).
+- **Articulatory deep-dive modal** titolo + toggle Foto/Photo/Video.
+
+### Backend — muscoli bilingui
+- `compose_facial_muscles(ipa, kind)` in `phoneme_batch_v2.py` restituisce
+  `name`/`detail` come stringhe inglesi (retrocompat con test suite iter23)
+  **+ nuovi campi** `nameLocalized`/`detailLocalized: {it, en}` consumati
+  dal frontend via `pickLang`.
+- Auto-derivazione su ogni PUT admin (rigenerati u-foot, e-dress, i-fleece
+  a mano dopo il deploy della regola).
+
+### File toccati
+```
+frontend/
+  src/lib/pickLang.js                    (NEW)
+  src/data/vocalLabProfiles.js           (REWRITE)
+  src/components/VocalLabEmbed.jsx       (i18n + lang toggle)
+  src/components/PinkTromboneEmbed.jsx   (i18n)
+  src/components/SagittalOverlay.jsx     (context hook)
+  src/pages/PhonemeCardPage.jsx          (muscle modal + articulatory)
+  public/index.html                      (Barlow Condensed already)
+backend/
+  routers/phoneme_batch_v2.py            (bilingual muscle fields)
+```
+
+
 
 ### Restyling secondo riferimento printed-card
 - **Font**: importato **Barlow Condensed** (Google Fonts, weights 300/400/500)

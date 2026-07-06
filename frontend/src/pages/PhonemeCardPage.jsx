@@ -16,6 +16,8 @@ import PhonemeVideoLesson from '../components/PhonemeVideoLesson';
 import useDialect from '../hooks/useDialect';
 import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { pickLang } from '../lib/pickLang';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
 import SagittalOverlay from '../components/SagittalOverlay';
@@ -245,6 +247,7 @@ const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
 // ============================================================
 const PhonemeCardPage = () => {
   const { id = 'u-foot' } = useParams();
+  const { language } = useLanguage();
   // ------------------------------------------------------------------
   // DB-first: try the CMS API, fall back to the legacy hardcoded
   // PHONEMES map so the page never breaks during a partial migration.
@@ -1098,7 +1101,7 @@ const PhonemeCardPage = () => {
         <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] bg-slate-950 border border-cyan-500/30 text-cyan-50 p-0 overflow-hidden flex flex-col" data-testid="phoneme-front-view-modal">
           <DialogHeader className="p-4 border-b border-cyan-500/20 bg-slate-900/40 flex-shrink-0">
             <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
-              <span className="text-orange-400">{phoneme.displayIpa}</span> · Facial Muscle Activation
+              <span className="text-orange-400">{phoneme.displayIpa}</span> · {language === 'it' ? 'Attivazione muscolare del volto' : 'Facial Muscle Activation'}
             </DialogTitle>
           </DialogHeader>
           <div className="grid lg:grid-cols-5 gap-0 flex-1 overflow-hidden">
@@ -1136,7 +1139,7 @@ const PhonemeCardPage = () => {
                           : <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />}
                       </span>
                       <span className="text-[10px] text-cyan-50 font-semibold uppercase tracking-wider">
-                        {frontVideoActive ? 'Foto' : 'Video'}
+                        {frontVideoActive ? (language === 'it' ? 'Foto' : 'Photo') : 'Video'}
                       </span>
                     </div>
                   </button>
@@ -1144,9 +1147,13 @@ const PhonemeCardPage = () => {
               </div>
             </div>
             <div className="lg:col-span-2 p-5 space-y-3 overflow-y-auto border-t lg:border-t-0 lg:border-l border-cyan-500/20">
-              <p className="text-[10px] text-cyan-300/70 uppercase tracking-widest font-bold">Muscle activation map</p>
+              <p className="text-[10px] text-cyan-300/70 uppercase tracking-widest font-bold">
+                {language === 'it' ? 'Mappa di attivazione muscolare' : 'Muscle activation map'}
+              </p>
               <p className="text-cyan-100/80 text-sm leading-relaxed">
-                Visualisation of which facial muscles activate when producing {phoneme.displayIpa}. Colour intensity reflects activation level.
+                {language === 'it'
+                  ? <>Visualizzazione dei muscoli facciali che si attivano nella produzione del fonema {phoneme.displayIpa}. L&rsquo;intensità del colore riflette il livello di attivazione.</>
+                  : <>Visualisation of which facial muscles activate when producing {phoneme.displayIpa}. Colour intensity reflects activation level.</>}
               </p>
               <div className="space-y-3 mt-2">
                 {(phoneme.facialMuscles || []).map((m, i) => (
@@ -1154,10 +1161,10 @@ const PhonemeCardPage = () => {
                     <div className="w-1 self-stretch rounded-full bg-gradient-to-b from-orange-400/80 to-cyan-400/40" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-cyan-50 font-bold text-sm">{m.name}</p>
+                        <p className="text-cyan-50 font-bold text-sm">{pickLang(m.nameLocalized, language) || m.name}</p>
                         <span className="text-[10px] uppercase tracking-wider text-orange-300 font-bold">{m.activation}</span>
                       </div>
-                      <p className="text-cyan-300/70 text-xs mt-0.5">{m.detail}</p>
+                      <p className="text-cyan-300/70 text-xs mt-0.5">{pickLang(m.detailLocalized, language) || m.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -1209,7 +1216,7 @@ const PhonemeCardPage = () => {
                         : <Play className="w-3.5 h-3.5 text-white fill-current ml-0.5" />}
                     </span>
                     <span className="text-[10px] text-cyan-50 font-semibold uppercase tracking-wider">
-                      {articulatoryVideoActive ? 'Foto' : 'Video'}
+                      {articulatoryVideoActive ? (language === 'it' ? 'Foto' : 'Photo') : 'Video'}
                     </span>
                   </div>
                 </button>
