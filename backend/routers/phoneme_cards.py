@@ -501,7 +501,7 @@ async def build_autofill_payload(db, ipa: str, dialect: str) -> Dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Phase E — Readiness checklist (correctness + contradiction detection)
 # --------------------------------------------------------------------------- #
-_ACTIVATION_ENUM = {"HIGH", "MODERATE", "LOW"}
+_ACTIVATION_ENUM = {"HIGH", "MODERATE", "MOD", "LOW"}  # accept both spec-shorthand MOD and legacy MODERATE
 _CARD_DIALECT_TO_CANONICAL = {"AmE": "GenAm", "GenAm": "GenAm", "RP": "RP"}
 # Deprecated classification labels flagged by Phase B lockdown
 _DEPRECATED_CLASSIFICATION_LABELS = {"Near-high", "High", "Low-mid", "High-mid"}
@@ -1352,6 +1352,235 @@ def build_phoneme_cards_router(db, get_admin_user):
             "message": (
                 f"{len(applied['autofill'])} campi autofill + "
                 f"{len(applied['ai'])} bozze AI applicati."
+            ),
+        }
+
+    # ------------------------------------------------------------------ #
+    # Phase 2 spec — Batch-fill v2 (taxonomy · muscle map · grounded LLM · validation)
+    # ------------------------------------------------------------------ #
+    class BatchFillV2Request(BaseModel):
+        dialect: Optional[str] = None
+        include_creative: bool = True   # if False, only DERIVED (muscle map + autofill)
+        overwrite: bool = False
+
+    @router.get("/admin/phonemes/taxonomy")
+    async def admin_taxonomy(admin: dict = Depends(get_admin_user)):
+        """Return the field taxonomy from the Phase-2 spec §1 for the UI badge system."""
+        from .phoneme_batch_v2 import FIELD_TAXONOMY
+        return FIELD_TAXONOMY
+
+    @router.post("/admin/phonemes/{card_id}/batch-fill-v2")
+    async def admin_batch_fill_v2(
+        card_id: str,
+        payload: BatchFillV2Request,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """
+        Full-taxonomy batch-fill (Phase-2 spec v1.0):
+          • CANONICAL — looked up (never written)
+          • DERIVED   — computed by rule: features/knobs/classification/vowelChartPosition
+                        via autofill + facialMuscles via §3.1 muscle map
+          • NEEDS_SOURCE — commonWords / spelling_distribution left untouched
+                           (§3.2, §3.3 deferred — first-pass scope)
+          • CREATIVE  — LLM-drafted with grounding contract; per-field confidence;
+                        empty beats invented
+          • Validation — deterministic §4 suite (except word_contains_phoneme)
+          • Persist as bozza (published=false), never auto-publish
+        """
+        from .phoneme_batch_v2 import (
+            compose_facial_muscles, draft_creative_fields,
+            run_validation_suite, _muscle_levels_for,
+        )
+
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+        if doc.get("published") and not payload.overwrite:
+            raise HTTPException(status_code=409,
+                                detail="La scheda è pubblicata — usa overwrite=true per forzare.")
+        ipa = (doc.get("ipa") or "").strip()
+        if not ipa:
+            raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
+
+        # ---- Dialect candidate iteration (reuse Phase F+ logic)
+        preferred = payload.dialect
+        candidate_dialects: List[str] = []
+        if preferred:
+            candidate_dialects.append(preferred)
+        else:
+            ds = doc.get("dialects") or []
+            if "AmE" in ds or "GenAm" in ds:
+                candidate_dialects.append("GenAm")
+            if "RP" in ds and "RP" not in candidate_dialects:
+                candidate_dialects.append("RP")
+        for alt in ("GenAm", "RP"):
+            if alt not in candidate_dialects:
+                candidate_dialects.append(alt)
+
+        # ---- 1) CANONICAL lookup (never written)
+        canon = None
+        dialect = None
+        last_err = None
+        for d in candidate_dialects:
+            for candidate in _ipa_equivalents(ipa):
+                canon = await db.canonical_phonemes.find_one(
+                    {"dialect": d, "ipa": candidate}, {"_id": 0},
+                )
+                if canon:
+                    dialect = d
+                    break
+            if canon:
+                break
+            last_err = f"{d}: /{ipa}/ non trovato"
+        if not canon or not dialect:
+            raise HTTPException(status_code=404, detail=f"CANONICAL lookup fallito: {last_err}")
+
+        applied = {"derived": [], "creative": []}
+        errors: List[str] = []
+        update_fields: Dict[str, Any] = {}
+
+        # ---- 2) DERIVED — autofill (features/knobs/classification/vowelChartPosition)
+        autofill = await build_autofill_payload(db, ipa=ipa, dialect=dialect)
+        for key in ("features", "knobs", "classification", "vowelChartPosition"):
+            new_val = autofill.get(key)
+            if not new_val:
+                continue
+            cur = doc.get(key)
+            if payload.overwrite or _is_empty_or_default(cur):
+                update_fields[key] = new_val
+                applied["derived"].append(key)
+
+        # ---- 3) DERIVED — facial muscles from §3.1 (spec-locked rule)
+        kind = canon.get("kind", "vowel")
+        muscles_new = compose_facial_muscles(ipa, kind)
+        # Muscle levels are DERIVED-by-rule → always overwrite (spec §1 forbids LLM authoring)
+        update_fields["facialMuscles"] = muscles_new
+        applied["derived"].append("facialMuscles")
+        muscles_expected = _muscle_levels_for(ipa, kind)
+
+        # ---- 4) CREATIVE — grounded LLM draft
+        creative: Dict[str, Any] = {}
+        ai_confidences: Dict[str, float] = {}
+        if payload.include_creative:
+            existing_creative = {
+                "mnemonic":         (doc.get("mnemonic") or {}).get("phrase", ""),
+                "funFact":          (doc.get("funFact") or {}).get("body", ""),
+                "deepDive":         (doc.get("pronunciationGuide") or {}).get("body", ""),
+                "exampleSentences": doc.get("exampleSentences") or [],
+                "videoScript":      (doc.get("videoLesson") or {}).get("script", ""),
+            }
+            creative = await draft_creative_fields(canon, ipa, dialect, muscles_new, existing_creative)
+            if creative.get("error"):
+                errors.append(f"CREATIVE draft: {creative['error']}")
+                creative = {}
+
+            # Apply CREATIVE fields with grounding contract (empty beats invented)
+            def _apply_field(card_key: str, spec_key: str, apply_fn):
+                blob = creative.get(spec_key)
+                if not isinstance(blob, dict):
+                    return
+                cur = doc.get(card_key)
+                if payload.overwrite or _is_empty_or_default(cur) or _is_empty_or_default(
+                        (cur or {}).get("phrase") if card_key == "mnemonic" else (cur or {}).get("body")):
+                    new_val = apply_fn(blob, cur or {})
+                    if new_val is not None:
+                        update_fields[card_key] = new_val
+                        applied["creative"].append(spec_key)
+                        conf = blob.get("confidence")
+                        if isinstance(conf, (int, float)):
+                            ai_confidences[spec_key] = float(conf)
+
+            # mnemonic: preserve audio if phrase unchanged; clear otherwise
+            def _mn(blob, cur):
+                phrase = blob.get("phrase") or cur.get("phrase", "")
+                if not phrase:
+                    return None
+                cur_phrase = cur.get("phrase", "")
+                new_audio = cur.get("audio", "") if phrase == cur_phrase else ""
+                return {
+                    **cur,
+                    "phrase": phrase,
+                    "highlights": blob.get("highlights") or cur.get("highlights", []),
+                    "note":       blob.get("note")       or cur.get("note", ""),
+                    "audio":      new_audio,
+                    "grounded_on": blob.get("grounded_on") or [],
+                    "confidence":  blob.get("confidence"),
+                }
+            def _ff(blob, cur):
+                body = blob.get("body")
+                if not body:
+                    return None
+                return {**cur, "headline": blob.get("headline") or cur.get("headline", ""),
+                        "body": body,
+                        "grounded_on": blob.get("grounded_on") or [],
+                        "confidence": blob.get("confidence")}
+            def _dd(blob, cur):
+                body = blob.get("body")
+                if not body:
+                    return None
+                return {**cur, "body": body,
+                        "grounded_on": blob.get("grounded_on") or [],
+                        "confidence": blob.get("confidence")}
+            def _es(blob, cur):
+                items = blob.get("items") or []
+                if not items:
+                    return None
+                # exampleSentences on the card is List[Dict] — wrap strings if needed
+                return [
+                    it if isinstance(it, dict) else {"text": it}
+                    for it in items
+                ]
+            def _vs(blob, cur):
+                body = blob.get("body")
+                if not body:
+                    return None
+                return {**cur, "script": body,
+                        "grounded_on": blob.get("grounded_on") or [],
+                        "confidence": blob.get("confidence")}
+
+            _apply_field("mnemonic",         "mnemonic",         _mn)
+            _apply_field("funFact",          "funFact",          _ff)
+            _apply_field("pronunciationGuide","deepDive",        _dd)
+            _apply_field("exampleSentences", "exampleSentences", _es)
+            _apply_field("videoLesson",      "videoScript",      _vs)
+
+        # ---- 5) Persist (never auto-publish)
+        if update_fields:
+            update_fields["updatedAt"] = _now_iso()
+            update_fields["updatedBy"] = admin.get("username")
+            update_fields["published"] = False
+            await coll.update_one({"id": card_id}, {"$set": update_fields})
+
+        # ---- 6) Deterministic validation (§4)
+        updated = await coll.find_one({"id": card_id}, {"_id": 0})
+        validation = run_validation_suite(updated, ipa, muscles_expected, creative)
+
+        # ---- 7) Rescore readiness
+        try:
+            report = await build_readiness_report(db, updated)
+            readiness_score = report["score"]
+        except Exception:  # noqa: BLE001
+            readiness_score = None
+
+        return {
+            "id": card_id,
+            "dialect": dialect,
+            "applied": applied,
+            "errors": errors,
+            "ai_confidences": ai_confidences,
+            "muscles_rule": {
+                "orbicularis_oris":  muscles_expected[0],
+                "buccinator":        muscles_expected[1],
+                "zygomaticus_major": muscles_expected[2],
+                "masseter":          muscles_expected[3],
+                "mentalis":          muscles_expected[4],
+            },
+            "validation": validation,
+            "readinessScore": readiness_score,
+            "message": (
+                f"{len(applied['derived'])} campi DERIVED + "
+                f"{len(applied['creative'])} campi CREATIVE draftati "
+                f"({sum(1 for c in validation if c['status']=='pass')}/{len(validation)} validation pass)."
             ),
         }
 

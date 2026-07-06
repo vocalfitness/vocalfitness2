@@ -12,6 +12,46 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 06/07/2026 — Phoneme CMS · Phase-2 Batch-fill-v2 (Spec v1.0) — DONE ✅
+Implementazione conforme allo spec `Batch-AI-Automation-Spec-v1.0.md` in un unica sessione.
+
+**Field taxonomy strict (spec §1)**:
+- **CANONICAL_lookup**: ipa/category/subcategory/height/backness/rounding/tenseness/voicing/manner/duration/dialect_membership — locked lookup, mai scritti dall'LLM
+- **DERIVED_by_rule**: classification/vowelChartPosition/knobs/facialMuscles — calcolati deterministicamente
+- **NEEDS_SOURCE** (deferred first-pass): commonWords_30/spelling_distribution (§3.2/§3.3 richiedono CMUdict + dataset)
+- **CREATIVE_ai_draft**: mnemonic/funFact/deepDive/exampleSentences/videoScript — grounded LLM
+- **OUT_OF_SCOPE**: spectrogram/pink_trombone/graphics
+
+**Nuovo modulo** `/app/backend/routers/phoneme_batch_v2.py`:
+- `_MUSCLE_TABLE_VOWELS` — 12-vowel resolved table verbatim dallo spec §3.1 (slash-ranges collapsati al valore basso per enum HIGH/MOD/LOW)
+- `_muscle_levels_for(ipa, kind)` — vowel/diphthong/consonant (bilabials/labiodentals/w-glide/altro)
+- `compose_facial_muscles()` — 5-muscle list nel formato card
+- **Grounding contract** (§2): system prompt vieta invenzione, esige `grounded_on` list per campo, "empty beats invented"
+- `draft_creative_fields()` — Claude Sonnet 4.5 con injected canonical + DERIVED facts
+- `run_validation_suite()` — §4 checks: muscle_levels_match_rule, muscle_enum, minimal_pairs_one_segment, sentence_contains_phoneme, no_unsourced_superlatives (word_contains_phoneme deferred)
+
+**Endpoint**:
+- `GET /api/admin/phonemes/taxonomy` — espone la tassonomia
+- `POST /api/admin/phonemes/{id}/batch-fill-v2` — pipeline completo per card: CANONICAL lookup → DERIVED compute (autofill + muscoli) → CREATIVE LLM draft (5 campi) → §4 validation → rescore → persist come bozza (mai auto-publish)
+
+**Test case /ʊ FOOT (spec target)**:
+- Muscoli: **MOD / MOD / LOW / MOD / LOW** ✓ (spec exact match)
+- 5/5 CREATIVE draftati con confidence 0.95-1.0 e `grounded_on: [rounding, tenseness, duration, backness, height]`
+- 3 pass + 1 warn + 0 fail (sentence check è WARN causa proxy commonWords-based fino a §3.2)
+- readiness: 100/100 dopo re-publish
+
+**Batch completo 42 draft cards** (~14 min, ~19s/card):
+- **Score distribution**: min 70 · max 82 · avg 75.5
+- **Buckets**: 2 GREEN (u-foot 100, i-fleece 100) · 42 AMBER (70-89) · 0 RED
+- Tutti gli AMBER hanno la stessa causa: `content.audio` + `content.hotspots` mancanti (correttamente flagged come content-gap umano, non LLM)
+- 0 superlativi non citati, 0 muscle rule violations, tutti gli enum conformi
+
+**Enum fix**: readiness `_ACTIVATION_ENUM` ora accetta sia "MOD" (spec §3.1) che "MODERATE" (legacy Phase B) per backward compat.
+
+**Ranked queue reale ora è utilizzabile**: sorti per score DESC, greens = one-click publish, amber = human content input needed.
+
+
+
 ### 05/07/2026 — Phoneme CMS · Correzioni Architettura (issue utente) — DONE ✅
 Tre bug critici segnalati dall'utente dopo Phase F+ sono stati risolti:
 
