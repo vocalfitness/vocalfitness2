@@ -28,6 +28,38 @@ const GROUPS = [
   { id: 'consonant',  label: 'Consonanti', color: 'from-violet-500 to-fuchsia-500',soft: 'from-violet-500/10 to-fuchsia-500/5',border: 'border-violet-500/30', accent: 'text-violet-300' },
 ];
 
+
+// ------- §DIALECT FACT-CHECK badge (library preview) --------------------
+// Rendered on cards whose phoneme is exclusive to one accent (see the
+// canonical ``dialectScope`` in phonemeCatalogue.js). Students can spot at
+// a glance which sounds only exist in RP or GA without opening the card —
+// mirroring the locked toggle inside PhonemeCardPage. Compact pill; keeps
+// the library grid uncluttered.
+const DialectOnlyBadge = ({ entry }) => {
+  const scope = entry?.dialectScope;
+  if (!scope || scope === 'both') return null;
+  const isRP = scope === 'RP-only';
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+        isRP
+          ? 'bg-blue-500/10 border-blue-400/50 text-blue-200'
+          : 'bg-red-500/10 border-red-400/50 text-red-200'
+      }`}
+      title={
+        isRP
+          ? 'Fonema esclusivo dell\'inglese britannico (RP). Non esiste come suono distinto in American English.'
+          : 'Fonema esclusivo dell\'inglese americano (GenAm). Non esiste come suono distinto in British RP.'
+      }
+      data-testid={`phoneme-library-dialect-badge-${entry?.id}`}
+    >
+      <span aria-hidden="true">{isRP ? '🇬🇧' : '🇺🇸'}</span>
+      <span>{isRP ? 'RP only' : 'US only'}</span>
+    </span>
+  );
+};
+
+
 // ------- Mini audio player used in published cards -----------------------
 const ListenButton = ({ src, label = 'Listen', testId }) => {
   const [playing, setPlaying] = useState(false);
@@ -109,7 +141,9 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
             disponibile · {group.label}
           </span>
-          {isPremium ? (
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <DialectOnlyBadge entry={entry} />
+            {isPremium ? (
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                 locked
@@ -130,6 +164,7 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
               Gratis
             </span>
           )}
+          </div>
         </div>
 
         {/* IPA + lexical set */}
@@ -205,10 +240,13 @@ const LockedCard = ({ entry, group, dialect, index }) => {
             <Lock className="w-3 h-3" />
             in preparazione · {group.label}
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/60 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            <Crown className="w-3 h-3" />
-            Premium
-          </span>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <DialectOnlyBadge entry={entry} />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/60 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <Crown className="w-3 h-3" />
+              Premium
+            </span>
+          </div>
         </div>
         <p className="mt-6 mb-1 text-5xl md:text-6xl font-black text-slate-400 leading-none tracking-tight">
           /{displayIpa}/

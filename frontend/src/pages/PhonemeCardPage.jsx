@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -285,6 +285,34 @@ const PhonemeCardPage = () => {
   const navigate = useNavigate();
 
   const { dialect, setDialect } = useDialect();
+
+  // ------------------------------------------------------------------
+  // §DIALECT FACT-CHECK — read canonical ``card.dialects`` and enforce
+  // dialect availability at the card level. Some phonemes exist ONLY in
+  // one accent (e.g. /ɒ/ LOT is RP-only — merged into /ɑ/ FATHER in US;
+  // rhotic vowels like /ɝ/ NURSE are GA-only vs non-rhotic RP /ɜː/).
+  //
+  // If the visitor lands on a card with the "wrong" dialect selected we
+  // silently flip the shared toggle to the supported one — otherwise a
+  // /ɒ/-only card would play the /ɑ/ pronunciation and confuse students.
+  // The visible toggle also becomes a locked badge (see JSX below) that
+  // explains why switching is disabled for that phoneme.
+  // ------------------------------------------------------------------
+  const cardDialects = useMemo(() => {
+    const d = Array.isArray(phoneme?.dialects) ? phoneme.dialects : [];
+    return d.length ? d : ['AmE', 'RP']; // sensible default
+  }, [phoneme?.dialects]);
+  const supportsAmE = cardDialects.includes('AmE');
+  const supportsRP  = cardDialects.includes('RP');
+  const isMonoDialect = supportsAmE !== supportsRP; // XOR: exactly one
+
+  useEffect(() => {
+    if (!phoneme) return;
+    if (!supportsAmE && dialect === 'AmE') setDialect('RP');
+    else if (!supportsRP && dialect === 'RP') setDialect('AmE');
+    // no-op when the current dialect is supported
+  }, [phoneme?.id, supportsAmE, supportsRP, dialect, setDialect]);
+
   const [openHotspot, setOpenHotspot] = useState(null);
   const [showFrontView, setShowFrontView] = useState(false);
   const [sideVideoActive, setSideVideoActive] = useState(false);
@@ -587,18 +615,56 @@ const PhonemeCardPage = () => {
               </div>
             </div>
 
-            {/* TOP-RIGHT: AmE/RP Switch (sole instance now — no underlying conflict) */}
+            {/* TOP-RIGHT: AmE/RP dialect switch WITH canonical fact-check.
+                When the phoneme is available in both dialects the visitor
+                can toggle freely. When ``card.dialects`` restricts it to
+                one accent the widget becomes a LOCKED badge showing the
+                only supported flag + a subtle "phoneme exclusive to <dialect>"
+                message on hover — protecting students from hearing a
+                different phoneme by accident.
+                See §DIALECT FACT-CHECK block above for the auto-flip logic. */}
             <div className="absolute top-[4%] right-[3%] z-20">
-              <button
-                type="button"
-                onClick={() => setDialect(dialect === 'AmE' ? 'RP' : 'AmE')}
-                className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 rounded-full pl-2 pr-3 py-1.5 hover:border-orange-400 transition-all duration-300 hover:scale-105"
-                data-testid="phoneme-dialect-switch"
-              >
-                <span className={`text-base ${dialect === 'AmE' ? 'opacity-100 scale-110' : 'opacity-40'} transition-all`}>🇺🇸</span>
-                <span className={`text-base ${dialect === 'RP'  ? 'opacity-100 scale-110' : 'opacity-40'} transition-all`}>🇬🇧</span>
-                <span className="text-[10px] text-cyan-200 uppercase tracking-widest font-bold ml-1">{dialect === 'AmE' ? 'AmE' : 'RP'}</span>
-              </button>
+              {isMonoDialect ? (
+                <div
+                  className="group relative flex items-center gap-2 bg-slate-900/85 backdrop-blur-md border border-cyan-500/30 rounded-full pl-2 pr-3 py-1.5 cursor-help"
+                  data-testid="phoneme-dialect-lock"
+                  title={
+                    language === 'it'
+                      ? (supportsRP
+                          ? `Fonema esclusivo dell'inglese britannico (RP). In American il fonema ${phoneme.displayIpa || `/${phoneme.ipa}/`} non esiste come suono distinto.`
+                          : `Fonema esclusivo dell'inglese americano (GenAm). In RP britannico il fonema ${phoneme.displayIpa || `/${phoneme.ipa}/`} non esiste come suono distinto.`)
+                      : (supportsRP
+                          ? `Phoneme exclusive to British English (RP). It does not exist as a distinct sound in American English.`
+                          : `Phoneme exclusive to General American. It does not exist as a distinct sound in RP British English.`)
+                  }
+                >
+                  <span className="text-base">{supportsRP ? '🇬🇧' : '🇺🇸'}</span>
+                  <span className="text-[10px] text-cyan-100 uppercase tracking-widest font-bold">
+                    {supportsRP ? 'RP' : 'AmE'}
+                  </span>
+                  <span className="text-[10px] text-orange-300/90 uppercase tracking-wider font-bold ml-1 flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-orange-400/80" />
+                    {language === 'it' ? 'solo' : 'only'}
+                  </span>
+                  {/* Rich tooltip on hover — desktop nicety */}
+                  <span className="absolute top-full mt-2 right-0 whitespace-nowrap max-w-[280px] text-[11px] normal-case tracking-normal bg-slate-900/95 border border-cyan-500/40 text-cyan-100 rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-30">
+                    {language === 'it'
+                      ? <>Il toggle US/UK è <b>disattivato</b> perché questo suono esiste solo in <b>{supportsRP ? 'RP britannico' : 'American English'}</b>.</>
+                      : <>The US/UK toggle is <b>disabled</b> because this phoneme only exists in <b>{supportsRP ? 'British RP' : 'American English'}</b>.</>}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDialect(dialect === 'AmE' ? 'RP' : 'AmE')}
+                  className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 rounded-full pl-2 pr-3 py-1.5 hover:border-orange-400 transition-all duration-300 hover:scale-105"
+                  data-testid="phoneme-dialect-switch"
+                >
+                  <span className={`text-base ${dialect === 'AmE' ? 'opacity-100 scale-110' : 'opacity-40'} transition-all`}>🇺🇸</span>
+                  <span className={`text-base ${dialect === 'RP'  ? 'opacity-100 scale-110' : 'opacity-40'} transition-all`}>🇬🇧</span>
+                  <span className="text-[10px] text-cyan-200 uppercase tracking-widest font-bold ml-1">{dialect === 'AmE' ? 'AmE' : 'RP'}</span>
+                </button>
+              )}
             </div>
 
             {/* BOTTOM-RIGHT: Airflow + Voicing indicators (aligned vertically with circle above) */}

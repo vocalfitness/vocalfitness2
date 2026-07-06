@@ -1244,7 +1244,32 @@ AdminDatabaseTab.jsx   56 righe
 - In produzione configurare variabili d'ambiente su Emergent dashboard
 - JWT_SECRET_KEY da cambiare in produzione
 
-## Changelog — 06/07/2026 (Audio bilingue RP/AmE su tutto il flusso card)
+## Changelog — 06/07/2026 (Dialect fact-check — RP/AmE lock canonico)
+
+### Nuova regola canonica: fonemi mono-dialetto
+Alcuni fonemi esistono come suono distintivo solo in un accento:
+- **`/ɒ/` LOT**: RP-only (in GenAm si è fuso con `/ɑ/` PALM — cot-caught territory)
+- **`/ɪə eə ʊə/`** dittonghi centering (NEAR, SQUARE, CURE): RP-only
+  (in GA sono realizzati con rotici `/ɪr ɛr ʊr/` — articolazione diversa)
+
+Aggiornati in `frontend/src/data/phonemeCatalogue.js`:
+`dialectScope: 'both'` → `'RP-only'` per i 4 fonemi sopra.
+
+### Wiring frontend (PhonemeCardPage)
+- Nuovo blocco §DIALECT FACT-CHECK che legge `phoneme.dialects` (array canonico dal DB)
+- **Auto-flip silenzioso**: se lo studente arriva sulla card con il dialetto "sbagliato" selezionato, il toggle si sposta automaticamente sul dialetto supportato
+- **Toggle bloccato**: quando la card è mono-dialetto, il pulsante US⇄UK diventa un **badge locked** con bandiera + "SOLO" + puntino arancione
+- **Tooltip esplicativo** al hover: "Il toggle US/UK è disattivato perché questo suono esiste solo in [RP britannico | American English]"
+- Testo bilingue IT/EN via `LanguageContext`
+- data-testid: `phoneme-dialect-lock` (mono-dialect) vs `phoneme-dialect-switch` (bi-dialect)
+
+### Admin editor
+- Nuovo campo **Dialetti supportati** in `PhonemeAdminEditorPage.jsx` con checkbox 🇺🇸 AmE / 🇬🇧 RP
+- Warning arancione quando si spunta un solo checkbox: "⚠️ Mono-dialetto: il toggle US/UK sarà bloccato sulla card cliente"
+- Impossibile deselezionare entrambi (fallback automatico all'opposto)
+- data-testid: `editor-field-dialect-ame` / `editor-field-dialect-rp`
+
+
 
 ### Wiring dialetto-audio end-to-end
 - 🆕 Helper `pickDialectAudio(entity, dialect)` (`frontend/src/lib/pickDialectAudio.js`)

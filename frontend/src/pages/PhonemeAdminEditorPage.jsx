@@ -676,6 +676,35 @@ export default function PhonemeAdminEditorPage() {
                 testId="editor-field-examples"
               />
             </Field>
+            <Field label="Dialetti supportati" help="Su quali dialetti la card è disponibile. Se un fonema esiste SOLO in RP (es. /ɒ/ LOT, dittonghi centering /ɪə eə ʊə/) o SOLO in AmE (fonemi rotici), spunta UN SOLO checkbox: il toggle US/UK sulla card sarà bloccato per proteggere gli studenti dal sentire un fonema diverso.">
+              <div className="flex items-center gap-3 flex-wrap">
+                {['AmE', 'RP'].map((d) => {
+                  const list = card.dialects || [];
+                  const on = list.includes(d);
+                  return (
+                    <label key={d} className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${on ? 'border-cyan-500/60 bg-cyan-500/10 text-cyan-100' : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-500'}`}>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => {
+                          const next = on ? list.filter((x) => x !== d) : [...list, d];
+                          setField('dialects', next.length ? next : (d === 'AmE' ? ['RP'] : ['AmE']));
+                        }}
+                        className="accent-cyan-500"
+                        data-testid={`editor-field-dialect-${d.toLowerCase()}`}
+                      />
+                      <span className="font-mono font-bold">{d === 'AmE' ? '🇺🇸 AmE' : '🇬🇧 RP'}</span>
+                    </label>
+                  );
+                })}
+                {(card.dialects || []).length === 1 && (
+                  <span className="text-[11px] text-orange-300 font-semibold">
+                    ⚠️ Mono-dialetto: il toggle US/UK sarà bloccato sulla card cliente.
+                  </span>
+                )}
+              </div>
+            </Field>
+
             <Field label="Nota dialetto" help="Nota dialettale mostrata SOLO se compilata (sostituisce l'auto-tag dei dialetti). Lascia vuoto per usare l'elenco automatico AmE/RP.">
               <Input
                 value={card.dialectNote || ''}

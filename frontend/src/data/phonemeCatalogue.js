@@ -63,7 +63,11 @@ export const PHONEME_CATALOGUE = [
     ipa: 'ɒ', ipaUS: 'ɑ', subtitle: 'LOT',
     words: ['hot', 'job', 'box'],
     description: 'open back rounded (RP) — merged with /ɑ/ PALM in General American',
-    access: 'premium', dialectScope: 'both', mergedInUS: true },
+    // §DIALECT FACT-CHECK: /ɒ/ does NOT exist as a distinct phoneme in
+    // General American (it has merged with /ɑ/ PALM — the "cot-caught"
+    // territory). Studying LOT in a US accent would give students the
+    // /ɑ/ sound instead — a different phoneme. Locked to RP.
+    access: 'premium', dialectScope: 'RP-only', mergedInUS: true },
 
   { id: 'u-foot',    status: 'published', group: 'vowel', subgroup: 'short-monophthong',
     ipa: 'ʊ', subtitle: 'FOOT',
@@ -146,19 +150,23 @@ export const PHONEME_CATALOGUE = [
     ipa: 'ɪə', ipaUS: 'ɪr', subtitle: 'NEAR',
     words: ['near', 'here', 'beer'],
     description: 'centring diphthong (RP) · r-coloured in GA',
-    access: 'premium', dialectScope: 'both' },
+    // Centring diphthongs (/ɪə eə ʊə/) exist as distinct phonemes only
+    // in non-rhotic accents (RP). In rhotic GA the second element is a
+    // rhoticised /r/ (e.g. NEAR → /ɪr/) — a fundamentally different
+    // articulation. RP-only to preserve phonemic identity for students.
+    access: 'premium', dialectScope: 'RP-only' },
 
   { id: 'ee-square', status: 'upcoming', group: 'diphthong', subgroup: 'centring',
     ipa: 'eə', ipaUS: 'ɛr', subtitle: 'SQUARE',
     words: ['square', 'hair', 'care'],
     description: 'centring diphthong (RP, often monophthongised to /ɛː/) · r-coloured in GA',
-    access: 'premium', dialectScope: 'both' },
+    access: 'premium', dialectScope: 'RP-only' },
 
   { id: 'ue-cure',   status: 'upcoming', group: 'diphthong', subgroup: 'centring',
     ipa: 'ʊə', ipaUS: 'ʊr', subtitle: 'CURE',
     words: ['cure', 'tour', 'pure'],
     description: 'centring diphthong (RP, declining; often merged with /ɔː/) · r-coloured in GA',
-    access: 'premium', dialectScope: 'both' },
+    access: 'premium', dialectScope: 'RP-only' },
 
   // ====================================================================
   // CONSONANTS — 24 (identical inventory between RP and GA)
