@@ -522,11 +522,10 @@ const PhonemeCardPage = () => {
           {/* Scanline accent */}
           <div className="phoneme-scanline" />
 
-          {/* Background image (clean anatomical side-view, square ratio capped at viewport height).
-              maxWidth also clamped to 85vh so the box stays truly square — without it, w-full
-              wins and the container becomes a wide rectangle that horizontally stretches the
-              §3.2 SagittalOverlay coordinates (anchors calibrated for a 1:1 aspect). */}
-          <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '1 / 1', maxHeight: '85vh', maxWidth: '85vh' }}>
+          {/* Background image (clean anatomical side-view, 16:9 landscape ratio
+              matching the source assets). The SagittalOverlay coordinates are
+              percentages so they follow the container aspect automatically. */}
+          <div ref={imageContainerRef} onClick={handleImageClick} className={`relative w-full mx-auto ${coordPickerEnabled ? 'cursor-crosshair' : ''}`} style={{ aspectRatio: '16 / 9', maxHeight: '85vh' }}>
             <PhonemeAssetMedia
               imageUrl={phoneme.assets?.sideView}
               videoUploadUrl={phoneme.assets?.sideViewVideo}
