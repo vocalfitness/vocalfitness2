@@ -645,15 +645,16 @@ const PhonemeCardPage = () => {
               </span>
             </button>
 
-            {/* Side-view VIDEO CTA — sits beneath the Front View disc.
-                Only rendered when a video source is configured for sideView.
-                Serves as the sole affordance for image↔video toggling
-                (the image itself is no longer clickable / has no centre pulse). */}
+            {/* Side-view VIDEO CTA — positioned right below the Front View disc.
+                Uses the same right-anchoring; vertical offset = circle center
+                (top-42%) + half-disc height + small gap, so the CTA lives in
+                the free space between the Front View circle and the
+                Airflow/Voicing panel with no click overlap. */}
             {hasPlayableVideo(phoneme.assets, 'sideView') && (
               <button
                 type="button"
                 onClick={() => setSideVideoActive((v) => !v)}
-                className="absolute top-[190px] sm:top-[230px] lg:top-[270px] right-4 sm:right-6 lg:right-10 z-30 group/vidcta w-40 sm:w-44 rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
+                className="absolute right-[6%] sm:right-[7%] top-[calc(42%+96px)] sm:top-[calc(42%+112px)] lg:top-[calc(42%+128px)] z-30 group/vidcta w-40 sm:w-44 rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
                 aria-pressed={sideVideoActive}
                 aria-label={sideVideoActive ? 'Torna all\'immagine articolatoria' : 'Guarda l\'animazione articolatoria'}
                 data-testid="phoneme-side-video-cta"
