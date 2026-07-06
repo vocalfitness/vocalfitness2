@@ -645,42 +645,48 @@ const PhonemeCardPage = () => {
               </span>
             </button>
 
-            {/* Side-view VIDEO CTA — positioned right below the Front View disc.
-                Uses the same right-anchoring; vertical offset = circle center
-                (top-42%) + half-disc height + small gap, so the CTA lives in
-                the free space between the Front View circle and the
-                Airflow/Voicing panel with no click overlap. */}
+            {/* Side-view VIDEO CTA — wrapper anchored to the right, same width
+                as the Front View disc (w-32/40/48) so its horizontal axis is
+                identical to the circle's; ``top`` = circle bottom edge + gap
+                and ``bottom`` = airflow panel top edge + gap, then
+                ``items-center`` vertically centres the button in the
+                free-space between the two elements. Both axes match. */}
             {hasPlayableVideo(phoneme.assets, 'sideView') && (
-              <button
-                type="button"
-                onClick={() => setSideVideoActive((v) => !v)}
-                className="absolute right-[6%] sm:right-[7%] top-[calc(42%+96px)] sm:top-[calc(42%+112px)] lg:top-[calc(42%+128px)] z-30 group/vidcta w-40 sm:w-44 rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
-                aria-pressed={sideVideoActive}
-                aria-label={sideVideoActive ? 'Torna all\'immagine articolatoria' : 'Guarda l\'animazione articolatoria'}
-                data-testid="phoneme-side-video-cta"
+              <div
+                className="absolute z-30 flex items-center justify-center right-[8%] sm:right-[9%] w-32 sm:w-40 lg:w-48 top-[calc(42%+80px)] sm:top-[calc(42%+96px)] lg:top-[calc(42%+112px)] bottom-[calc(4%+70px)] pointer-events-none"
+                data-testid="phoneme-side-video-cta-wrap"
               >
-                <div className="flex items-center gap-2.5">
-                  <span className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    sideVideoActive
-                      ? 'bg-orange-500/90 shadow-[0_0_18px_rgba(251,146,60,0.7)]'
-                      : 'bg-cyan-500/85 shadow-[0_0_18px_rgba(34,211,238,0.6)] group-hover/vidcta:scale-110'
-                  }`}>
-                    {sideVideoActive ? (
-                      <span aria-hidden className="w-2.5 h-2.5 rounded-sm bg-white block" />
-                    ) : (
-                      <Play className="w-4 h-4 text-white fill-current ml-0.5" />
-                    )}
-                  </span>
-                  <div className="text-left leading-tight">
-                    <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/80 font-bold">
-                      Animazione
-                    </p>
-                    <p className="text-[11px] text-cyan-50 font-semibold">
-                      {sideVideoActive ? 'Stop · Torna alla foto' : 'Guarda il gesto'}
-                    </p>
+                <button
+                  type="button"
+                  onClick={() => setSideVideoActive((v) => !v)}
+                  className="pointer-events-auto group/vidcta w-full rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md px-3 py-2.5 shadow-[0_0_22px_rgba(34,211,238,0.25)] hover:border-orange-400 hover:shadow-[0_0_28px_rgba(251,146,60,0.45)] transition-all duration-300 hover:-translate-y-0.5"
+                  aria-pressed={sideVideoActive}
+                  aria-label={sideVideoActive ? 'Torna all\'immagine articolatoria' : 'Guarda l\'animazione articolatoria'}
+                  data-testid="phoneme-side-video-cta"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      sideVideoActive
+                        ? 'bg-orange-500/90 shadow-[0_0_18px_rgba(251,146,60,0.7)]'
+                        : 'bg-cyan-500/85 shadow-[0_0_18px_rgba(34,211,238,0.6)] group-hover/vidcta:scale-110'
+                    }`}>
+                      {sideVideoActive ? (
+                        <span aria-hidden className="w-2.5 h-2.5 rounded-sm bg-white block" />
+                      ) : (
+                        <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                      )}
+                    </span>
+                    <div className="text-left leading-tight">
+                      <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/80 font-bold">
+                        Animazione
+                      </p>
+                      <p className="text-[11px] text-cyan-50 font-semibold">
+                        {sideVideoActive ? 'Stop · Torna alla foto' : 'Guarda il gesto'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              </div>
             )}
 
             {/* Hotspot overlay (above face zone — so hotspots remain clickable).
