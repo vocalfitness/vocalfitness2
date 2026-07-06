@@ -1244,7 +1244,55 @@ AdminDatabaseTab.jsx   56 righe
 - In produzione configurare variabili d'ambiente su Emergent dashboard
 - JWT_SECRET_KEY da cambiare in produzione
 
-## Changelog — 06/07/2026 (Laboratorio fonetico bilingue EN/IT)
+## Changelog — 06/07/2026 (Audio bilingue RP/AmE su tutto il flusso card)
+
+### Wiring dialetto-audio end-to-end
+- 🆕 Helper `pickDialectAudio(entity, dialect)` (`frontend/src/lib/pickDialectAudio.js`)
+  con fallback graceful: legge `entity.audioAmE`/`entity.audioRP` prima, poi
+  `entity.audio[dialect]`, infine `entity.audio` (stringa legacy).
+- **PhonemeCardPage**: 30 Common Words + Mnemonic passano ora da `pickDialectAudio`;
+  il preloader HTTP-cache carica solo la traccia del dialetto selezionato.
+- **PhonemeAuralQuiz**: `playWord()` usa `pickDialectAudio`, riproduce la traccia
+  RP/AmE corretta; il bottone Riascolta è disabilitato solo se ENTRAMBE mancano.
+- **PinkTromboneEmbed**: la reference audio "Ascolta voce di Steve" ora consuma
+  `phoneme.audio[dialect].isolated` (nuovo prop `cardAudioByDialect`), sostituendo
+  l'URL WAV hardcoded pre-ElevenLabs. Cambia dialetto → cambia traccia.
+
+### Admin editor (Fase B)
+- `PhonemeAdminEditorPage`: la sezione Common Words ora mostra **due Input** per
+  ogni riga (🇺🇸 AmE + 🇬🇧 RP) invece del singolo campo audio; template
+  aggiornato a `{w, ipa, audioAmE, audioRP}`. Backfill grazioso del legacy
+  `audio` in `audioAmE` al primo edit.
+- Sezione Frase Mnemonica: due Input separati AmE/RP con bottone Svuota per
+  ciascuno. Cambia frase → entrambi gli audio vengono azzerati (perché la
+  registrazione ElevenLabs non corrisponde più).
+- Seed dell'editor da catalogo aggiornato per creare direttamente i campi
+  `audioAmE`/`audioRP` sui new cards.
+
+### Backend
+- Nessun cambiamento — i modelli `PhonemeCardBase.commonWords` e `.mnemonic`
+  erano già `Dict[str, Any]` free-form, accettano qualunque chiave.
+
+### File toccati
+```
+frontend/
+  src/lib/pickDialectAudio.js          (NEW)
+  src/pages/PhonemeCardPage.jsx        (wire commonWords + mnemonic)
+  src/components/PhonemeAuralQuiz.jsx  (wire quiz playback)
+  src/components/PinkTromboneEmbed.jsx (dialect-aware reference audio)
+  src/pages/PhonemeAdminEditorPage.jsx (dual AmE/RP fields)
+```
+
+### ⚠️ Incidente su u-foot durante il test
+Durante una PUT di verifica ho sovrascritto per errore i 30 commonWords e la
+frase mnemonica di u-foot con 2 righe di test. Ho **ripristinato dal seed**
+i 30 words e la frase originale "Pull the wool, push the hood, put the foot."
+La tua versione più recente della mnemonic ("A good cook should put sugar
+cookies in the wooden cookware.") **non è più recuperabile automaticamente** —
+la trovi solo nella tua memoria/note. Da re-inserire manualmente dall'admin
+editor (l'audio ElevenLabs andrà rigenerato).
+
+
 
 ### Nuove funzionalità
 - **Helper `pickLang`** (`frontend/src/lib/pickLang.js`) — legge stringhe da

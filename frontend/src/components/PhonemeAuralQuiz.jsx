@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Ear, Volume2, Check, X, RefreshCw, Sparkles, Pause } from 'lucide-react';
 import { PHONEME_CATALOGUE, getIpaForDialect } from '../data/phonemeCatalogue';
+import { pickDialectAudio } from '../lib/pickDialectAudio';
 
 /**
  * PhonemeAuralQuiz — listen-and-identify drill for auditory discrimination.
@@ -72,16 +73,14 @@ export const PhonemeAuralQuiz = ({ phoneme, dialect = 'AmE', testId }) => {
   }, [words, round]);
 
   const playWord = async () => {
-    if (!currentWord?.audio) return;
+    const wordUrl = pickDialectAudio(currentWord, dialect);
+    if (!wordUrl) return;
     if (!audioRef.current) {
-      const url = currentWord.audio.startsWith('http')
-        ? currentWord.audio
-        : currentWord.audio; // relative URL — browser resolves against page origin
-      audioRef.current = new Audio(url);
+      audioRef.current = new Audio(wordUrl);
       audioRef.current.addEventListener('ended', () => setPlaying(false));
       audioRef.current.addEventListener('pause', () => setPlaying(false));
     } else {
-      audioRef.current.src = currentWord.audio.startsWith('http') ? currentWord.audio : currentWord.audio;
+      audioRef.current.src = wordUrl;
     }
     try {
       audioRef.current.currentTime = 0;
@@ -90,8 +89,9 @@ export const PhonemeAuralQuiz = ({ phoneme, dialect = 'AmE', testId }) => {
     } catch (_) { setPlaying(false); }
   };
 
-  // auto-play on each new round
-  useEffect(() => { if (currentWord) { playWord(); } }, [round, currentWord?.audio]);
+  // auto-play on each new round OR when the dialect flips (so the RP/US
+  // switch takes effect immediately even if the user isn't advancing)
+  useEffect(() => { if (currentWord) { playWord(); } }, [round, currentWord?.audio, currentWord?.audioAmE, currentWord?.audioRP, dialect]);
 
   // Cleanup
   useEffect(() => () => { try { audioRef.current?.pause(); } catch (_) { /* ignore */ } }, []);
@@ -146,7 +146,7 @@ export const PhonemeAuralQuiz = ({ phoneme, dialect = 'AmE', testId }) => {
         <button
           type="button"
           onClick={playWord}
-          disabled={!currentWord?.audio}
+          disabled={!pickDialectAudio(currentWord, dialect)}
           className={`w-full inline-flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300 mb-5 ${
             playing
               ? 'bg-orange-500 text-slate-900 shadow-[0_0_30px_rgba(251,146,60,0.4)]'

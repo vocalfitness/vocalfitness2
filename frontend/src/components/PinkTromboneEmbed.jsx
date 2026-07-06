@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { BACKEND_URL } from '../lib/backend';
 import { useLanguage } from '../context/LanguageContext';
+import useDialect from '../hooks/useDialect';
 import { pickLang } from '../lib/pickLang';
 
 // i18n dictionary for the Pink Trombone chrome. The underlying iframe
@@ -115,8 +116,23 @@ function resolveDefaultSym(phonemeId, phonemeIpa) {
   return FALLBACK_DEFAULTS.defaultSym;
 }
 
-export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', className = '' }) => {
+export const PinkTromboneEmbed = ({
+  phonemeId = 'u-foot',
+  phonemeIpa = '',
+  className = '',
+  /**
+   * Card-level ``audio`` object (shape: ``{AmE:{isolated}, RP:{isolated}}``).
+   * When provided, the "Listen to Steve's voice" reference button plays
+   * the ElevenLabs-generated isolated sound from the card matching the
+   * currently selected dialect — replacing the hardcoded legacy WAV in
+   * ``PHONEME_DEFAULTS``. This makes the reference audio consistent
+   * with every other audio button on the phoneme card (all switch on
+   * the RP/US toggle).
+   */
+  cardAudioByDialect = null,
+}) => {
   const { language } = useLanguage();
+  const { dialect } = useDialect();
   const t = (key) => pickLang(PT_I18N[key], language);
   const explicitProfile = PHONEME_DEFAULTS[phonemeId];
   const defaultSym = resolveDefaultSym(phonemeId, phonemeIpa);
@@ -191,10 +207,24 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
   }, []);
 
   const playReference = () => {
-    const url = profile.referenceAudio;
+    // Preferred source: the phoneme card's ElevenLabs isolated audio for
+    // the CURRENT dialect. Falls back to the legacy hardcoded WAV in
+    // PHONEME_DEFAULTS only when the card doesn't yet expose one.
+    let url = null;
+    if (cardAudioByDialect && typeof cardAudioByDialect === 'object') {
+      const branch = cardAudioByDialect[dialect] || cardAudioByDialect.AmE || cardAudioByDialect.RP;
+      if (branch && typeof branch === 'object' && branch.isolated) url = branch.isolated;
+    }
+    if (!url) url = profile.referenceAudio;
     if (!url) { setError(language === 'it' ? 'Audio di riferimento non ancora disponibile per questa scheda' : 'Reference audio not yet available for this card'); return; }
-    if (!refAudioRef.current) {
-      refAudioRef.current = new Audio(`${BACKEND_URL}${url}`);
+    // Absolute URLs (customer-assets CDN, ElevenLabs) go through as-is;
+    // legacy relative paths get prefixed with BACKEND_URL as before.
+    const src = url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+    // Rebuild the Audio element whenever the URL flips so the RP/US
+    // switch is immediate even mid-playback.
+    if (!refAudioRef.current || refAudioRef.current.src !== src) {
+      if (refAudioRef.current) { try { refAudioRef.current.pause(); } catch { /* noop */ } }
+      refAudioRef.current = new Audio(src);
       refAudioRef.current.addEventListener('ended', () => setRefPlaying(false));
       refAudioRef.current.addEventListener('error', () => { setRefPlaying(false); setError(pickLang(PT_I18N.errAudio, language)); });
     }

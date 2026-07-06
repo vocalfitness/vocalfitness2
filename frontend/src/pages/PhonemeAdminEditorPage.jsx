@@ -129,7 +129,7 @@ const BLANK = {
     { text: '', highlights: [] },
     { text: '', highlights: [] },
   ],
-  mnemonic: { phrase: '', highlights: [], note: '', audio: '' },
+  mnemonic: { phrase: '', highlights: [], note: '', audioAmE: '', audioRP: '' },
   pronunciationGuide: { headline: 'Vocal Fitness articulatory protocol', steps: [] },
   hotspots: [],
   commonWords: [],
@@ -230,7 +230,9 @@ export default function PhonemeAdminEditorPage() {
       dialectNote: entry.description || '',
       // Pre-seed commonWords from the catalogue's example words so the admin
       // has 3 concrete rows to build on rather than starting empty.
-      commonWords: (entry.words || []).map((w) => ({ w, ipa: '', audio: '' })),
+      // Dialect-aware audio (AmE + RP) — the RP/US toggle on the card
+      // switches which track plays for every word.
+      commonWords: (entry.words || []).map((w) => ({ w, ipa: '', audioAmE: '', audioRP: '' })),
     };
     setCard(seed);
     setInitial(seed);
@@ -383,14 +385,16 @@ export default function PhonemeAdminEditorPage() {
       if (drafts.mnemonic) {
         const prevPhrase = prev.mnemonic?.phrase || '';
         const newPhrase = drafts.mnemonic.phrase || prevPhrase;
-        // Clear audio when phrase changes — a recorded WAV no longer matches
-        const newAudio = newPhrase === prevPhrase ? (prev.mnemonic?.audio || '') : '';
+        // Clear BOTH dialect audio tracks when the phrase changes — the
+        // recorded WAVs no longer match the new sentence.
+        const phraseChanged = newPhrase !== prevPhrase;
         next.mnemonic = {
           ...(prev.mnemonic || {}),
           phrase: newPhrase,
           highlights: drafts.mnemonic.highlights || prev.mnemonic?.highlights || [],
           note: drafts.mnemonic.note || prev.mnemonic?.note || '',
-          audio: newAudio,
+          audioAmE: phraseChanged ? '' : (prev.mnemonic?.audioAmE || prev.mnemonic?.audio || ''),
+          audioRP:  phraseChanged ? '' : (prev.mnemonic?.audioRP  || ''),
         };
       }
       if (drafts.funFact) {
@@ -1213,24 +1217,46 @@ export default function PhonemeAdminEditorPage() {
                 data-testid="editor-field-mnemonic-note"
               />
             </Field>
-            <Field label="Audio (URL)" help="⚠️ Se hai modificato la frase mnemonica, l'audio potrebbe non corrispondere più. Svuota il campo e rigenera con ElevenLabs.">
+            <Field label="Audio AmE 🇺🇸 (URL)" help="ElevenLabs voice clone di Steve Dapper in accento americano. ⚠️ Se hai modificato la frase, svuota e rigenera.">
               <div className="flex gap-2">
                 <Input
-                  value={card.mnemonic?.audio || ''}
-                  onChange={(e) => setField(['mnemonic', 'audio'], e.target.value)}
-                  placeholder="/api/uploads/elevenlabs/…mp3"
+                  value={card.mnemonic?.audioAmE || card.mnemonic?.audio || ''}
+                  onChange={(e) => setField(['mnemonic', 'audioAmE'], e.target.value)}
+                  placeholder="/api/uploads/elevenlabs/…_ame.mp3"
                   className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs flex-1"
-                  data-testid="editor-field-mnemonic-audio"
+                  data-testid="editor-field-mnemonic-audio-ame"
                 />
-                {card.mnemonic?.audio && (
+                {(card.mnemonic?.audioAmE || card.mnemonic?.audio) && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setField(['mnemonic', 'audio'], '')}
+                    onClick={() => { setField(['mnemonic', 'audioAmE'], ''); setField(['mnemonic', 'audio'], ''); }}
                     className="border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
-                    data-testid="editor-field-mnemonic-audio-clear"
-                    title="Svuota audio (utile quando la frase è cambiata)"
+                    data-testid="editor-field-mnemonic-audio-ame-clear"
+                  >
+                    Svuota
+                  </Button>
+                )}
+              </div>
+            </Field>
+            <Field label="Audio RP 🇬🇧 (URL)" help="Voce Steve Dapper con accento inglese Received Pronunciation.">
+              <div className="flex gap-2">
+                <Input
+                  value={card.mnemonic?.audioRP || ''}
+                  onChange={(e) => setField(['mnemonic', 'audioRP'], e.target.value)}
+                  placeholder="/api/uploads/elevenlabs/…_rp.mp3"
+                  className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs flex-1"
+                  data-testid="editor-field-mnemonic-audio-rp"
+                />
+                {card.mnemonic?.audioRP && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setField(['mnemonic', 'audioRP'], '')}
+                    className="border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
+                    data-testid="editor-field-mnemonic-audio-rp-clear"
                   >
                     Svuota
                   </Button>
@@ -1292,19 +1318,47 @@ export default function PhonemeAdminEditorPage() {
         <Section title="Parole comuni (con audio)" icon={<BookOpen className="w-4 h-4" />}>
           <p className="text-xs text-slate-400 mb-3">
             Le parole più frequenti che contengono questo fonema. Consigliate: 20–30 elementi.
+            Ogni parola ha <b className="text-cyan-200">due tracce audio</b> (AmE 🇺🇸 e RP 🇬🇧) — l&rsquo;audio giusto suona automaticamente in base al dialetto selezionato dal cliente sulla scheda.
           </p>
           <Repeater
             label="Parola"
             items={card.commonWords || []}
             onChange={(items) => setField('commonWords', items)}
-            template={{ w: '', ipa: '', audio: '' }}
+            template={{ w: '', ipa: '', audioAmE: '', audioRP: '' }}
             testId="editor-common-words"
             compact
             renderItem={(item, upd, i) => (
-              <div className="grid sm:grid-cols-6 gap-2">
+              <div className="grid sm:grid-cols-12 gap-2">
                 <Input value={item.w || ''} onChange={(e) => upd({ ...item, w: e.target.value })} placeholder="look" className="sm:col-span-1 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-cw-${i}-w`} />
                 <Input value={item.ipa || ''} onChange={(e) => upd({ ...item, ipa: e.target.value })} placeholder="/lʊk/" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100 font-mono" data-testid={`editor-cw-${i}-ipa`} />
-                <Input value={item.audio || ''} onChange={(e) => upd({ ...item, audio: e.target.value })} placeholder="/api/uploads/…mp3" className="sm:col-span-3 bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio`} />
+                <div className="sm:col-span-4 flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-cyan-300/80 shrink-0">🇺🇸</span>
+                  <Input value={item.audioAmE || item.audio || ''} onChange={(e) => upd({ ...item, audioAmE: e.target.value })} placeholder="AmE audio URL" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio-ame`} />
+                </div>
+                <div className="sm:col-span-4 flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-cyan-300/80 shrink-0">🇬🇧</span>
+                  <Input value={item.audioRP || ''} onChange={(e) => upd({ ...item, audioRP: e.target.value })} placeholder="RP audio URL" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio-rp`} />
+                </div>
+                <div className="sm:col-span-1 flex items-center justify-end gap-1">
+                  {(item.audioAmE || item.audio) && (
+                    <button
+                      type="button"
+                      onClick={() => { upd({ ...item, audioAmE: '', audio: '' }); }}
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
+                      title="Svuota audio AmE"
+                      data-testid={`editor-cw-${i}-audio-ame-clear`}
+                    >🇺🇸 ✕</button>
+                  )}
+                  {item.audioRP && (
+                    <button
+                      type="button"
+                      onClick={() => upd({ ...item, audioRP: '' })}
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
+                      title="Svuota audio RP"
+                      data-testid={`editor-cw-${i}-audio-rp-clear`}
+                    >🇬🇧 ✕</button>
+                  )}
+                </div>
               </div>
             )}
           />

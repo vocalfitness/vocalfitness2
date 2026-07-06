@@ -18,6 +18,7 @@ import { canAccessCard, hasPremiumAccess } from '../data/phonemeCatalogue';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { pickLang } from '../lib/pickLang';
+import { pickDialectAudio } from '../lib/pickDialectAudio';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
 import SagittalOverlay from '../components/SagittalOverlay';
@@ -344,8 +345,15 @@ const PhonemeCardPage = () => {
       const a = phoneme.audio?.[dialect] || phoneme.audio?.AmE || {};
       if (a.isolated) urls.add(a.isolated);
       (a.examples || []).forEach(u => u && urls.add(u));
-      if (phoneme.mnemonic?.audio) urls.add(phoneme.mnemonic.audio);
-      (phoneme.commonWords || []).forEach(w => w.audio && urls.add(w.audio));
+      // Mnemonic + commonWords are now dialect-aware — preload only the
+      // track that will actually play, matching what pickDialectAudio()
+      // returns at render time.
+      const mn = pickDialectAudio(phoneme.mnemonic, dialect);
+      if (mn) urls.add(mn);
+      (phoneme.commonWords || []).forEach(w => {
+        const u = pickDialectAudio(w, dialect);
+        if (u) urls.add(u);
+      });
       return [...urls];
     };
 
@@ -946,19 +954,22 @@ const PhonemeCardPage = () => {
                         </p>
                         {/* Audio playback when available, otherwise placeholder */}
                         <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                          {item.audio ? (
-                            <>
-                              <AudioPlayButton src={item.audio} size="sm" label={`Play ${item.w}`} onPlayingChange={setAudioPlaying} />
-                              <span className="text-[9px] text-cyan-300/60 uppercase tracking-wider italic">tap to hear</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="inline-flex w-7 h-7 rounded-full bg-slate-700/30 border border-slate-600/40 items-center justify-center cursor-not-allowed" title="Audio coming soon">
-                                <Play className="w-2.5 h-2.5 text-slate-500" />
-                              </span>
-                              <span className="text-[9px] text-cyan-300/30 uppercase tracking-wider italic">audio soon</span>
-                            </>
-                          )}
+                          {(() => {
+                            const wordAudio = pickDialectAudio(item, dialect);
+                            return wordAudio ? (
+                              <>
+                                <AudioPlayButton src={wordAudio} size="sm" label={`Play ${item.w}`} onPlayingChange={setAudioPlaying} />
+                                <span className="text-[9px] text-cyan-300/60 uppercase tracking-wider italic">tap to hear</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="inline-flex w-7 h-7 rounded-full bg-slate-700/30 border border-slate-600/40 items-center justify-center cursor-not-allowed" title="Audio coming soon">
+                                  <Play className="w-2.5 h-2.5 text-slate-500" />
+                                </span>
+                                <span className="text-[9px] text-cyan-300/30 uppercase tracking-wider italic">audio soon</span>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -990,7 +1001,7 @@ const PhonemeCardPage = () => {
                 })}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
-                <AudioPlayButton src={phoneme.mnemonic?.audio} size="md" label="Play mnemonic" onPlayingChange={setAudioPlaying} />
+                <AudioPlayButton src={pickDialectAudio(phoneme.mnemonic, dialect)} size="md" label="Play mnemonic" onPlayingChange={setAudioPlaying} />
                 <p className="text-cyan-100/75 text-sm italic max-w-2xl">{phoneme.mnemonic?.note || ''}</p>
               </div>
             </div>
@@ -1004,7 +1015,11 @@ const PhonemeCardPage = () => {
                 Laboratorio interattivo · Pink Trombone Vocal Tract
               </p>
             </div>
-            <PinkTromboneEmbed phonemeId={phoneme.id} phonemeIpa={phoneme.ipa} />
+            <PinkTromboneEmbed
+              phonemeId={phoneme.id}
+              phonemeIpa={phoneme.ipa}
+              cardAudioByDialect={phoneme.audio}
+            />
             <p className="text-[10px] text-cyan-500/50 italic mt-3 text-center">
               Modello fisico originale di Neil Thapen (MIT). Esplora come la posizione di lingua,
               palato, velo e labbra modifica il suono in tempo reale, oppure clicca un simbolo IPA
