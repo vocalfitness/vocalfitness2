@@ -99,7 +99,7 @@ const ListenButton = ({ src, label = 'Listen', testId }) => {
 };
 
 // ------- Published mini-card ---------------------------------------------
-const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLockedClick }) => {
+const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, dialectMismatch = false, onLockedClick }) => {
   const isoAudio = phoneme.audio?.[dialect]?.isolated || phoneme.audio?.AmE?.isolated;
   const isPremium = entry.access === 'premium';
   const displayIpa = getIpaForDialect(entry, dialect);
@@ -111,7 +111,9 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
     if (locked) {
       e.preventDefault();
       e.stopPropagation();
-      onLockedClick?.(entry);
+      // Mismatched cards silently do nothing — the mute overlay explains
+      // the situation. Only premium-locked cards trigger the paywall.
+      if (!dialectMismatch) onLockedClick?.(entry);
     }
   };
 
@@ -122,6 +124,7 @@ const PublishedCard = ({ entry, phoneme, group, dialect, index, locked, onLocked
       className={`group relative block ${locked ? 'cursor-pointer' : ''}`}
       data-testid={`phoneme-library-card-${entry.id}`}
       data-locked={locked ? 'true' : 'false'}
+      data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div
@@ -381,6 +384,16 @@ const PhonemeLibraryPage = () => {
           50%     { box-shadow: 0 0 48px 0 rgba(251,146,60,0.22); }
         }
         .lib-aura { animation: lib-pulse-aura 5s ease-in-out infinite; }
+        /* §DIALECT FACT-CHECK — muted state for cards whose phoneme
+           only exists in the OTHER accent than the one the user has
+           currently selected. Content stays visible for educational
+           context; hover/click and audio are disabled downstream.
+           !important overrides the final state of the lib-fade-up
+           animation (which sets opacity:1). */
+        .lib-card-dialect-mute            { opacity: 0.4 !important; filter: saturate(0.3) grayscale(0.35); }
+        .lib-card-dialect-mute:hover      { opacity: 0.75 !important; filter: saturate(0.6) grayscale(0.15); transition: opacity .3s ease, filter .3s ease; }
+        .lib-card-dialect-mute a,
+        .lib-card-dialect-mute .cursor-pointer { pointer-events: none; cursor: not-allowed; }
       `}</style>
 
       {/* Ambient drifting blobs */}
@@ -485,28 +498,51 @@ const PhonemeLibraryPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map((entry, i) => {
             const group = GROUPS.find(g => g.id === entry.group) || GROUPS[0];
+            // §DIALECT FACT-CHECK — grey-out cards that only exist in the
+            // OTHER accent, so students studying one accent see immediately
+            // which sounds belong to a different inventory. We keep the
+            // card visible (rather than filtering it out) to preserve the
+            // educational context: "these phonemes exist, just not in
+            // your accent".
+            const scope = entry.dialectScope;
+            const dialectMismatch = (
+              (scope === 'RP-only' && dialect === 'AmE') ||
+              (scope === 'GA-only' && dialect === 'RP')
+            );
+            const wrapperCls = `lib-card-enter h-full ${dialectMismatch ? 'lib-card-dialect-mute' : ''}`;
             if (entry.status === 'published') {
               // Prefer live DB card (published via CMS) over the frozen static PHONEMES map
               const phoneme = dbPhonemes[entry.id] || PHONEMES[entry.id];
               if (!phoneme) return null;
               const locked = entry.access === 'premium' && !isPremium;
               return (
-                <div key={entry.id} className="lib-card-enter h-full" style={{ animationDelay: `${i * 50}ms` }}>
+                <div
+                  key={entry.id}
+                  className={wrapperCls}
+                  style={{ animationDelay: `${i * 50}ms` }}
+                  data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
+                >
                   <PublishedCard
                     entry={entry}
                     phoneme={phoneme}
                     group={group}
                     dialect={dialect}
                     index={i}
-                    locked={locked}
+                    locked={locked || dialectMismatch}
+                    dialectMismatch={dialectMismatch}
                     onLockedClick={handleLockedClick}
                   />
                 </div>
               );
             }
             return (
-              <div key={entry.id} className="lib-card-enter h-full" style={{ animationDelay: `${i * 50}ms` }}>
-                <LockedCard entry={entry} group={group} dialect={dialect} index={i} />
+              <div
+                key={entry.id}
+                className={wrapperCls}
+                style={{ animationDelay: `${i * 50}ms` }}
+                data-dialect-mismatch={dialectMismatch ? 'true' : 'false'}
+              >
+                <LockedCard entry={entry} group={group} dialect={dialect} index={i} dialectMismatch={dialectMismatch} />
               </div>
             );
           })}
