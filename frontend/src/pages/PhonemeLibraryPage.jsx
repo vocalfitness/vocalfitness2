@@ -516,6 +516,58 @@ const PhonemeLibraryPage = () => {
         </div>
       </section>
 
+      {/* ---------- Dialect inventory micro-stats ---------- */}
+      {(() => {
+        const rpOnly = CATALOGUE.filter((e) => e.dialectScope === 'RP-only').length;
+        const gaOnly = CATALOGUE.filter((e) => e.dialectScope === 'GA-only').length;
+        const bothScope = CATALOGUE.length - rpOnly - gaOnly;
+        const rpInventory = bothScope + rpOnly;
+        const gaInventory = bothScope + gaOnly;
+        const muted = dialect === 'AmE' ? rpOnly : gaOnly;
+        const activeLabel = dialect === 'AmE' ? 'US GenAm' : 'UK RP';
+        const otherLabel  = dialect === 'AmE' ? 'RP britannico' : 'US GenAm';
+        if (rpOnly + gaOnly === 0) return null; // no mono-dialect phonemes → nothing to say
+        return (
+          <section className="max-w-7xl mx-auto px-6 mb-6" data-testid="library-dialect-stats">
+            <div className="rounded-2xl border border-cyan-500/25 bg-slate-900/50 backdrop-blur-sm px-5 py-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl leading-none">{dialect === 'AmE' ? '🇺🇸' : '🇬🇧'}</span>
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-cyan-300/70 font-bold">Inventario attivo</p>
+                  <p className="text-white font-black text-lg leading-tight">
+                    {dialect === 'AmE' ? gaInventory : rpInventory}
+                    <span className="text-cyan-300/70 font-normal text-sm ml-1">fonemi · {activeLabel}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-cyan-500/20 hidden sm:block" />
+              <div className="flex items-center gap-3">
+                <span className="text-2xl leading-none opacity-40">{dialect === 'AmE' ? '🇬🇧' : '🇺🇸'}</span>
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Alternativa</p>
+                  <p className="text-slate-300 font-bold text-lg leading-tight">
+                    {dialect === 'AmE' ? rpInventory : gaInventory}
+                    <span className="text-slate-500 font-normal text-sm ml-1">fonemi · {otherLabel}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-cyan-500/20 hidden sm:block" />
+              <div className="flex-1 min-w-[260px]">
+                <p className="text-[9px] uppercase tracking-widest text-orange-300 font-bold">Mono-dialetto</p>
+                <p className="text-white text-sm">
+                  {muted > 0
+                    ? <><b className="text-orange-300 font-black">{muted}</b> fonema{muted === 1 ? '' : 'i'} {dialect === 'AmE' ? 'RP-only' : 'GA-only'} — grigiati in questo accento perché non esistono in {activeLabel}.</>
+                    : <>Nessun fonema mono-dialetto attivo in {activeLabel} — tutte le card sono compatibili.</>}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Cambia il toggle US⇄UK in alto a destra per riattivarli e vedere i loro equivalenti nell&rsquo;altro accento.
+                </p>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* ---------- Catalogue grid ---------- */}
       <section className="max-w-7xl mx-auto px-6 pb-24" data-testid="library-grid">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
