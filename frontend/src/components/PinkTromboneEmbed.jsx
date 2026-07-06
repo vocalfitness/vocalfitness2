@@ -25,22 +25,24 @@ const IFRAME_URL = '/lms/vocal-lab/pink-trombone-original.html';
 // ``freq``          — glottis default frequency (Hz) at rest.
 // ``tense``         — glottis tenseness 0..1 (~ vocal-fold stiffness).
 // ``intensity``     — legacy internal knob (kept for compat with old callers).
-// ``tongueIndex``   — Pink Trombone tract-index of the tongue-tip centre
-//                      (12.9 front-most .. 29.1 back-most; canonical Thapen range).
-// ``tongueDiameter``— cross-section opening at the tongue centre (2.05 closed .. 3.50 open).
-// These two last fields drive the ACTUAL vowel shape — without them the
-// tract stays in the rest posture and only the pitch/tenseness change.
-// Values below are calibrated against Ladefoged's F1/F2 vowel targets.
+// ``tongueIndex``   — Pink Trombone tract-index of the tongue-tip centre.
+//                     CRITICAL: in the Neil Thapen tract, indices map from
+//                     glottis (~0) to lips (~44). The tongue-controllable
+//                     window is bladeStart+2=12 (BACK, near velum) to
+//                     tipStart-3=29 (FRONT, near lips). So FRONT vowels
+//                     need HIGH tongueIndex, BACK vowels need LOW.
+// ``tongueDiameter``— cross-section opening at the tongue centre
+//                     (2.05 = closed constriction .. 3.50 = wide open).
 const VOWEL_TARGETS = [
-  { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE',  freq: 138, tense: 0.85, intensity: 0.85, tongueIndex: 12.9, tongueDiameter: 2.10 },
-  { sym: 'ɪ', x: 0.22, y: 0.20, label: '/ɪ/ KIT',      freq: 130, tense: 0.55, intensity: 0.80, tongueIndex: 14.0, tongueDiameter: 2.40 },
-  { sym: 'e', x: 0.18, y: 0.45, label: '/e/ DRESS',    freq: 128, tense: 0.65, intensity: 0.80, tongueIndex: 15.5, tongueDiameter: 2.85 },
-  { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',     freq: 132, tense: 0.55, intensity: 0.85, tongueIndex: 17.0, tongueDiameter: 3.25 },
-  { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER',  freq: 125, tense: 0.70, intensity: 0.90, tongueIndex: 25.0, tongueDiameter: 3.45 },
-  { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT', freq: 122, tense: 0.70, intensity: 0.85, tongueIndex: 26.5, tongueDiameter: 3.10 },
-  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',     freq: 120, tense: 0.55, intensity: 0.85, tongueIndex: 27.5, tongueDiameter: 2.65 },
-  { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',   freq: 130, tense: 0.85, intensity: 0.85, tongueIndex: 28.5, tongueDiameter: 2.20 },
-  { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',    freq: 120, tense: 0.45, intensity: 0.75, tongueIndex: 20.0, tongueDiameter: 2.90 },
+  { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE',  freq: 138, tense: 0.85, intensity: 0.85, tongueIndex: 29.0, tongueDiameter: 2.15 },
+  { sym: 'ɪ', x: 0.22, y: 0.20, label: '/ɪ/ KIT',      freq: 130, tense: 0.55, intensity: 0.80, tongueIndex: 27.5, tongueDiameter: 2.50 },
+  { sym: 'e', x: 0.18, y: 0.45, label: '/e/ DRESS',    freq: 128, tense: 0.65, intensity: 0.80, tongueIndex: 26.0, tongueDiameter: 2.85 },
+  { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',     freq: 132, tense: 0.55, intensity: 0.85, tongueIndex: 24.0, tongueDiameter: 3.20 },
+  { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER',  freq: 125, tense: 0.70, intensity: 0.90, tongueIndex: 14.0, tongueDiameter: 3.35 },
+  { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT', freq: 122, tense: 0.70, intensity: 0.85, tongueIndex: 13.0, tongueDiameter: 2.95 },
+  { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',     freq: 120, tense: 0.55, intensity: 0.85, tongueIndex: 13.0, tongueDiameter: 2.50 },
+  { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',   freq: 130, tense: 0.85, intensity: 0.85, tongueIndex: 12.5, tongueDiameter: 2.15 },
+  { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',    freq: 120, tense: 0.45, intensity: 0.75, tongueIndex: 20.5, tongueDiameter: 2.85 },
 ];
 
 // Map phoneme card IDs to (a) the matching vowel-chart symbol used as
@@ -177,7 +179,14 @@ export const PinkTromboneEmbed = ({ phonemeId = 'u-foot', phonemeIpa = '', class
     const tense = Math.max(0.3, Math.min(0.95, 0.9 - y * 0.55));
     const intensity = Math.max(0.5, Math.min(1.0, 0.65 + (1 - y) * 0.25));
     const freq = Math.max(80, Math.min(220, 125 + (0.5 - x) * 30));
-    sendParams({ tenseness: tense, intensity, frequency: freq });
+    // Map trapezoid → Pink Trombone tract-shape.
+    //   x=0 (front IPA) ↔ tongueIndex 29 (tongue near lips)
+    //   x=1 (back IPA)  ↔ tongueIndex 12 (tongue near velum)
+    //   y=0 (close)     ↔ diameter 2.15 (tight)
+    //   y=1 (open)      ↔ diameter 3.35 (wide)
+    const tongueIndex    = 29.0 - x * (29.0 - 12.0);
+    const tongueDiameter = 2.15 + y * (3.35 - 2.15);
+    sendParams({ tenseness: tense, intensity, frequency: freq, tongueIndex, tongueDiameter });
     // Continuous morph → update the free-form cursor + the live-params
     // read-out. We keep ``activeVowel`` intact so the last preset stays
     // highlighted as a reference anchor.
