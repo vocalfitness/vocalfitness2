@@ -28,23 +28,25 @@ from typing import Any, Dict, List, Optional
 # --------------------------------------------------------------------------- #
 CANONICAL_ANATOMICAL_LABELS: List[Dict[str, Any]] = [
     # id                        it                         en                       anchor       leader
-    # Leader positions are kept SHORT — labels sit just outside the face
-    # outline (mirroring the embedded printed-card labels) instead of
-    # floating far from the anatomy.
-    {"id": "upper-lip",         "labelIt": "Labbro superiore",       "labelEn": "Upper lip",       "anchor": {"x": 30, "y": 44}, "leader": {"x": 18, "y": 44}},
-    {"id": "lower-lip",         "labelIt": "Labbro inferiore",       "labelEn": "Lower lip",       "anchor": {"x": 30, "y": 52}, "leader": {"x": 18, "y": 56}},
-    {"id": "teeth",             "labelIt": "Denti",                  "labelEn": "Teeth",           "anchor": {"x": 34, "y": 48}, "leader": {"x": 20, "y": 48}},
-    {"id": "alveolar-ridge",    "labelIt": "Cresta alveolare",       "labelEn": "Alveolar ridge",  "anchor": {"x": 40, "y": 44}, "leader": {"x": 22, "y": 36}},
-    {"id": "hard-palate",       "labelIt": "Palato duro",            "labelEn": "Hard palate",     "anchor": {"x": 44, "y": 41}, "leader": {"x": 26, "y": 30}},
-    {"id": "soft-palate",       "labelIt": "Palato molle (velo)",    "labelEn": "Soft palate",     "anchor": {"x": 51, "y": 42}, "leader": {"x": 70, "y": 34}},
-    {"id": "uvula",             "labelIt": "Ugola",                  "labelEn": "Uvula",           "anchor": {"x": 53, "y": 47}, "leader": {"x": 72, "y": 42}},
-    {"id": "tongue-tip",        "labelIt": "Apice della lingua",     "labelEn": "Tongue tip",      "anchor": {"x": 42, "y": 53}, "leader": {"x": 24, "y": 62}},
-    {"id": "tongue-body",       "labelIt": "Corpo della lingua",     "labelEn": "Tongue body",     "anchor": {"x": 47, "y": 56}, "leader": {"x": 68, "y": 58}},
-    {"id": "tongue-root",       "labelIt": "Radice della lingua",    "labelEn": "Tongue root",     "anchor": {"x": 52, "y": 62}, "leader": {"x": 70, "y": 66}},
-    {"id": "epiglottis",        "labelIt": "Epiglottide",            "labelEn": "Epiglottis",      "anchor": {"x": 51, "y": 67}, "leader": {"x": 70, "y": 72}},
-    # Vocal-folds label sits just to the LEFT of the anchor so it never
-    # collides with the bottom-right Airflow/Voicing HUD badge.
-    {"id": "vocal-folds",       "labelIt": "Corde vocali",           "labelEn": "Vocal folds",     "anchor": {"x": 47, "y": 76}, "leader": {"x": 26, "y": 80}},
+    # Positions calibrated from the printed reference JPG (~1376x776) —
+    # ``anchor`` sits on the anatomy landmark; ``leader`` is the tag
+    # endpoint, kept only 4-8% away so the text visually "touches" the
+    # face profile (matching the printed-card layout, not floating far
+    # off in the black margin).
+    {"id": "upper-lip",         "labelIt": "Labbro superiore",       "labelEn": "Upper lip",       "anchor": {"x": 36, "y": 48}, "leader": {"x": 30, "y": 46}},
+    {"id": "lower-lip",         "labelIt": "Labbro inferiore",       "labelEn": "Lower lip",       "anchor": {"x": 36, "y": 55}, "leader": {"x": 30, "y": 57}},
+    {"id": "teeth",             "labelIt": "Denti",                  "labelEn": "Teeth",           "anchor": {"x": 39, "y": 51}, "leader": {"x": 32, "y": 51}},
+    {"id": "alveolar-ridge",    "labelIt": "Cresta alveolare",       "labelEn": "Alveolar ridge",  "anchor": {"x": 43, "y": 46}, "leader": {"x": 33, "y": 40}},
+    {"id": "hard-palate",       "labelIt": "Palato duro",            "labelEn": "Hard palate",     "anchor": {"x": 46, "y": 43}, "leader": {"x": 34, "y": 35}},
+    {"id": "soft-palate",       "labelIt": "Palato molle (velo)",    "labelEn": "Soft palate",     "anchor": {"x": 52, "y": 44}, "leader": {"x": 62, "y": 38}},
+    {"id": "uvula",             "labelIt": "Ugola",                  "labelEn": "Uvula",           "anchor": {"x": 54, "y": 48}, "leader": {"x": 63, "y": 45}},
+    {"id": "tongue-tip",        "labelIt": "Apice della lingua",     "labelEn": "Tongue tip",      "anchor": {"x": 44, "y": 55}, "leader": {"x": 32, "y": 62}},
+    {"id": "tongue-body",       "labelIt": "Corpo della lingua",     "labelEn": "Tongue body",     "anchor": {"x": 47, "y": 57}, "leader": {"x": 60, "y": 58}},
+    {"id": "tongue-root",       "labelIt": "Radice della lingua",    "labelEn": "Tongue root",     "anchor": {"x": 51, "y": 62}, "leader": {"x": 62, "y": 65}},
+    {"id": "epiglottis",        "labelIt": "Epiglottide",            "labelEn": "Epiglottis",      "anchor": {"x": 50, "y": 66}, "leader": {"x": 62, "y": 70}},
+    # Vocal-folds text sits below-left of the larynx anchor, mirroring
+    # the "Larynx/glottis voiced" placement in the reference card.
+    {"id": "vocal-folds",       "labelIt": "Corde vocali",           "labelEn": "Vocal folds",     "anchor": {"x": 46, "y": 74}, "leader": {"x": 35, "y": 80}},
 ]
 
 

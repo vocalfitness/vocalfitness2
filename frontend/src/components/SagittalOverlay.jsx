@@ -39,8 +39,6 @@ export default function SagittalOverlay({
     return canonicalLabels.filter((l) => wanted.has(l.id));
   }, [canonicalLabels, card?.anatomicalLabels]);
 
-  const arrows = card?.airflowArrows || [];
-
   const FONT_STACK = '"Barlow Condensed", "Roboto Condensed", "Fira Sans Condensed", ui-sans-serif, system-ui, sans-serif';
 
   return (
@@ -49,25 +47,16 @@ export default function SagittalOverlay({
       style={{ position: 'absolute', inset: 0 }}
       data-testid="sagittal-overlay"
     >
-      {/* Leader lines + airflow arrows — SVG for vector rendering. */}
+      {/* Leader lines only — airflow arrows have been PERMANENTLY removed
+          per user directive 06/07/2026: the intra-cavity arrow was more
+          distracting than informative. The HUD Airflow badge (bottom
+          right) already communicates airflow presence. */}
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       >
-        <defs>
-          {/* Small cyan arrowhead for the intra-cavity airflow arrows */}
-          <marker id="sag-airflow-head" viewBox="0 0 10 10" refX="9" refY="5"
-                  markerWidth="3" markerHeight="3" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#5eead4" />
-          </marker>
-          <filter id="sag-airflow-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="0.35" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-
         {/* Hairline white leader lines */}
         {activeLabels.map((l) => (
           <line
@@ -82,42 +71,6 @@ export default function SagittalOverlay({
             vectorEffect="non-scaling-stroke"
           />
         ))}
-
-        {/* Airflow arrows — cyan, small, contained INSIDE the vocal tract */}
-        {arrows.map((a, i) => {
-          const p = a.path || [];
-          if (p.length < 3) return null;
-          const dPath = `M ${p[0].x} ${p[0].y} Q ${p[1].x} ${p[1].y} ${p[2].x} ${p[2].y}`;
-          const styleKey = a.type || 'oral-smooth';
-          const dash = {
-            'oral-smooth':    '',
-            'oral-turbulent': '1 0.6',
-            'nasal':          '1.6 0.8',
-            'lateral':        '',
-            'blocked':        '0.4 0.4',
-          }[styleKey] || '';
-          return (
-            <g key={`arrow-${i}`} className={`sag-arrow sag-arrow--${styleKey}`}>
-              <path
-                d={dPath}
-                fill="none"
-                stroke="#5eead4"
-                strokeOpacity="0.95"
-                strokeWidth="0.6"
-                strokeLinecap="round"
-                strokeDasharray={dash}
-                markerEnd={styleKey === 'blocked' ? '' : 'url(#sag-airflow-head)'}
-                filter="url(#sag-airflow-glow)"
-              />
-              {styleKey === 'blocked' && (
-                <g transform={`translate(${p[2].x} ${p[2].y})`}>
-                  <line x1="-1" y1="-1" x2="1" y2="1" stroke="#f87171" strokeWidth="0.5" />
-                  <line x1="-1" y1="1"  x2="1" y2="-1" stroke="#f87171" strokeWidth="0.5" />
-                </g>
-              )}
-            </g>
-          );
-        })}
       </svg>
 
       {/* Anchor dots + text tags — plain HTML absolutely positioned. */}
@@ -165,14 +118,9 @@ export default function SagittalOverlay({
         );
       })}
 
-      {/* Airflow-flow animation */}
+      {/* Airflow-flow animation (retained for backwards-compat; airflow
+          arrows are no longer rendered per user directive 06/07/2026). */}
       <style>{`
-        .sag-arrow--oral-smooth path,
-        .sag-arrow--oral-turbulent path,
-        .sag-arrow--nasal path,
-        .sag-arrow--lateral path {
-          animation: sag-flow 2.2s linear infinite;
-        }
         @keyframes sag-flow {
           from { stroke-dashoffset: 4; }
           to   { stroke-dashoffset: 0; }
