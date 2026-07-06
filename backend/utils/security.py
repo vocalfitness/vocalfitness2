@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional, Tuple
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 
@@ -84,6 +84,13 @@ def build_user_deps(db) -> Tuple[Callable, Callable]:
         Both are ``async`` functions ready to be passed as FastAPI
         ``Depends(...)``. ``get_admin_user`` transitively depends on
         ``get_current_user`` — same behaviour as the original inline pair.
+
+    Additionally exposes ``build_user_deps.optional_admin`` — an ``async``
+    dependency that returns the admin dict when a valid admin JWT is
+    supplied via ``Authorization: Bearer ...`` and ``None`` otherwise.
+    Used to let public endpoints (e.g. ``GET /api/phonemes/{id}``)
+    optionally reveal draft cards to signed-in admins without gating the
+    endpoint for anonymous callers.
     """
 
     async def get_current_user(
@@ -113,4 +120,32 @@ def build_user_deps(db) -> Tuple[Callable, Callable]:
             )
         return current_user
 
+    async def get_optional_admin_user(request: Request) -> Optional[dict]:
+        """Return the admin dict when a valid admin JWT is present, else None.
+
+        Silent on every failure path (missing header, wrong scheme, expired
+        token, non-admin role) — never raises. Intended for endpoints that
+        want to *optionally* upgrade the response for signed-in admins.
+        """
+        auth = request.headers.get("authorization") or request.headers.get("Authorization")
+        if not auth or not auth.lower().startswith("bearer "):
+            return None
+        token = auth.split(" ", 1)[1].strip()
+        if not token:
+            return None
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            if not username:
+                return None
+        except Exception:  # noqa: BLE001
+            return None
+        user = await db.users.find_one({"username": username}, {"_id": 0})
+        if not user or user.get("role") != "admin":
+            return None
+        return user
+
+    # Expose the optional dep as an attribute so callers can grab it after
+    # unpacking the primary tuple, without breaking existing 2-tuple usage.
+    build_user_deps.optional_admin = get_optional_admin_user
     return get_current_user, get_admin_user

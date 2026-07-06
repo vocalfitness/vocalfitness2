@@ -346,6 +346,45 @@ def _ipa_equivalents(ipa: str) -> List[str]:
     return candidates
 
 
+# --------------------------------------------------------------------------- #
+# §3.1 Facial-muscle rule wiring (DERIVED — non-LLM, per Spec §1)
+# --------------------------------------------------------------------------- #
+async def _resolve_canonical_kind(db, ipa: str, category: str) -> str:
+    """Best-effort ``kind`` lookup for the §3.1 muscle rule.
+
+    Order: 1) canonical_phonemes row matching any IPA equivalent (any dialect)
+           2) fallback to the card's own ``category`` field
+           3) ``"vowel"`` as last-resort so the rule never crashes.
+    """
+    for cand in _ipa_equivalents(ipa):
+        row = await db.canonical_phonemes.find_one({"ipa": cand}, {"_id": 0, "kind": 1})
+        if row and row.get("kind"):
+            return row["kind"]
+    if category in ("vowel", "consonant", "diphthong"):
+        return category
+    return "vowel"
+
+
+async def apply_muscle_rule_to_doc(db, doc: dict) -> List[Dict[str, str]]:
+    """Compute and write the 5-muscle DERIVED list into ``doc`` in place.
+
+    Uses the §3.1 mapping from ``phoneme_batch_v2.compose_facial_muscles``.
+    The card's ``facialMuscles`` value is *always* overwritten — Spec §1
+    forbids LLM/user authoring for this field. Values use the long enum
+    (HIGH / MODERATE / LOW) to match the frontend dropdown and the
+    ``_ACTIVATION_ENUM`` readiness check.
+
+    Returns the muscle list that was written (for callers that also want
+    to persist it via ``update_one``).
+    """
+    from .phoneme_batch_v2 import compose_facial_muscles  # local import → no cycle
+    ipa = (doc.get("ipa") or "").strip()
+    if not ipa:
+        return doc.get("facialMuscles") or []
+    kind = await _resolve_canonical_kind(db, ipa, doc.get("category", "vowel"))
+    muscles = compose_facial_muscles(ipa, kind)
+    doc["facialMuscles"] = muscles
+    return muscles
 
 
 def _compose_autofill_for_vowel(canonical: dict) -> Dict[str, Any]:
@@ -1076,14 +1115,23 @@ async def generate_ai_draft(db, card: dict, dialect: str,
 # --------------------------------------------------------------------------- #
 # Router factory (so we can inject the shared db + admin dependency)
 # --------------------------------------------------------------------------- #
-def build_phoneme_cards_router(db, get_admin_user):
+def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None):
     """
     Build and return the APIRouter.
 
     ``db`` is the motor database instance from server.py.
     ``get_admin_user`` is the existing FastAPI dependency that
     enforces role == "admin".
+    ``get_optional_admin_user`` is a soft-auth dependency returning the
+    admin dict when a valid admin JWT is supplied, or ``None`` otherwise.
+    When omitted the public GET endpoint keeps its published-only
+    behaviour (backwards compatibility).
     """
+    # Fallback so callers that never pass the optional dep still work.
+    if get_optional_admin_user is None:
+        async def _no_admin() -> Optional[dict]:  # pragma: no cover
+            return None
+        get_optional_admin_user = _no_admin
 
     router = APIRouter()
     coll = db.phoneme_cards
@@ -1607,6 +1655,10 @@ def build_phoneme_cards_router(db, get_admin_user):
         doc = payload.model_dump()
         # Phase C lockdown: ignore any client-supplied frequencyChart at create time.
         doc["frequencyChart"] = []
+        # §3.1 lockdown: facialMuscles is DERIVED-by-rule (Spec §1). Always
+        # overwrite whatever the payload provided so the field is deterministic
+        # for every present and future card.
+        await apply_muscle_rule_to_doc(db, doc)
         doc["createdAt"] = now
         doc["updatedAt"] = now
         doc["createdBy"] = admin.get("username")
@@ -1639,6 +1691,13 @@ def build_phoneme_cards_router(db, get_admin_user):
         # canonical inventory. Silently drop any incoming value so legacy
         # editors / autofill drafts can't corrupt it.
         update_fields.pop("frequencyChart", None)
+
+        # §3.1 lockdown: any admin edit that touches ``ipa``, ``category`` or
+        # ``facialMuscles`` must re-derive the muscle list from the rule.
+        # Cheaper to just always recompute — keeps the field authoritative.
+        merged = {**existing, **update_fields}
+        muscles_new = await apply_muscle_rule_to_doc(db, merged)
+        update_fields["facialMuscles"] = muscles_new
 
         if not update_fields:
             existing_computed = dict(existing)
@@ -1702,7 +1761,7 @@ def build_phoneme_cards_router(db, get_admin_user):
         return _to_response(clone)
 
     # ------------------------------------------------------------------ #
-    # PUBLIC — read only, published only
+    # PUBLIC — read only, published only (admin JWT reveals drafts too)
     # ------------------------------------------------------------------ #
     @router.get("/phonemes", response_model=List[PhonemeCardSummary])
     async def public_list():
@@ -1710,8 +1769,16 @@ def build_phoneme_cards_router(db, get_admin_user):
         return [_summarise(d) for d in docs]
 
     @router.get("/phonemes/{card_id}", response_model=PhonemeCardResponse)
-    async def public_get(card_id: str):
-        doc = await coll.find_one({"id": card_id, "published": True}, {"_id": 0})
+    async def public_get(
+        card_id: str,
+        admin: Optional[dict] = Depends(get_optional_admin_user),
+    ):
+        # Authenticated admins can preview unpublished drafts. Anonymous
+        # callers still only see published cards → 404 otherwise.
+        query: Dict[str, Any] = {"id": card_id}
+        if not admin:
+            query["published"] = True
+        doc = await coll.find_one(query, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fonema non trovato o non pubblicato")
         await _inject_computed_chart(db, doc)
@@ -1825,5 +1892,24 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
         )
         if res.modified_count:
             patched.append(f"rounding.{bad}→{good}×{res.modified_count}")
+
+    # 6) §3.1 muscle-rule backfill — recompute facialMuscles for every card
+    #    from the deterministic vowel/consonant map. Idempotent: cards already
+    #    matching the rule are updated with identical values (no user impact).
+    muscle_fixed = 0
+    async for card in coll.find({}, {"_id": 0, "id": 1, "ipa": 1, "category": 1, "facialMuscles": 1}):
+        try:
+            new_muscles = await apply_muscle_rule_to_doc(db, dict(card))
+        except Exception:  # noqa: BLE001
+            continue
+        # Compare shape-independent (name+activation) — details are rule-fixed.
+        old = card.get("facialMuscles") or []
+        old_pairs = tuple((m.get("name", ""), (m.get("activation") or "").upper()) for m in old)
+        new_pairs = tuple((m["name"], m["activation"]) for m in new_muscles)
+        if old_pairs != new_pairs:
+            await coll.update_one({"id": card["id"]}, {"$set": {"facialMuscles": new_muscles}})
+            muscle_fixed += 1
+    if muscle_fixed:
+        patched.append(f"facialMuscles.§3.1×{muscle_fixed}")
 
     return {"inserted": inserted, "skipped": skipped, "patched": patched}

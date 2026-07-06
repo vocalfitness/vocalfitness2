@@ -12,6 +12,27 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 06/07/2026 — §3.1 Muscle Rule automatizzata + admin-preview drafts — DONE ✅
+Utente aveva segnalato: "questi dati devono essere visibili a destra dell'immagine (modal Facial Muscle Activation), e all'interno del modulo collassato del backend che ora è vuoto. Automatizza §3.1 su tutte le card presenti e future."
+
+**Backend**
+- `phoneme_cards.py::apply_muscle_rule_to_doc(db, doc)` — nuovo helper DERIVED-by-rule: computa i 5 muscoli dallo IPA + canonical.kind e sovrascrive sempre `facialMuscles` (Spec §1 vieta authoring LLM/utente).
+- Agganciato in `admin_create` e `admin_update` → ogni CREATE/UPDATE riscrive automaticamente `facialMuscles` con la regola §3.1.
+- `ensure_phoneme_seed()` allo startup ora fa backfill idempotente: 20 card migrate MOD → MODERATE (long-enum enum lockdown allineato al frontend dropdown).
+- `phoneme_batch_v2.compose_facial_muscles()` restituisce ora il long-form (HIGH/MODERATE/LOW) invece di MOD; `run_validation_suite` normalizza entrambi i lati per la comparazione.
+- Nuovo `get_optional_admin_user` in `utils/security.py` (silent-fail su header assente / token scaduto / role != admin) esposto come `build_user_deps.optional_admin`.
+- `GET /api/phonemes/{id}` ora accetta JWT admin opzionale: anonimi vedono solo `published=true` (404 altrimenti), admin autenticati vedono anche i draft.
+
+**Frontend**
+- `PhonemeCardPage.jsx`: fetch con `Authorization: Bearer <token>` quando l'utente è admin → admin può fare preview dei draft (u-goose ecc.) senza pubblicarli. Optional chaining difensivo su tutti i `.map` (pronunciationGuide.steps, mnemonic.phrase/highlights, item.ipa, facialMuscles, hotspots, spellings, frequencyChart, features, knobs) — fix nuovi crash emersi con card batch parziali.
+- `PhonemeAdminEditorPage.jsx`: sezione "Muscoli facciali (§3.1 DERIVED)" ora `defaultOpen` + badge `editor-muscle-rule-badge` con 5 chip (`editor-muscle-rule-0..4`) che mostrano la regola §3.1 attesa in verde quando i valori attuali combaciano. Tabella client-side `MUSCLE_RULE_VOWELS` mirror del backend §3.1.
+
+**Test coverage**
+- `/app/backend/tests/test_muscle_rule_iter23.py` — 8 test classi (auth, public /ʊ/, anon 404 su /uː/ draft, admin bypass, admin_update preserva la regola, admin_create sui bilabiali /p/, backfill startup su tutte le card): 8/8 PASS.
+- Verifica visuale: modal /uː/ GOOSE ora mostra i 5 muscoli nel pannello destro (HIGH/MODERATE/LOW/MODERATE/MODERATE). Admin editor mostra badge tutto verde.
+
+
+
 ### 06/07/2026 — Phoneme CMS · Phase-2 Batch-fill-v2 (Spec v1.0) — DONE ✅
 Implementazione conforme allo spec `Batch-AI-Automation-Spec-v1.0.md` in un unica sessione.
 

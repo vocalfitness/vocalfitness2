@@ -91,14 +91,21 @@ def compose_facial_muscles(ipa: str, kind: str) -> List[Dict[str, str]]:
     """Return the 5-muscle list in the shape the phoneme card model expects.
 
     Detail strings describe the physiological role — deliberately terse and
-    non-superlative, mirroring the /ʊ/ FOOT card's published wording."""
+    non-superlative, mirroring the /ʊ/ FOOT card's published wording.
+
+    The 3-letter spec shorthand ``MOD`` is expanded to ``MODERATE`` at output
+    time so the value matches the frontend's ``ACTIVATION_TERMS`` dropdown
+    enum (``HIGH`` | ``MODERATE`` | ``LOW``). This keeps the admin editor's
+    select rendered (instead of blank) and satisfies the enum lockdown in
+    the readiness suite."""
+    _LONG = {"HIGH": "HIGH", "MOD": "MODERATE", "LOW": "LOW"}
     oo, bucc, zyg, mass, ment = _muscle_levels_for(ipa, kind)
     return [
-        {"name": "Orbicularis oris",  "activation": oo,   "detail": "lip rounding / closure"},
-        {"name": "Buccinator",        "activation": bucc, "detail": "cheek compression / oral pressure"},
-        {"name": "Zygomaticus major", "activation": zyg,  "detail": "lip spreading (smile shape)"},
-        {"name": "Masseter",          "activation": mass, "detail": "jaw elevation"},
-        {"name": "Mentalis",          "activation": ment, "detail": "lower-lip raise / protrusion"},
+        {"name": "Orbicularis oris",  "activation": _LONG[oo],   "detail": "lip rounding / closure"},
+        {"name": "Buccinator",        "activation": _LONG[bucc], "detail": "cheek compression / oral pressure"},
+        {"name": "Zygomaticus major", "activation": _LONG[zyg],  "detail": "lip spreading (smile shape)"},
+        {"name": "Masseter",          "activation": _LONG[mass], "detail": "jaw elevation"},
+        {"name": "Mentalis",          "activation": _LONG[ment], "detail": "lower-lip raise / protrusion"},
     ]
 
 
@@ -318,7 +325,12 @@ def run_validation_suite(card: dict, ipa: str, muscles_expected: Tuple[str, ...]
     checks: List[Dict[str, str]] = []
 
     # 1) muscle_levels_match_rule (DERIVED, non-LLM)
-    actual = tuple((m.get("activation") or "").upper()
+    #    ``muscles_expected`` uses the 3-letter spec shorthand (HIGH/MOD/LOW);
+    #    ``facialMuscles.activation`` on the card is stored as the long form
+    #    (HIGH/MODERATE/LOW) to match the frontend enum. Compare after
+    #    normalising both sides to the shorthand.
+    _SHORT = {"HIGH": "HIGH", "MODERATE": "MOD", "MOD": "MOD", "LOW": "LOW"}
+    actual = tuple(_SHORT.get((m.get("activation") or "").upper(), "")
                    for m in (card.get("facialMuscles") or []))
     if actual == muscles_expected:
         checks.append({"check": "muscle_levels_match_rule", "status": "pass",

@@ -250,11 +250,18 @@ const PhonemeCardPage = () => {
   const [phoneme, setPhoneme] = useState(PHONEMES[id] || null);
   const [phonemeLoading, setPhonemeLoading] = useState(!PHONEMES[id]);
 
+  const { user, token, loading: authLoading } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   useEffect(() => {
     let cancelled = false;
     setPhonemeLoading(!PHONEMES[id]);
     const API = process.env.REACT_APP_BACKEND_URL;
-    fetch(`${API}/api/phonemes/${id}`)
+    // Public endpoint. When the caller is a signed-in admin we pass the
+    // JWT so the backend also returns draft (published=false) cards —
+    // otherwise anonymous users can only see published cards.
+    const headers = isAdmin && token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`${API}/api/phonemes/${id}`, { headers })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
         if (!cancelled) setPhoneme(data);
@@ -265,9 +272,8 @@ const PhonemeCardPage = () => {
       })
       .finally(() => { if (!cancelled) setPhonemeLoading(false); });
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, isAdmin, token]);
 
-  const { user, loading: authLoading } = useAuth();
   const accessGranted = canAccessCard(id, user);
   const isPremiumUser = hasPremiumAccess(user);
   const navigate = useNavigate();
@@ -632,7 +638,7 @@ const PhonemeCardPage = () => {
 
             {/* Hotspot overlay (above face zone — so hotspots remain clickable) */}
             <div className="absolute inset-0 z-30 pointer-events-none">
-              {phoneme.hotspots.map((h) => (
+              {(phoneme.hotspots || []).map((h) => (
                 <div key={h.id} className="pointer-events-auto">
                   <Hotspot hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} />
                 </div>
@@ -700,13 +706,13 @@ const PhonemeCardPage = () => {
               <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-4">
                 How is {phoneme.displayIpa} spelled?
               </p>
-              {phoneme.spellings.map((s, i) => <SpellingBar key={i} s={s} index={i} animate={animate} />)}
+              {(phoneme.spellings || []).map((s, i) => <SpellingBar key={i} s={s} index={i} animate={animate} />)}
             </div>
             {/* Frequency */}
             <div className="bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
               <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-4">Frequency in English</p>
               <div className="h-28 flex items-end gap-2 justify-around">
-                {phoneme.frequencyChart.map((b, i) => <FrequencyBar key={i} bar={b} index={i} animate={animate} />)}
+                {(phoneme.frequencyChart || []).map((b, i) => <FrequencyBar key={i} bar={b} index={i} animate={animate} />)}
               </div>
             </div>
           </div>
@@ -716,7 +722,7 @@ const PhonemeCardPage = () => {
             <div className="bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
               <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold mb-4">Features</p>
               <ul className="space-y-2 text-xs">
-                {phoneme.features.map((f, i) => (
+                {(phoneme.features || []).map((f, i) => (
                   <li key={i} className="flex gap-2 text-cyan-100/90" data-testid={`phoneme-feature-${i}`}>
                     <span className="text-cyan-400">•</span>
                     <span><span className="font-bold text-cyan-200">{f.label}:</span> {f.value}</span>
@@ -730,7 +736,7 @@ const PhonemeCardPage = () => {
         {/* KNOBS ROW */}
         <div className="mt-6 bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {phoneme.knobs.map((k, i) => (
+            {(phoneme.knobs || []).map((k, i) => (
               <AnimatedKnob key={k.id} label={k.label} value={k.value} valueLabel={k.valueLabel} highlight={k.highlight} delay={400 + i * 180} />
             ))}
           </div>
@@ -769,7 +775,7 @@ const PhonemeCardPage = () => {
               <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">{phoneme.pronunciationGuide?.headline}</p>
             </div>
             <ol className="space-y-2.5">
-              {phoneme.pronunciationGuide?.steps.map((s, i) => (
+              {phoneme.pronunciationGuide?.steps?.map((s, i) => (
                 <li key={i} className="flex gap-3" data-testid={`phoneme-guide-step-${i}`}>
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-200">
                     {i + 1}
@@ -821,7 +827,7 @@ const PhonemeCardPage = () => {
                       <div className="overflow-hidden">
                         <p className="font-mono text-base sm:text-lg text-cyan-100 tracking-wide leading-tight">
                           {/* Split IPA so we can color the ʊ in orange */}
-                          {item.ipa.split('').map((ch, ci) => (
+                          {(item.ipa || '').split('').map((ch, ci) => (
                             <span
                               key={ci}
                               className={ch === phoneme.ipa
@@ -873,9 +879,9 @@ const PhonemeCardPage = () => {
                 <p className="text-[10px] text-orange-400 uppercase tracking-widest font-bold">Vocal Fitness mnemonic</p>
               </div>
               <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-50 leading-tight mb-4" data-testid="phoneme-mnemonic-phrase">
-                {phoneme.mnemonic.phrase.split(' ').map((word, i) => {
+                {(phoneme.mnemonic?.phrase || '').split(' ').map((word, i) => {
                   const clean = word.replace(/[.,!?]/g, '').toLowerCase();
-                  const isHL = phoneme.mnemonic.highlights.some((h) => clean === h.toLowerCase());
+                  const isHL = (phoneme.mnemonic?.highlights || []).some((h) => clean === (h || '').toLowerCase());
                   return (
                     <span key={i} className={isHL ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]' : ''}>
                       {word}{' '}
@@ -885,7 +891,7 @@ const PhonemeCardPage = () => {
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <AudioPlayButton src={phoneme.mnemonic?.audio} size="md" label="Play mnemonic" onPlayingChange={setAudioPlaying} />
-                <p className="text-cyan-100/75 text-sm italic max-w-2xl">{phoneme.mnemonic.note}</p>
+                <p className="text-cyan-100/75 text-sm italic max-w-2xl">{phoneme.mnemonic?.note || ''}</p>
               </div>
             </div>
           </div>
@@ -1013,7 +1019,7 @@ const PhonemeCardPage = () => {
                 Visualisation of which facial muscles activate when producing {phoneme.displayIpa}. Colour intensity reflects activation level.
               </p>
               <div className="space-y-3 mt-2">
-                {phoneme.facialMuscles.map((m, i) => (
+                {(phoneme.facialMuscles || []).map((m, i) => (
                   <div key={i} className="flex items-start gap-3 bg-slate-900/60 border border-cyan-500/15 rounded-lg p-3" data-testid={`phoneme-muscle-${i}`}>
                     <div className="w-1 self-stretch rounded-full bg-gradient-to-b from-orange-400/80 to-cyan-400/40" />
                     <div className="flex-1">

@@ -41,6 +41,51 @@ const ACTIVATION_TERMS = ['HIGH', 'MODERATE', 'LOW'];
 const HEIGHT_LABEL_ALIASES = ['height', 'altezza'];
 
 // ============================================================
+// §3.1 Facial-muscle rule (mirror of backend
+// /app/backend/routers/phoneme_batch_v2.py::_MUSCLE_TABLE_VOWELS).
+// Used to preview the expected [orbicularis, buccinator, zygomaticus,
+// masseter, mentalis] tuple as a badge in the editor. The DERIVED values
+// are re-applied server-side on every create/update — this table is UI
+// only, for visual confirmation.
+// ============================================================
+const MUSCLE_RULE_VOWELS = {
+  'iː':  ['LOW',      'LOW',      'HIGH',     'MODERATE', 'LOW'],
+  'ɪ':   ['LOW',      'LOW',      'MODERATE', 'MODERATE', 'LOW'],
+  'ɛ':   ['LOW',      'LOW',      'MODERATE', 'LOW',      'LOW'],
+  'e':   ['LOW',      'LOW',      'MODERATE', 'LOW',      'LOW'],
+  'æ':   ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+  'ʌ':   ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+  'ɑː':  ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+  'ɒ':   ['MODERATE', 'MODERATE', 'LOW',      'LOW',      'LOW'],
+  'ɔː':  ['MODERATE', 'MODERATE', 'LOW',      'LOW',      'LOW'],
+  'ʊ':   ['MODERATE', 'MODERATE', 'LOW',      'MODERATE', 'LOW'],
+  'uː':  ['HIGH',     'MODERATE', 'LOW',      'MODERATE', 'MODERATE'],
+  'ɜː':  ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+  'ɝ':   ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+  'ə':   ['LOW',      'LOW',      'LOW',      'LOW',      'LOW'],
+};
+const MUSCLE_RULE_BILABIALS = ['HIGH',     'LOW',      'LOW', 'MODERATE', 'MODERATE'];
+const MUSCLE_RULE_LABIODENT = ['LOW',      'LOW',      'LOW', 'MODERATE', 'MODERATE'];
+const MUSCLE_RULE_W_GLIDE   = ['MODERATE', 'MODERATE', 'LOW', 'MODERATE', 'LOW'];
+const MUSCLE_RULE_LINGUAL   = ['LOW',      'LOW',      'LOW', 'LOW',      'LOW'];
+const MUSCLE_RULE_NAMES = ['Orbicularis oris', 'Buccinator', 'Zygomaticus major', 'Masseter', 'Mentalis'];
+
+function computeMuscleRule(ipa, category) {
+  if (!ipa) return null;
+  const kind = category === 'consonant' ? 'consonant'
+    : category === 'diphthong' ? 'diphthong' : 'vowel';
+  if (kind === 'vowel' || kind === 'diphthong') {
+    return MUSCLE_RULE_VOWELS[ipa]
+        || MUSCLE_RULE_VOWELS[ipa[0]]
+        || ['LOW', 'LOW', 'LOW', 'MODERATE', 'LOW'];
+  }
+  if (['p', 'b', 'm'].includes(ipa)) return MUSCLE_RULE_BILABIALS;
+  if (['f', 'v'].includes(ipa))      return MUSCLE_RULE_LABIODENT;
+  if (ipa === 'w')                   return MUSCLE_RULE_W_GLIDE;
+  return MUSCLE_RULE_LINGUAL;
+}
+
+// ============================================================
 // ConfidencePill — visual indicator for LLM draft confidence [0..1]
 // ============================================================
 const ConfidencePill = ({ value }) => {
@@ -1396,10 +1441,48 @@ export default function PhonemeAdminEditorPage() {
         </Section>
 
         {/* ================== FACIAL MUSCLES ================== */}
-        <Section title="Muscoli facciali" icon={<Sparkles className="w-4 h-4" />}>
-          <p className="text-xs text-slate-400 mb-3">
-            Elenco muscoli con attivazione — mostrato nel modal &quot;Facial muscles&quot;.
+        <Section title="Muscoli facciali (§3.1 DERIVED)" icon={<Sparkles className="w-4 h-4" />} defaultOpen>
+          <p className="text-xs text-slate-400 mb-2">
+            Elenco dei 5 muscoli con livello di attivazione. Il valore è
+            <span className="text-cyan-300 font-semibold"> derivato deterministicamente</span> dalla
+            regola §3.1 (Batch AI Automation Spec v1.0) al momento del salvataggio: qualsiasi modifica
+            manuale verrà sovrascritta dal server per garantire la coerenza articolatoria.
           </p>
+          {(() => {
+            const expected = computeMuscleRule(card.ipa, card.category);
+            if (!expected) return null;
+            const actual = (card.facialMuscles || []).map((m) => (m.activation || '').toUpperCase());
+            return (
+              <div
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-cyan-500/25 bg-slate-900/70 px-3 py-2 text-[11px]"
+                data-testid="editor-muscle-rule-badge"
+              >
+                <span className="text-cyan-300/80 uppercase font-bold tracking-wider">Regola §3.1 · /{card.ipa}/</span>
+                {MUSCLE_RULE_NAMES.map((name, i) => {
+                  const exp = expected[i];
+                  const cur = actual[i];
+                  const ok = cur === exp;
+                  const cls = ok
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200'
+                    : 'bg-amber-500/15 border-amber-500/40 text-amber-200';
+                  return (
+                    <span
+                      key={name}
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${cls}`}
+                      title={`${name}: expected ${exp}${cur ? `, current ${cur}` : ''}`}
+                      data-testid={`editor-muscle-rule-${i}`}
+                    >
+                      <span className="opacity-70">{name.split(' ')[0]}</span>
+                      <span className="font-bold">{exp}</span>
+                    </span>
+                  );
+                })}
+                <span className="text-slate-500 ml-auto">
+                  Salvando la card, questi valori vengono applicati automaticamente.
+                </span>
+              </div>
+            );
+          })()}
           <Repeater
             label="Muscolo"
             items={card.facialMuscles || []}
