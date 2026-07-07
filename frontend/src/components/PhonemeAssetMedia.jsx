@@ -48,10 +48,18 @@ export default function PhonemeAssetMedia({
   // still image stays visible **behind** the loading spinner, so the
   // page never turns black waiting on Vimeo's ~1-3s boot.
   const [videoReady, setVideoReady] = useState(false);
-  // Reset the ready flag whenever the video source or active flag flips
+  // Reset the ready flag ONLY when the underlying source changes.
+  //
+  // ⚠️ Do NOT include ``videoActive`` here. In CASE C the iframe is
+  // mounted from the initial render (with opacity-0 behind the still
+  // image) and its ``onLoad`` fires exactly once. If we reset
+  // ``videoReady`` every time the user clicks the CTA, the iframe never
+  // re-loads and ``onLoad`` never re-fires — so the spinner spins
+  // forever, the image stays on top, and the video appears "stuck".
+  // Once loaded, the iframe is always ready to reveal on click.
   useEffect(() => {
     setVideoReady(false);
-  }, [videoUploadUrl, videoLinkUrl, videoActive]);
+  }, [videoUploadUrl, videoLinkUrl]);
 
   // Resolve a single video source. Uploaded file wins over external link.
   const videoResolved = useMemo(() => {
