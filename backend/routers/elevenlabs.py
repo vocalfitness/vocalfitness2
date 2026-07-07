@@ -60,6 +60,91 @@ def _get_elevenlabs_client():
 
 
 # --------------------------------------------------------------------------- #
+# Reusable synth+persist helper — used by /tts endpoint AND by the phoneme
+# mass-audio batch runner. Kept at module scope so any router can import it.
+# --------------------------------------------------------------------------- #
+def synthesize_and_store(
+    text: str,
+    voice_id: str,
+    *,
+    emergent_put: Callable[[str, bytes, str], bool],
+    uploads_dir: Path,
+    stability: float = 0.45,
+    similarity_boost: float = 0.85,
+    style: float = 0.0,
+    use_speaker_boost: bool = True,
+    model_id: str = "eleven_multilingual_v2",
+    output_format: str = "mp3_44100_128",
+    filename_hint: Optional[str] = None,
+) -> dict:
+    """Synthesise ``text`` with ElevenLabs and persist the audio to storage.
+
+    Returns ``{url, relative_url, filename, voice_id, content_type, size_bytes}``.
+    Raises ``RuntimeError`` on client/API/empty-audio failure so callers can
+    turn the exception into a per-item error entry in bulk pipelines.
+    """
+    if not (text or "").strip():
+        raise RuntimeError("text vuoto")
+
+    client = _get_elevenlabs_client()
+    if not client:
+        raise RuntimeError("ElevenLabs non configurato (ELEVENLABS_API_KEY mancante)")
+
+    vid = (voice_id or os.environ.get("ELEVENLABS_DEFAULT_VOICE_ID", "")).strip()
+    if not vid:
+        raise RuntimeError("voice_id mancante")
+
+    from elevenlabs import VoiceSettings
+    settings = VoiceSettings(
+        stability=float(stability),
+        similarity_boost=float(similarity_boost),
+        style=float(style),
+        use_speaker_boost=bool(use_speaker_boost),
+    )
+    chunks = client.text_to_speech.convert(
+        text=text,
+        voice_id=vid,
+        model_id=model_id,
+        voice_settings=settings,
+        output_format=output_format,
+    )
+    audio_data = b"".join(chunks)
+    if not audio_data:
+        raise RuntimeError("ElevenLabs ha restituito audio vuoto")
+
+    fmt = (output_format or "").lower()
+    if fmt.startswith("mp3"):
+        ext, content_type = "mp3", "audio/mpeg"
+    elif fmt.startswith("pcm"):
+        ext, content_type = "pcm", "audio/L16"
+    elif fmt.startswith("ulaw"):
+        ext, content_type = "ulaw", "audio/basic"
+    else:
+        ext, content_type = "mp3", "audio/mpeg"
+
+    safe_hint = re.sub(r"[^a-zA-Z0-9_-]+", "_", (filename_hint or "tts"))[:48].strip("_") or "tts"
+    ts = int(datetime.now(timezone.utc).timestamp())
+    filename = f"elevenlabs/{safe_hint}_{vid[:8]}_{ts}.{ext}"
+
+    ok = emergent_put(filename, audio_data, content_type)
+    if not ok:
+        local_path = uploads_dir / filename
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_bytes(audio_data)
+
+    base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    public_url = f"{base}/api/uploads/{filename}" if base else f"/api/uploads/{filename}"
+    return {
+        "url":          public_url,
+        "relative_url": f"/api/uploads/{filename}",
+        "filename":     filename,
+        "voice_id":     vid,
+        "content_type": content_type,
+        "size_bytes":   len(audio_data),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Router factory
 # --------------------------------------------------------------------------- #
 def build_elevenlabs_router(

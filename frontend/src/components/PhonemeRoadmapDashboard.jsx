@@ -194,6 +194,78 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
     }
   };
 
+  // ─── Bulk audio: mass ElevenLabs generation across ALL cards ───
+  // Iterates card-by-card (backend keeps each request short ~30s), streams
+  // progress into the UI, collects all per-clip errors and shows them at
+  // the end (option E=c: "continue always, show errors at end").
+  const [audioRunning,   setAudioRunning]   = useState(false);
+  const [audioProgress,  setAudioProgress]  = useState({ done: 0, total: 0, current: '' });
+  const [audioResult,    setAudioResult]    = useState(null);
+  const runBulkAudio = async () => {
+    const cardsToProcess = (existingCards || []).filter((c) => !!c.id);
+    if (!cardsToProcess.length) return;
+    const ok = window.confirm(
+      `Genera audio ElevenLabs per ${cardsToProcess.length} card:\n\n` +
+      '  • Fonema isolato × AmE + RP\n' +
+      '  • Frasi di esempio × AmE + RP\n' +
+      '  • Frase mnemonica\n' +
+      '  • Top 10 parole comuni × AmE + RP\n\n' +
+      'Clip già generate (URL popolato) verranno saltate — puoi rilanciare quante volte vuoi.\n' +
+      'Errori sui singoli clip NON interrompono il run: vedrai la lista completa alla fine.\n\n' +
+      'Procedere?'
+    );
+    if (!ok) return;
+
+    setAudioRunning(true);
+    setAudioProgress({ done: 0, total: cardsToProcess.length, current: '' });
+    setAudioResult(null);
+
+    const allErrors = [];
+    let totalGenerated = 0;
+    let totalSkipped   = 0;
+    const token = localStorage.getItem('vf_token');
+    const API = process.env.REACT_APP_BACKEND_URL;
+
+    for (let i = 0; i < cardsToProcess.length; i++) {
+      const card = cardsToProcess[i];
+      setAudioProgress({
+        done: i,
+        total: cardsToProcess.length,
+        current: card.subtitle || card.id,
+      });
+      try {
+        const res = await fetch(
+          `${API}/api/admin/phonemes/${encodeURIComponent(card.id)}/batch-audio`,
+          {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body:    JSON.stringify({ words_limit: 10, include_words_rp: true }),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          allErrors.push({ card: card.id, key: '(request)', error: data.detail || `HTTP ${res.status}` });
+          continue;
+        }
+        totalGenerated += (data.generated || []).length;
+        totalSkipped   += (data.skipped   || []).length;
+        (data.errors || []).forEach((e) => allErrors.push({ card: card.id, ...e }));
+      } catch (e) {
+        allErrors.push({ card: card.id, key: '(network)', error: e.message });
+      }
+    }
+    setAudioProgress({ done: cardsToProcess.length, total: cardsToProcess.length, current: '' });
+    setAudioResult({
+      processed: cardsToProcess.length,
+      generated: totalGenerated,
+      skipped:   totalSkipped,
+      errors:    allErrors,
+    });
+    setAudioRunning(false);
+    if (typeof onRefresh === 'function') await onRefresh();
+  };
+
+
 
   // ─── Bulk seed: create empty skeletons in DB from catalogue entries ───
   const runBulkSeed = async () => {
@@ -394,6 +466,86 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
             </div>
           )}
         </div>
+
+        {/* Bulk audio generation (ElevenLabs mass runner) */}
+        <div className="relative mt-5 pt-5 border-t border-orange-500/15" data-testid="roadmap-bulk-audio">
+          <div className="flex flex-wrap items-center gap-3 justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-orange-300 font-bold flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5" />
+                Genera audio ElevenLabs (bulk)
+              </p>
+              <p className="text-sm text-white mt-1 max-w-2xl leading-relaxed">
+                Per ogni card: <b>fonema isolato</b> + <b>frasi esempio</b> + <b>mnemonica</b> + <b>top 10 parole</b>, ciascuno in <b>AmE + RP</b>.
+                Clip già presenti vengono saltate (idempotente, sicuro da rilanciare). Errori sui singoli clip non interrompono il run.
+              </p>
+            </div>
+            <Button
+              onClick={runBulkAudio}
+              disabled={audioRunning}
+              className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold hover:scale-[1.03] transition flex-shrink-0"
+              data-testid="roadmap-bulk-audio-button"
+            >
+              {audioRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Volume2 className="w-4 h-4 mr-1.5" />}
+              {audioRunning ? 'Generazione in corso…' : 'Genera audio su tutte'}
+            </Button>
+          </div>
+
+          {audioRunning && (
+            <div className="mt-4" data-testid="roadmap-bulk-audio-progress">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                  {audioProgress.done} / {audioProgress.total} · {audioProgress.current || 'preparazione…'}
+                </span>
+                <span className="text-xs font-bold text-orange-300">
+                  {Math.round((audioProgress.done / Math.max(audioProgress.total, 1)) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-800/60 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-500 to-rose-400 transition-all duration-200"
+                  style={{ width: `${(audioProgress.done / Math.max(audioProgress.total, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {audioResult && !audioRunning && (
+            <div className={`mt-3 flex items-start gap-2 rounded-lg p-3 text-sm ${
+              audioResult.errors?.length
+                ? 'bg-amber-500/10 border border-amber-500/40 text-amber-200'
+                : 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-200'
+            }`} data-testid="roadmap-bulk-audio-result">
+              {audioResult.errors?.length
+                ? <X className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                : <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold">
+                  {audioResult.processed} card processate · {audioResult.generated} clip generati ·{' '}
+                  {audioResult.skipped} già presenti · {audioResult.errors.length} errori
+                </p>
+                {audioResult.errors.length > 0 && (
+                  <details className="mt-2 text-xs opacity-90">
+                    <summary className="cursor-pointer font-semibold hover:underline">
+                      Mostra {audioResult.errors.length} errori
+                    </summary>
+                    <ul className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                      {audioResult.errors.slice(0, 40).map((e, i) => (
+                        <li key={i} className="font-mono text-[10px]">
+                          <span className="text-orange-300">{e.card}</span> · {e.key} — {e.error}
+                        </li>
+                      ))}
+                      {audioResult.errors.length > 40 && (
+                        <li className="italic">… +{audioResult.errors.length - 40} altri</li>
+                      )}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ─── Filters ─── */}

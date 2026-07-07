@@ -1622,6 +1622,243 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         }
 
 
+    # =====================================================================
+    # §Phase-3 · Mass Audio Generation (ElevenLabs) — per-card runner
+    # =====================================================================
+    # Frontend drives a card-by-card loop so we get natural progress
+    # granularity, keep individual HTTP requests short (~30s per card),
+    # and can display per-card progress. Skips clips whose URL is already
+    # populated → idempotent, safe to re-run without paying twice.
+    # =====================================================================
+    class BatchAudioRequest(BaseModel):
+        voice_ame:     Optional[str] = None   # voice_id for AmE items
+        voice_rp:      Optional[str] = None   # voice_id for RP items
+        voice_default: Optional[str] = None   # voice_id for dialect-agnostic (mnemonic, words)
+        stability:     float = 0.42
+        similarity_boost: float = 0.88
+        style:         float = 0.05
+        use_speaker_boost: bool = True
+        model_id:      str = "eleven_multilingual_v2"
+        output_format: str = "mp3_44100_128"
+        words_limit:   int = 10       # top-N common words to synthesise per dialect
+        include_words_rp: bool = True # if False, words only get AmE audio
+        overwrite:     bool = False   # if True, regenerate even if URL exists
+
+    def _compute_card_audio_items(card: dict, words_limit: int,
+                                    include_words_rp: bool) -> List[dict]:
+        """Return the list of ``{key, group, dialect, path, text, current_url,
+        filename_slug}`` for a single card, mirroring the frontend
+        BulkAudioGenerator.computeItems logic. ``path`` is the list of Mongo
+        dotted-key components to $set the resulting URL under.
+
+        Skips items whose text is empty. Never generates work for missing
+        fields — empty beats invented.
+        """
+        items: List[dict] = []
+        primary = ((card.get("examples") or []) + [""])[0] or card.get("ipa", "")
+        display_ipa = card.get("displayIpa") or f"/{card.get('ipa','')}/"
+        isolated_text = (
+            f"The {display_ipa} sound. As in {str(primary).lower()}."
+            if primary else display_ipa
+        )
+
+        audio = card.get("audio") or {}
+        for dialect in ("AmE", "RP"):
+            cur = ((audio.get(dialect) or {}).get("isolated") or "")
+            items.append({
+                "key": f"isolated-{dialect}", "group": "isolated",
+                "dialect": dialect, "text": isolated_text,
+                "current_url": cur,
+                "path": ["audio", dialect, "isolated"],
+                "filename_slug": f"{card.get('id','card')}_isolated_{dialect}",
+            })
+
+        for i, ex in enumerate(card.get("exampleSentences") or []):
+            txt = (ex or {}).get("text") or ""
+            if not txt.strip():
+                continue
+            for dialect in ("AmE", "RP"):
+                cur = (((audio.get(dialect) or {}).get("examples") or [])[i]
+                       if i < len((audio.get(dialect) or {}).get("examples") or []) else "")
+                items.append({
+                    "key": f"example-{dialect}-{i}", "group": "examples",
+                    "dialect": dialect, "text": txt, "current_url": cur,
+                    "path": ["audio", dialect, "examples", i],
+                    "filename_slug": f"{card.get('id','card')}_example_{dialect}_{i+1}",
+                })
+
+        mn = card.get("mnemonic") or {}
+        if (mn.get("phrase") or "").strip():
+            items.append({
+                "key": "mnemonic", "group": "mnemonic", "dialect": "default",
+                "text": mn.get("phrase"),
+                "current_url": mn.get("audio") or mn.get("audioAmE") or "",
+                "path": ["mnemonic", "audio"],
+                "filename_slug": f"{card.get('id','card')}_mnemonic",
+            })
+
+        # Common words — top N by list order (already zipf-sorted from lexicon)
+        for i, w in enumerate((card.get("commonWords") or [])[:max(0, words_limit)]):
+            word = (w or {}).get("w", "").strip()
+            if not word:
+                continue
+            # AmE always
+            items.append({
+                "key": f"word-{i}-AmE", "group": "words", "dialect": "AmE",
+                "text": word,
+                "current_url": (w.get("audioAmE") or w.get("audio") or ""),
+                "path": ["commonWords", i, "audioAmE"],
+                "filename_slug": f"{card.get('id','card')}_word_{re.sub(r'[^a-z0-9]+','_', word.lower())}_AmE",
+            })
+            if include_words_rp:
+                items.append({
+                    "key": f"word-{i}-RP", "group": "words", "dialect": "RP",
+                    "text": word,
+                    "current_url": (w.get("audioRP") or ""),
+                    "path": ["commonWords", i, "audioRP"],
+                    "filename_slug": f"{card.get('id','card')}_word_{re.sub(r'[^a-z0-9]+','_', word.lower())}_RP",
+                })
+        return items
+
+    @router.post("/admin/phonemes/{card_id}/batch-audio")
+    async def admin_batch_audio(
+        card_id: str,
+        payload: BatchAudioRequest,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """§Phase-3 · Mass audio synthesis for a single card.
+
+        Iterates all audio items (isolated + examples + mnemonic + top-N words)
+        and calls ElevenLabs for each clip whose URL is empty (or all clips
+        when ``overwrite=true``). Persists URLs into the card doc under the
+        proper nested path. Returns per-item status so the frontend can
+        display progress + a final error list.
+
+        Errors on individual clips DO NOT abort the run — the pipeline
+        continues (matches option E=c: "continue always, show errors at end").
+        """
+        from .elevenlabs import synthesize_and_store
+        from storage_helper import put_object as _emergent_put
+        from pathlib import Path as _Path
+
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+
+        voice_map = {
+            "AmE":     (payload.voice_ame or "").strip(),
+            "RP":      (payload.voice_rp or "").strip(),
+            "default": (payload.voice_default or "").strip(),
+        }
+        items = _compute_card_audio_items(
+            doc, payload.words_limit, payload.include_words_rp
+        )
+
+        generated: List[str] = []
+        skipped:   List[str] = []
+        errors:    List[dict] = []
+        # We accumulate changes into an IN-MEMORY working copy of the doc
+        # and re-serialise the affected top-level fields at the end. This
+        # avoids MongoDB's "dotted-key array-index creates a subdocument
+        # instead of an array" trap when the field doesn't pre-exist as
+        # an array on the doc.
+        work = dict(doc)
+        work_audio = dict(work.get("audio") or {})
+        for d in ("AmE", "RP"):
+            entry = dict(work_audio.get(d) or {})
+            # Normalise "examples": accept legacy dict-with-numeric-keys shape
+            ex_raw = entry.get("examples") or []
+            if isinstance(ex_raw, dict):
+                ex_raw = [ex_raw.get(str(k), "") for k in sorted(ex_raw.keys(), key=lambda s: int(s) if str(s).isdigit() else 0)]
+            entry["examples"] = list(ex_raw)
+            work_audio[d] = entry
+        work_mnemonic = dict(work.get("mnemonic") or {})
+        work_common   = [dict(w) for w in (work.get("commonWords") or [])]
+        fields_touched = set()
+
+        # ``uploads_dir`` fallback for local write on emergent storage failure
+        uploads_dir = _Path("/app/backend/uploads")
+
+        for it in items:
+            if it["current_url"] and not payload.overwrite:
+                skipped.append(it["key"])
+                continue
+
+            voice_id = voice_map.get(it["dialect"]) or voice_map.get("default")
+            try:
+                res = synthesize_and_store(
+                    text=it["text"],
+                    voice_id=voice_id,
+                    emergent_put=_emergent_put,
+                    uploads_dir=uploads_dir,
+                    stability=payload.stability,
+                    similarity_boost=payload.similarity_boost,
+                    style=payload.style,
+                    use_speaker_boost=payload.use_speaker_boost,
+                    model_id=payload.model_id,
+                    output_format=payload.output_format,
+                    filename_hint=it["filename_slug"],
+                )
+                rel_url = res["relative_url"]
+                # Write into the in-memory doc at ``path`` — arrays are
+                # preserved as arrays, dicts as dicts.
+                path = it["path"]
+                if path[0] == "audio":
+                    dialect, kind = path[1], path[2]
+                    dentry = work_audio[dialect]
+                    if kind == "isolated":
+                        dentry["isolated"] = rel_url
+                    elif kind == "examples":
+                        idx = path[3]
+                        arr = dentry.get("examples") or []
+                        while len(arr) <= idx:
+                            arr.append("")
+                        arr[idx] = rel_url
+                        dentry["examples"] = arr
+                    work_audio[dialect] = dentry
+                    fields_touched.add("audio")
+                elif path[0] == "mnemonic":
+                    work_mnemonic["audio"] = rel_url
+                    fields_touched.add("mnemonic")
+                elif path[0] == "commonWords":
+                    idx = path[1]
+                    key = path[2]  # audioAmE or audioRP
+                    while len(work_common) <= idx:
+                        work_common.append({})
+                    work_common[idx][key] = rel_url
+                    fields_touched.add("commonWords")
+                generated.append(it["key"])
+            except Exception as exc:  # noqa: BLE001
+                errors.append({
+                    "key":   it["key"],
+                    "text":  it["text"][:60],
+                    "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                })
+
+        if fields_touched:
+            set_ops: Dict[str, Any] = {
+                "updatedAt": _now_iso(),
+                "updatedBy": admin.get("username"),
+            }
+            if "audio" in fields_touched:
+                set_ops["audio"] = work_audio
+            if "mnemonic" in fields_touched:
+                set_ops["mnemonic"] = work_mnemonic
+            if "commonWords" in fields_touched:
+                set_ops["commonWords"] = work_common
+            await coll.update_one({"id": card_id}, {"$set": set_ops})
+
+        return {
+            "ok":         True,
+            "card_id":    card_id,
+            "total":      len(items),
+            "generated":  generated,
+            "skipped":    skipped,
+            "errors":     errors,
+        }
+
+
+
 
     @router.post("/admin/phonemes/{card_id}/generate-hotspots")
     async def admin_generate_hotspots(

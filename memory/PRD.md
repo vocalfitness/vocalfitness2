@@ -11,6 +11,39 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — Phase-3 · Mass Audio Generation (Iterazione A) — DONE ✅
+
+Scelte utente confermate: scope B (essenziale, ~29 clip/card × 42 = ~1200 clip), voci C=a (riusa Steve Dapper clone italiano per entrambi i dialetti), UX 3=c (bulk runner + Audio Studio in fase B), no test preliminare, errori policy c (continua sempre, mostra a fine run).
+
+**Backend**
+- Nuovo helper `synthesize_and_store()` in `/app/backend/routers/elevenlabs.py` (module-scope, ~90 righe) — estratto dalla logica di `elevenlabs_tts` per essere riusabile dal batch runner. Ritorna `{url, relative_url, filename, voice_id, content_type, size_bytes}` o solleva `RuntimeError` in caso di fallimento (client mancante, API error, audio vuoto). Il `/tts` endpoint originale è preservato invariato.
+- Nuovo endpoint `POST /api/admin/phonemes/{id}/batch-audio` in `phoneme_cards.py` (~180 righe):
+  - Helper `_compute_card_audio_items(card, words_limit, include_words_rp)` calcola la work-list per una singola card: 2 isolated + 2N examples + 1 mnemonic + 2M words (con M ≤ words_limit).
+  - Skip-existing default: se il campo audio è già popolato → salta (idempotente). Override con `overwrite=true`.
+  - Errori per-clip NON abortiscono: raccolti in `errors[]` e ritornati a fine run (option E=c).
+  - Fix critico: costruzione in-memory della struttura nested (audio/mnemonic/commonWords) e $set al livello top per evitare il bug MongoDB "dotted-key array-index crea subdocumento invece di array".
+  - Preserva URL audio esistenti per campi non toccati.
+
+**Frontend**
+- `PhonemeRoadmapDashboard.jsx`: nuovo pulsante "Genera audio su tutte" (gradient orange-rose) con:
+  - Confirm dialog dettagliato (elenca cosa verrà generato).
+  - Loop client-side card-by-card (mantiene HTTP requests brevi ~30 sec).
+  - Progress bar globale + counter "N/M · card corrente".
+  - Result panel a fine run: totali (processate/generate/skippate/errori) + expandable list dei primi 40 errori con `card · clip_key · error`.
+  - Auto-refresh del parent (roadmap grid) a fine run.
+
+**Verifica smoke test end-to-end** (ae-trap):
+- 1° run con words_limit=2: 13 clip generate, 0 skip, 0 errori, tutti gli URL popolati correttamente.
+- 2° run con words_limit=4: 4 clip nuove generate (word 2-3 × 2 dialetti), 13 skip (esistenti), 0 errori — idempotency OK.
+- File MP3 verificati serviti da `/api/uploads/elevenlabs/*.mp3` via Emergent Object Storage (25.5 KB, ID3+FFmpeg).
+- Readiness `ae-trap`: 93 → **100/100 GREEN, ready=True** dopo audio bulk.
+
+**Iterazione B (prossima)** — Audio Studio + per-item override:
+- Nuova pagina `/admin/audio-studio` con tabella globale filtrable (card × gruppo × dialetto × stato).
+- Bulk regen selettivo con voice + preset override.
+- Per-item voice/prosody override direttamente nel BulkAudioGenerator per-card.
+
+
 ### 07/07/2026 — Phase-3 CMS · Full auto-population di 42 card AMBER (Hotspot §3.4 + Lexicon §3.2/§3.3) — DONE ✅
 Obiettivo: portare tutte le 44 card allo stato "u-foot" (100% GREEN) con AI/rule engine, così il Prof deve solo REVIEW, non compilare manualmente. Le 2 lacune bloccanti su tutti i 42 card AMBER erano `content.hotspots` + `content.commonWords`.
 
