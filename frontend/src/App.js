@@ -12,6 +12,7 @@ import PhonemeCardPage from "./pages/PhonemeCardPage";
 import PhonemeAdminPage from "./pages/PhonemeAdminPage";
 import PhonemeAdminEditorPage from "./pages/PhonemeAdminEditorPage";
 import PhonemeCmsHelpPage from "./pages/PhonemeCmsHelpPage";
+import PhonemeAudioStudioPage from "./pages/PhonemeAudioStudioPage";
 import LoginPage from "./pages/LoginPage";
 import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
@@ -43,6 +44,7 @@ function App() {
               <Route path="/admin/phonemes/new" element={<PhonemeAdminEditorPage />} />
               <Route path="/admin/phonemes/:id" element={<PhonemeAdminEditorPage />} />
               <Route path="/admin/help/phoneme-cms" element={<PhonemeCmsHelpPage />} />
+              <Route path="/admin/audio-studio" element={<PhonemeAudioStudioPage />} />
               <Route path="/impostazioni" element={<SettingsPage />} />
             </Routes>
           </BrowserRouter>

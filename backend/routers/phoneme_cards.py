@@ -1643,6 +1643,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         words_limit:   int = 10       # top-N common words to synthesise per dialect
         include_words_rp: bool = True # if False, words only get AmE audio
         overwrite:     bool = False   # if True, regenerate even if URL exists
+        only_keys:     Optional[List[str]] = None  # if provided, only items with key in this list
 
     def _compute_card_audio_items(card: dict, words_limit: int,
                                     include_words_rp: bool) -> List[dict]:
@@ -1753,6 +1754,10 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         items = _compute_card_audio_items(
             doc, payload.words_limit, payload.include_words_rp
         )
+        # Filter by only_keys if provided (Audio Studio per-item regen).
+        if payload.only_keys:
+            wanted = set(payload.only_keys)
+            items = [it for it in items if it["key"] in wanted]
 
         generated: List[str] = []
         skipped:   List[str] = []

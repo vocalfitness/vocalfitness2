@@ -11,6 +11,43 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — Phase-3 · Audio Studio (Iterazione B) — DONE ✅
+
+Fine-tuning autonomo audio come richiesto dall'utente: "voglio poter rigenerare ogni suono/audio della card, sia AmE che RP, se non soddisfacente".
+
+**Backend**
+- Esteso `POST /api/admin/phonemes/{id}/batch-audio` con parametro `only_keys: List[str]` — se fornito, l'endpoint processa SOLO quei clip. Combinato con `overwrite=true` = rigenerazione chirurgica per-clip. Compatibile 100% col mass runner esistente.
+
+**Frontend — nuova pagina `/admin/audio-studio`** (`PhonemeAudioStudioPage.jsx`, ~370 righe):
+- **Fetch parallelo** di tutte le card admin + `elevenlabs/voices` + flatten in "clip catalog" (~1256 righe totali con 44 card × ~29 clip cadauna).
+- **Pannello voci top**: 3 dropdown (AmE / RP / Default) popolati dai 27 voice profile del roster ElevenLabs + preset prosodia (Naturale / Espressivo / Stabile) con VoiceSettings pre-configurati.
+- **Filtri**: card, gruppo (isolated/examples/mnemonic/words), dialetto (AmE/RP/default/all), stato (presenti/mancanti/tutti), search testuale.
+- **Selezione multi-clip**: checkbox per riga + "Seleziona tutte visibili" + "Deseleziona" + counter live.
+- **Play inline** per riga: pulsante Play/Pause con `<audio preload="none">` che punta all'URL relativo o assoluto.
+- **Regen singolo** per riga (spinner inline durante processing) — sovrascrive con voce/preset selezionati dall'utente.
+- **Bulk regen selezionate** con progress bar per-card (raggruppa `only_keys` per card, un HTTP request per card).
+- **Error list expandable** a fine bulk run.
+- Refresh atomico dei card processati (dopo regen → re-fetch della singola card e merge nello stato).
+- Data-testid completi (`audio-studio-page/voices/filters/regen/play/…`) per testing.
+
+**Wiring UI**
+- Nuova route `/admin/audio-studio` in `App.js`.
+- Link "Audio Studio" (button outline arancione con icona Volume2) nella toolbar di `PhonemeAdminPage.jsx`.
+
+**Smoke test end-to-end**:
+- Page load: 1256 clip visibili, 54 già presenti, 1202 mancanti.
+- Filtro "Mancanti" applicato correttamente (1202 rimaste).
+- 3 dropdown voci popolati con default = Steve Dapper (it-standard).
+- 0 errori console, 0 lint.
+
+**Come usarla — workflow autonomo del Prof**:
+1. Vai su `/admin/audio-studio`.
+2. Filtra le clip di interesse (es. dialetto RP + gruppo isolated → 42 clip da controllare).
+3. Ascolta con play inline.
+4. Se non ti piace: cambia voce/preset in cima → click regen (loop-arrow) sulla riga → clip riprodotta con nuova voce.
+5. Bulk: seleziona 50 clip → cambia preset a "Espressivo" → "Rigenera 50 selezionate" → progress bar per card → error list a fine.
+
+
 ### 07/07/2026 — Phase-3 · Mass Audio Generation (Iterazione A) — DONE ✅
 
 Scelte utente confermate: scope B (essenziale, ~29 clip/card × 42 = ~1200 clip), voci C=a (riusa Steve Dapper clone italiano per entrambi i dialetti), UX 3=c (bulk runner + Audio Studio in fase B), no test preliminare, errori policy c (continua sempre, mostra a fine run).

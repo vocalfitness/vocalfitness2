@@ -229,6 +229,13 @@ export default function PhonemeAdminPage() {
                 <span className="ml-2 hidden sm:inline">Guida</span>
               </Button>
             </Link>
+            <Link to="/admin/audio-studio" data-testid="phoneme-admin-audio-studio-link">
+              <Button variant="outline" size="sm" className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10">
+                <Volume2 className="w-3.5 h-3.5" />
+                <span className="ml-2 hidden sm:inline">Audio Studio</span>
+              </Button>
+            </Link>
+
             <Button onClick={fetchCards} variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800" data-testid="phoneme-admin-refresh">
               <RefreshCw className={`w-3.5 h-3.5 ${fetching ? 'animate-spin' : ''}`} />
               <span className="ml-2 hidden sm:inline">Aggiorna</span>
