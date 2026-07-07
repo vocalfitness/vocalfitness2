@@ -155,6 +155,46 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
     [enriched],
   );
 
+  // ─── Bulk regenerate: reruns §3.1/§3.2/§3.4 + lexicon on every card ───
+  const [derivedRunning, setDerivedRunning] = useState(false);
+  const [derivedResult, setDerivedResult]   = useState('');
+  const runBulkRegenDerived = async () => {
+    const ok = window.confirm(
+      'Rigenera automaticamente per TUTTE le card in bozza:\n' +
+      '  • §3.1 Muscoli facciali (mai autoriali)\n' +
+      '  • §3.2 Overlay anatomico (etichette + airflow + voicing)\n' +
+      '  • §3.4 Hotspot articolatori (bilingue IT/EN)\n' +
+      '  • §3.2/§3.3 Common Words (top 30 da CMUdict + Zipf) + Spelling distribution\n\n' +
+      'Le card protette con hotspots_locked=true o lexicon_locked=true (u-foot, i-fleece) NON verranno toccate.\n' +
+      'Gli URL audio ElevenLabs esistenti vengono preservati per le parole che sopravvivono al refresh.\n\n' +
+      'Procedere?'
+    );
+    if (!ok) return;
+    setDerivedRunning(true);
+    setDerivedResult('');
+    try {
+      const token = localStorage.getItem('vf_token');
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const res = await fetch(`${API}/api/admin/phonemes/batch/regenerate-derived`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Errore server');
+      setDerivedResult(
+        `Rigenerate ${data.processed} card · ${data.errors?.length || 0} errori.` +
+        (data.errors?.length ? ` Errori: ${data.errors.slice(0, 5).join(', ')}` : '')
+      );
+      if (typeof onRefresh === 'function') await onRefresh();
+    } catch (e) {
+      setDerivedResult(`Errore: ${e.message}`);
+    } finally {
+      setDerivedRunning(false);
+      setTimeout(() => setDerivedResult(''), 8000);
+    }
+  };
+
+
   // ─── Bulk seed: create empty skeletons in DB from catalogue entries ───
   const runBulkSeed = async () => {
     if (!missingEntries.length) return;
@@ -316,6 +356,44 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
             )}
           </div>
         )}
+
+        {/* Bulk regenerate DERIVED (§3.1/3.2/3.4 + lexicon) — always visible */}
+        <div className="relative mt-5 pt-5 border-t border-cyan-500/15" data-testid="roadmap-bulk-derived">
+          <div className="flex flex-wrap items-center gap-3 justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" />
+                Rigenera contenuti DERIVED (bulk)
+              </p>
+              <p className="text-sm text-white mt-1 max-w-xl leading-relaxed">
+                Rilancia i motori canonical su tutte le card: <b>muscoli §3.1</b>, <b>overlay §3.2</b>,{' '}
+                <b>hotspot §3.4</b> (bilingue), <b>common words + spelling</b> da CMUdict.
+                Card protette (u-foot, i-fleece) escluse. Audio ElevenLabs preservato.
+              </p>
+            </div>
+            <Button
+              onClick={runBulkRegenDerived}
+              disabled={derivedRunning}
+              className="bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-900 font-bold hover:scale-[1.03] transition flex-shrink-0"
+              data-testid="roadmap-bulk-derived-button"
+            >
+              {derivedRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1.5" />}
+              {derivedRunning ? 'Rigenerazione in corso…' : 'Rigenera derived su tutte'}
+            </Button>
+          </div>
+          {derivedResult && (
+            <div className={`mt-3 flex items-start gap-2 rounded-lg p-3 text-sm ${
+              derivedResult.startsWith('Errore')
+                ? 'bg-rose-500/10 border border-rose-500/40 text-rose-200'
+                : 'bg-cyan-500/10 border border-cyan-500/40 text-cyan-100'
+            }`} data-testid="roadmap-bulk-derived-result">
+              {derivedResult.startsWith('Errore')
+                ? <X className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                : <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+              <p className="font-bold min-w-0">{derivedResult}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ─── Filters ─── */}

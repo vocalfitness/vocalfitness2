@@ -54,6 +54,12 @@ class PhonemeCardBase(BaseModel):
     # Deep pedagogical payload — free-form on purpose (see module docstring)
     assets: Dict[str, Any] = Field(default_factory=dict)
     hotspots: List[Dict[str, Any]] = Field(default_factory=list)
+    # §3.4 · When true, the deterministic hotspot engine skips this card —
+    # used to protect manually curated reference cards (u-foot, i-fleece).
+    hotspots_locked: bool = False
+    # §3.2/§3.3 · When true, the deterministic lexicon engine (commonWords +
+    # spellings) skips this card — protects manually curated reference cards.
+    lexicon_locked: bool = False
     spellings: List[Dict[str, Any]] = Field(default_factory=list)
     frequencyChart: List[Dict[str, Any]] = Field(default_factory=list)
     features: List[Dict[str, Any]] = Field(default_factory=list)
@@ -95,6 +101,8 @@ class PhonemeCardUpdate(BaseModel):
     dialectNote: Optional[str] = None
     assets: Optional[Dict[str, Any]] = None
     hotspots: Optional[List[Dict[str, Any]]] = None
+    hotspots_locked: Optional[bool] = None
+    lexicon_locked: Optional[bool] = None
     spellings: Optional[List[Dict[str, Any]]] = None
     frequencyChart: Optional[List[Dict[str, Any]]] = None
     features: Optional[List[Dict[str, Any]]] = None
@@ -420,6 +428,85 @@ async def apply_overlay_rule_to_doc(db, doc: dict) -> Dict[str, Any]:
     doc["airflowArrows"]    = bundle["airflowArrows"]
     doc["voicing"]          = bundle["voicing"]
     return bundle
+
+
+async def apply_hotspot_rule_to_doc(db, doc: dict) -> List[Dict[str, Any]]:
+    """Compute and write the DERIVED hotspot list (§3.4) into ``doc``.
+
+    Uses ``phoneme_hotspot_rule.generate_hotspots_for_canonical`` — a fully
+    deterministic engine keyed on the phoneme's canonical features (height,
+    backness, rounding, tenseness for vowels; place, manner, voicing for
+    consonants). Bilingual IT/EN localised copy is included on every hotspot.
+
+    ⚠️ Idempotency contract: cards flagged ``hotspots_locked=true`` are
+    NEVER touched — this preserves manually curated hotspots on the
+    reference cards (u-foot, i-fleece). For all other cards the field is
+    overwritten on every create/update/batch-fill call.
+
+    Returns the hotspot list that was written (or the preserved list if
+    the card is locked / IPA missing / canonical row not found).
+    """
+    from .phoneme_hotspot_rule import generate_hotspots_for_canonical
+    if doc.get("hotspots_locked"):
+        return doc.get("hotspots") or []
+    ipa = (doc.get("ipa") or "").strip()
+    if not ipa:
+        return doc.get("hotspots") or []
+    canonical = None
+    for cand in _ipa_equivalents(ipa):
+        canonical = await db.canonical_phonemes.find_one({"ipa": cand}, {"_id": 0})
+        if canonical:
+            break
+    if not canonical:
+        # No canonical row → keep whatever the doc has (do not blank it out).
+        return doc.get("hotspots") or []
+    hotspots = generate_hotspots_for_canonical(ipa, canonical)
+    doc["hotspots"] = hotspots
+    return hotspots
+
+
+async def apply_lexicon_rule_to_doc(db, doc: dict, preserve_audio: bool = True) -> Dict[str, list]:
+    """§3.2/§3.3 · Compute commonWords + spellings from cmudict + wordfreq.
+
+    Behaviour:
+      • Deterministic — data-sourced, never LLM-authored.
+      • ``lexicon_locked=true`` on the card → skipped (preserves manual
+        curation on reference cards like u-foot).
+      • ``preserve_audio=True`` (default) → when overwriting commonWords,
+        pre-existing ``audioAmE`` / ``audioRP`` URLs are merged onto the
+        matching word entries so we don't lose ElevenLabs generations.
+
+    Returns the ``{commonWords, spellings}`` bundle that was written (or
+    the existing bundle if the card is locked / IPA missing).
+    """
+    if doc.get("lexicon_locked"):
+        return {"commonWords": doc.get("commonWords") or [],
+                "spellings":   doc.get("spellings") or []}
+    ipa = (doc.get("ipa") or "").strip()
+    if not ipa:
+        return {"commonWords": doc.get("commonWords") or [],
+                "spellings":   doc.get("spellings") or []}
+
+    from .phoneme_lexicon_rule import generate_lexicon_for_canonical
+    bundle = generate_lexicon_for_canonical(ipa, max_words=30)
+    common = bundle["commonWords"]
+    spellings = bundle["spellings"]
+
+    if preserve_audio:
+        old_by_word = {(w.get("w") or "").lower(): w for w in (doc.get("commonWords") or [])}
+        for entry in common:
+            prev = old_by_word.get((entry.get("w") or "").lower())
+            if not prev:
+                continue
+            if prev.get("audioAmE"):
+                entry["audioAmE"] = prev.get("audioAmE")
+            if prev.get("audioRP"):
+                entry["audioRP"] = prev.get("audioRP")
+
+    doc["commonWords"] = common
+    doc["spellings"]   = spellings
+    return {"commonWords": common, "spellings": spellings}
+
 
 
 def _compose_autofill_for_vowel(canonical: dict) -> Dict[str, Any]:
@@ -1452,6 +1539,177 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         from .phoneme_batch_v2 import FIELD_TAXONOMY
         return FIELD_TAXONOMY
 
+    @router.post("/admin/phonemes/batch/regenerate-derived")
+    async def admin_batch_regenerate_derived(
+        admin: dict = Depends(get_admin_user),
+    ):
+        """One-click bulk regeneration of ALL DERIVED fields across every
+        card that is not flagged as locked.
+
+        Runs, in order, for each card:
+          §3.1 muscles (never LLM/user authored — always overwrite)
+          §3.2 overlay bundle (anatomicalLabels + arrows + voicing)
+          §3.4 hotspots (skipped when ``hotspots_locked=true``)
+          §3.2/§3.3 lexicon (skipped when ``lexicon_locked=true``,
+                              preserves audio URLs on surviving words)
+
+        Idempotent. Never touches CREATIVE fields (mnemonic, funFact, etc.)
+        or NEEDS_SOURCE fields (video). Returns per-card summary.
+        """
+        results = []
+        skipped = 0
+        errors = []
+        async for card in coll.find({}, {"_id": 0}):
+            cid = card.get("id")
+            if not cid:
+                skipped += 1
+                continue
+            entry: Dict[str, Any] = {"id": cid, "ipa": card.get("ipa"),
+                                     "applied": [], "skipped": []}
+            try:
+                await apply_muscle_rule_to_doc(db, card)
+                entry["applied"].append("muscles")
+            except Exception as exc:  # noqa: BLE001
+                entry["skipped"].append(f"muscles({type(exc).__name__})")
+
+            try:
+                overlay = await apply_overlay_rule_to_doc(db, card)
+                card["anatomicalLabels"] = overlay["anatomicalLabels"]
+                card["airflowArrows"]    = overlay["airflowArrows"]
+                card["voicing"]          = overlay["voicing"]
+                entry["applied"].append("overlay")
+            except Exception as exc:  # noqa: BLE001
+                entry["skipped"].append(f"overlay({type(exc).__name__})")
+
+            if card.get("hotspots_locked"):
+                entry["skipped"].append("hotspots(locked)")
+            else:
+                try:
+                    await apply_hotspot_rule_to_doc(db, card)
+                    entry["applied"].append("hotspots")
+                except Exception as exc:  # noqa: BLE001
+                    entry["skipped"].append(f"hotspots({type(exc).__name__})")
+
+            if card.get("lexicon_locked"):
+                entry["skipped"].append("lexicon(locked)")
+            else:
+                try:
+                    await apply_lexicon_rule_to_doc(db, card, preserve_audio=True)
+                    entry["applied"].append("lexicon")
+                except Exception as exc:  # noqa: BLE001
+                    entry["skipped"].append(f"lexicon({type(exc).__name__})")
+
+            # Persist the diff (all four fields at once — atomic).
+            await coll.update_one({"id": cid}, {"$set": {
+                "facialMuscles":     card.get("facialMuscles") or [],
+                "anatomicalLabels":  card.get("anatomicalLabels") or [],
+                "airflowArrows":     card.get("airflowArrows") or [],
+                "voicing":           card.get("voicing") or "",
+                "hotspots":          card.get("hotspots") or [],
+                "commonWords":       card.get("commonWords") or [],
+                "spellings":         card.get("spellings") or [],
+                "updatedAt":         _now_iso(),
+                "updatedBy":         admin.get("username"),
+            }})
+            results.append(entry)
+
+        return {
+            "ok":       True,
+            "processed": len(results),
+            "skipped":  skipped,
+            "errors":   errors,
+            "results":  results,
+        }
+
+
+
+    @router.post("/admin/phonemes/{card_id}/generate-hotspots")
+    async def admin_generate_hotspots(
+        card_id: str,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """§3.4 — Regenerate hotspots for a single card from the canonical
+        rule engine (`phoneme_hotspot_rule.generate_hotspots_for_canonical`).
+
+        Behaviour:
+          • If the card has ``hotspots_locked=true`` → 409 with the current
+            hotspot list preserved. The admin must clear the lock explicitly
+            (e.g. via the editor) before re-running.
+          • Otherwise the hotspots are recomputed deterministically from the
+            canonical row (height/backness/rounding/tenseness for vowels;
+            place/manner/voicing for consonants) with bilingual IT/EN
+            localised copy attached to every hotspot.
+          • Response: ``{ ok, hotspots, count, locked }``.
+        """
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+        if doc.get("hotspots_locked"):
+            return {
+                "ok": False,
+                "locked": True,
+                "hotspots": doc.get("hotspots") or [],
+                "count":    len(doc.get("hotspots") or []),
+                "message":  "Card protetta (hotspots_locked=true). Sblocca il flag prima di rigenerare.",
+            }
+        ipa = (doc.get("ipa") or "").strip()
+        if not ipa:
+            raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
+        hotspots = await apply_hotspot_rule_to_doc(db, doc)
+        await coll.update_one({"id": card_id}, {"$set": {
+            "hotspots": hotspots,
+            "updatedAt": _now_iso(),
+            "updatedBy": admin.get("username"),
+        }})
+        return {
+            "ok": True,
+            "locked": False,
+            "hotspots": hotspots,
+            "count": len(hotspots),
+        }
+
+
+    @router.post("/admin/phonemes/{card_id}/generate-lexicon")
+    async def admin_generate_lexicon(
+        card_id: str,
+        admin: dict = Depends(get_admin_user),
+    ):
+        """§3.2/§3.3 · Regenerate ``commonWords`` and ``spellings`` from
+        cmudict + wordfreq. Preserves existing audio URLs on words that
+        survive the refresh (matched by lowercase spelling).
+
+        409 if the card is flagged ``lexicon_locked=true``.
+        """
+        doc = await coll.find_one({"id": card_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Fonema non trovato")
+        if doc.get("lexicon_locked"):
+            return {
+                "ok": False, "locked": True,
+                "commonWords": doc.get("commonWords") or [],
+                "spellings":   doc.get("spellings") or [],
+                "message":     "Card protetta (lexicon_locked=true). Sblocca il flag prima di rigenerare.",
+            }
+        ipa = (doc.get("ipa") or "").strip()
+        if not ipa:
+            raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
+        bundle = await apply_lexicon_rule_to_doc(db, doc, preserve_audio=True)
+        await coll.update_one({"id": card_id}, {"$set": {
+            "commonWords": bundle["commonWords"],
+            "spellings":   bundle["spellings"],
+            "updatedAt":   _now_iso(),
+            "updatedBy":   admin.get("username"),
+        }})
+        return {
+            "ok": True, "locked": False,
+            "commonWords":      bundle["commonWords"],
+            "spellings":        bundle["spellings"],
+            "commonWords_count": len(bundle["commonWords"]),
+            "spellings_count":   len(bundle["spellings"]),
+        }
+
+
+
     @router.post("/admin/phonemes/{card_id}/batch-fill-v2")
     async def admin_batch_fill_v2(
         card_id: str,
@@ -1540,6 +1798,27 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         update_fields["facialMuscles"] = muscles_new
         applied["derived"].append("facialMuscles")
         muscles_expected = _muscle_levels_for(ipa, kind)
+
+        # ---- 3b) DERIVED — hotspots from §3.4 (spec-locked rule).
+        # Skipped when the card is flagged ``hotspots_locked=true`` — protects
+        # manually authored reference cards (u-foot, i-fleece).
+        if not doc.get("hotspots_locked"):
+            from .phoneme_hotspot_rule import generate_hotspots_for_canonical
+            hotspots_new = generate_hotspots_for_canonical(ipa, canon)
+            update_fields["hotspots"] = hotspots_new
+            applied["derived"].append("hotspots")
+
+        # ---- 3c) DERIVED — commonWords + spellings from §3.2/§3.3
+        # (cmudict + wordfreq). Preserves existing audio URLs on surviving
+        # words. Skipped when ``lexicon_locked=true``.
+        if not doc.get("lexicon_locked"):
+            lex_bundle = await apply_lexicon_rule_to_doc(db, dict(doc), preserve_audio=True)
+            if lex_bundle["commonWords"]:
+                update_fields["commonWords"] = lex_bundle["commonWords"]
+                applied["derived"].append("commonWords")
+            if lex_bundle["spellings"]:
+                update_fields["spellings"] = lex_bundle["spellings"]
+                applied["derived"].append("spellings")
 
         # ---- 4) CREATIVE — grounded LLM draft
         creative: Dict[str, Any] = {}
@@ -1697,6 +1976,12 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         # §3.2 lockdown: anatomicalLabels + airflowArrows + voicing are
         # DERIVED from the canonical inventory (place / manner / kind).
         await apply_overlay_rule_to_doc(db, doc)
+        # §3.4 lockdown: hotspot list is DERIVED from canonical features
+        # (skipped when hotspots_locked=true — e.g. manually curated u-foot).
+        await apply_hotspot_rule_to_doc(db, doc)
+        # §3.2/§3.3 lockdown: commonWords + spellings are DERIVED from cmudict
+        # + wordfreq (skipped when lexicon_locked=true).
+        await apply_lexicon_rule_to_doc(db, doc, preserve_audio=True)
         doc["createdAt"] = now
         doc["updatedAt"] = now
         doc["createdBy"] = admin.get("username")
@@ -1741,6 +2026,10 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         update_fields["anatomicalLabels"] = overlay_new["anatomicalLabels"]
         update_fields["airflowArrows"]    = overlay_new["airflowArrows"]
         update_fields["voicing"]          = overlay_new["voicing"]
+        # §3.4 hotspots — recompute unless hotspots_locked=true (skipped inside helper).
+        hotspots_new = await apply_hotspot_rule_to_doc(db, merged)
+        if not merged.get("hotspots_locked"):
+            update_fields["hotspots"] = hotspots_new
 
         if not update_fields:
             existing_computed = dict(existing)
@@ -1988,5 +2277,56 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
             overlay_fixed += 1
     if overlay_fixed:
         patched.append(f"overlay.§3.2×{overlay_fixed}")
+
+    # 8) §3.4 hotspot backfill — regenerate hotspots for every card except
+    #    those flagged ``hotspots_locked=true`` (manually curated cards
+    #    like u-foot, i-fleece). Idempotent: unchanged cards get identical
+    #    output and skip the write.
+    hotspot_fixed = 0
+    async for card in coll.find({}, {"_id": 0, "id": 1, "ipa": 1, "category": 1,
+                                     "hotspots": 1, "hotspots_locked": 1}):
+        if card.get("hotspots_locked"):
+            continue
+        try:
+            new_hotspots = await apply_hotspot_rule_to_doc(db, dict(card))
+        except Exception:  # noqa: BLE001
+            continue
+        old = card.get("hotspots") or []
+        # Compare by id+coords tuple (detail localisation churn shouldn't
+        # trigger writes unless the pedagogical structure changed).
+        old_shape = tuple((h.get("id", ""), h.get("x"), h.get("y")) for h in old)
+        new_shape = tuple((h.get("id", ""), h.get("x"), h.get("y")) for h in new_hotspots)
+        if old_shape != new_shape or len(old) != len(new_hotspots):
+            await coll.update_one({"id": card["id"]}, {"$set": {"hotspots": new_hotspots}})
+            hotspot_fixed += 1
+    if hotspot_fixed:
+        patched.append(f"hotspots.§3.4×{hotspot_fixed}")
+
+    # 9) §3.2/§3.3 lexicon backfill — commonWords + spellings from cmudict.
+    #    Skipped when the card is flagged ``lexicon_locked=true``. Only
+    #    fills cards whose commonWords are effectively empty (< 3) so we
+    #    don't nuke manual curation on already-populated cards; ``audioAmE``/
+    #    ``audioRP`` URLs are preserved for words that survive the refresh.
+    lexicon_fixed = 0
+    async for card in coll.find({}, {"_id": 0, "id": 1, "ipa": 1, "commonWords": 1,
+                                     "spellings": 1, "lexicon_locked": 1}):
+        if card.get("lexicon_locked"):
+            continue
+        current_words = card.get("commonWords") or []
+        if len(current_words) >= 3:
+            continue   # respect existing user-authored / prior batch output
+        try:
+            bundle = await apply_lexicon_rule_to_doc(db, dict(card), preserve_audio=True)
+        except Exception:  # noqa: BLE001
+            continue
+        if not bundle["commonWords"]:
+            continue
+        await coll.update_one({"id": card["id"]}, {"$set": {
+            "commonWords": bundle["commonWords"],
+            "spellings":   bundle["spellings"],
+        }})
+        lexicon_fixed += 1
+    if lexicon_fixed:
+        patched.append(f"lexicon.§3.2×{lexicon_fixed}")
 
     return {"inserted": inserted, "skipped": skipped, "patched": patched}

@@ -88,14 +88,16 @@ const AnimatedKnob = ({ label, value, valueLabel, highlight = false, delay = 0 }
 // ============================================================
 // Hotspot — clickable point overlay on the background image
 // ============================================================
-const Hotspot = ({ hotspot, onClick, active }) => (
+const Hotspot = ({ hotspot, onClick, active, language = 'en' }) => {
+  const label = pickLang(hotspot.labelLocalized, language) || hotspot.label;
+  return (
   <button
     type="button"
     onClick={() => onClick(hotspot)}
     data-testid={`phoneme-hotspot-${hotspot.id}`}
     className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer focus:outline-none"
     style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-    aria-label={hotspot.label}
+    aria-label={label}
   >
     {/* Outer ping (continuous) */}
     <span className="absolute inset-0 -m-3 rounded-full bg-cyan-400/30 animate-ping pointer-events-none" style={{ animationDuration: '2.4s' }} />
@@ -105,10 +107,11 @@ const Hotspot = ({ hotspot, onClick, active }) => (
               : 'bg-cyan-400 border-cyan-200 group-hover:scale-150 group-hover:shadow-[0_0_18px_rgba(34,211,238,0.9)]'}`} />
     {/* Floating tooltip on hover */}
     <span className="absolute left-1/2 -translate-x-1/2 -top-9 bg-slate-900/95 border border-cyan-500/50 text-cyan-100 text-[11px] uppercase tracking-wider font-bold px-3 py-1 rounded-full whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-[0_0_24px_rgba(34,211,238,0.4)]">
-      {hotspot.label}
+      {label}
     </span>
   </button>
-);
+  );
+};
 
 // ============================================================
 // FrequencyBar — single bar in the frequency chart
@@ -818,7 +821,7 @@ const PhonemeCardPage = () => {
             >
               {(phoneme.hotspots || []).map((h) => (
                 <div key={h.id} className="pointer-events-auto">
-                  <Hotspot hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} />
+                  <Hotspot hotspot={h} onClick={setOpenHotspot} active={openHotspot?.id === h.id} language={language} />
                 </div>
               ))}
             </div>
@@ -1149,26 +1152,26 @@ const PhonemeCardPage = () => {
                   <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
                   <p className="text-[10px] text-cyan-300/70 uppercase tracking-[0.2em] font-bold">Anatomy · {phoneme.displayIpa}</p>
                 </div>
-                <SheetTitle className="text-cyan-50 text-2xl font-black leading-tight">{openHotspot.title}</SheetTitle>
-                {openHotspot.role && (
-                  <SheetDescription className="text-orange-300/90 font-semibold mt-1.5">{openHotspot.role}</SheetDescription>
+                <SheetTitle className="text-cyan-50 text-2xl font-black leading-tight">{pickLang(openHotspot.titleLocalized, language) || openHotspot.title}</SheetTitle>
+                {(pickLang(openHotspot.roleLocalized, language) || openHotspot.role) && (
+                  <SheetDescription className="text-orange-300/90 font-semibold mt-1.5">{pickLang(openHotspot.roleLocalized, language) || openHotspot.role}</SheetDescription>
                 )}
               </SheetHeader>
               <div className="mt-7 space-y-5">
                 <div>
-                  <p className="text-[10px] text-cyan-300/60 uppercase tracking-wider mb-2 font-bold">Detail</p>
-                  <p className="text-cyan-100/90 text-sm leading-relaxed">{openHotspot.detail}</p>
+                  <p className="text-[10px] text-cyan-300/60 uppercase tracking-wider mb-2 font-bold">{language === 'it' ? 'Dettaglio' : 'Detail'}</p>
+                  <p className="text-cyan-100/90 text-sm leading-relaxed">{pickLang(openHotspot.detailLocalized, language) || openHotspot.detail}</p>
                 </div>
-                {openHotspot.anatomy && (
+                {(pickLang(openHotspot.anatomyLocalized, language) || openHotspot.anatomy) && (
                   <div className="border-t border-cyan-500/15 pt-4">
-                    <p className="text-[10px] text-cyan-300/60 uppercase tracking-wider mb-2 font-bold">Anatomy</p>
-                    <p className="text-cyan-200/80 text-sm italic">{openHotspot.anatomy}</p>
+                    <p className="text-[10px] text-cyan-300/60 uppercase tracking-wider mb-2 font-bold">{language === 'it' ? 'Anatomia' : 'Anatomy'}</p>
+                    <p className="text-cyan-200/80 text-sm italic">{pickLang(openHotspot.anatomyLocalized, language) || openHotspot.anatomy}</p>
                   </div>
                 )}
-                {openHotspot.kineticCue && (
+                {(pickLang(openHotspot.kineticCueLocalized, language) || openHotspot.kineticCue) && (
                   <div className="bg-orange-500/10 border border-orange-400/30 rounded-xl p-4">
-                    <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1.5 font-bold">Kinetic cue</p>
-                    <p className="text-orange-100 text-sm">{openHotspot.kineticCue}</p>
+                    <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1.5 font-bold">{language === 'it' ? 'Suggerimento cinetico' : 'Kinetic cue'}</p>
+                    <p className="text-orange-100 text-sm">{pickLang(openHotspot.kineticCueLocalized, language) || openHotspot.kineticCue}</p>
                   </div>
                 )}
                 <div className="flex items-center gap-3 pt-2">

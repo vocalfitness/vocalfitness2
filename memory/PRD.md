@@ -11,6 +11,43 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — Phase-3 CMS · Full auto-population di 42 card AMBER (Hotspot §3.4 + Lexicon §3.2/§3.3) — DONE ✅
+Obiettivo: portare tutte le 44 card allo stato "u-foot" (100% GREEN) con AI/rule engine, così il Prof deve solo REVIEW, non compilare manualmente. Le 2 lacune bloccanti su tutti i 42 card AMBER erano `content.hotspots` + `content.commonWords`.
+
+**FASE 1 · Hotspot Auto-Generator §3.4** — DONE ✅
+- Nuovo canonical spec `/app/backend/canonical_data/HotspotRule_v1.md` (~180 righe) — tabelle deterministiche per vowel × (height, backness, rounding, tenseness) + consonant × (place, manner, voicing) + slot passivi (alveolar-ridge, hard-palate).
+- Nuovo motore `/app/backend/routers/phoneme_hotspot_rule.py` (~500 righe): `generate_hotspots_for_canonical(ipa, canon)` → lista di 4-9 hotspot bilingue (labelLocalized/titleLocalized/roleLocalized/detailLocalized/anatomyLocalized/kineticCueLocalized come `{it, en}` dicts).
+- Coordinate x/y percentuali calibrate sull'immagine sagittale standard 16:9. Ogni fonema espone SOLO i punti anatomici pedagogicamente rilevanti (es. /p/ non espone "pharynx neutral" — irrilevante; /ʊ/ sì).
+- Vowels: 9 hotspot (alveolar-ridge/hard-palate/apex/blade/dorsum/lip-rounding/velum/pharynx/larynx).
+- Consonants: 5-7 hotspot (primary-constriction/manner/velum/larynx/airflow + optional lips/tongue-shape).
+- Endpoint `POST /api/admin/phonemes/{id}/generate-hotspots` per rigen singolo.
+- Wire in `admin_create` + `admin_update` + `batch-fill-v2` DERIVED block + backfill idempotente su startup (`ensure_phoneme_seed` step 8).
+- Flag `hotspots_locked=true` sui card manualmente curati (u-foot, i-fleece) → engine skippa. Model esteso in `PhonemeCardBase` + `PhonemeCardUpdate`.
+
+**FASE 2 · Lexicon Auto-Generator §3.2/§3.3** — DONE ✅
+- Installati `cmudict==1.1.3` + `wordfreq==3.1.1` in `requirements.txt` (via pip freeze).
+- Nuovo motore `/app/backend/routers/phoneme_lexicon_rule.py` (~250 righe): `generate_lexicon_for_canonical(ipa, max_words=30)` → `{commonWords, spellings}`.
+- ARPAbet → IPA mapping bidirezionale + Zipf frequency ordering. Ogni parola porta `w`, `ipa` (renderizzato in IPA), `audioAmE`, `audioRP`, `zipf`.
+- Spelling distribution deriva heuristicamente da tabella grafemica per phoneme (es. /ʊ/: oo 40% · u 33% · ou 20% · o 7%).
+- Endpoint `POST /api/admin/phonemes/{id}/generate-lexicon` con `preserve_audio=True` → gli URL ElevenLabs esistenti sopravvivono al refresh delle parole matching.
+- Wire in `admin_create` + backfill idempotente su startup (`ensure_phoneme_seed` step 9). NON wire in `admin_update` per evitare churn su edit manuali.
+- Flag `lexicon_locked=true` per protezione card autoriali. Model esteso in `PhonemeCardBase` + `PhonemeCardUpdate`.
+
+**Bulk endpoint one-click** — DONE ✅
+- `POST /api/admin/phonemes/batch/regenerate-derived`: rilancia in blocco §3.1 muscoli + §3.2 overlay + §3.4 hotspot + §3.2/§3.3 lexicon su tutti i card non lockati. Idempotente. Ritorna summary per-card con `applied`/`skipped` list.
+- Frontend: nuovo pulsante "Rigenera derived su tutte" (cyan gradient) nella `PhonemeRoadmapDashboard.jsx` con confirm dialog dettagliato + spinner + risultato inline.
+
+**Risultato readiness scores** (letto da `GET /api/admin/phonemes`):
+- 2 card @ 100 (u-foot, i-fleece — locked)
+- 10 vocali @ 93 (era 70 — solo audio manca)
+- 23 consonanti @ 92 (era 70 — solo audio + 1 warn manca)
+- 9 dittonghi @ 85 (audio + 1 chip classification warn)
+
+**Frontend bilingue**: `PhonemeCardPage.jsx` Hotspot component + sheet panel ora consumano `pickLang()` su ogni campo localized con fallback su versione English (backward-compatible con u-foot/i-fleece autoriali che non hanno campi localized).
+
+**Prossima Fase 3 · Mass Audio Generation**: richiede ElevenLabs Voice Design per voce Prof Dapper RP + AmE. Batch endpoint da wireare quando l'utente fornisce API key + configurazione Voice Design.
+
+
 ### 07/07/2026 — HOTFIX Vimeo loader infinite spinner (P0 blocker prod) — DONE ✅
 Bug prod: utente clicca CTA "Video" sulla phoneme card → spinner infinito, immagine ancora visibile, video non parte. Segnalato dall'utente dopo deploy: "compared to our earlier setup, this got worse".
 
