@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 24 — Frontend-only regression sweep after Vimeo hover-prefetch addition (prefetchVimeo.js) + prior Phase F+ dialect infra. All 6 requested checks PASS with 0 console errors: (1) /lms/phonemes loads cleanly, dialect toggle US/UK switches, micro-stats visible ('39 FONEMI GA · 2 CARD PUBBLICATE · 42 IN PRODUZIONE · US VARIANTE SELEZIONATA'), inventory line 'UK RP: 44 · US GA: 39' and mono-dialect banner '4 fonemi RP-only — grigiati…' present. (2) Clicking a muted RP-only card (ie-near) opens the DialectMismatchModal with correct Italian copy ('Il fonema /ɪə/ esiste solo in RP britannico…') + US-equivalent CTA ('Esplora /ɪr/ KIT + /r/'). (3) /lms/phoneme/u-foot renders: SVG sagittal overlay (61 svgs), Italian labels 'Labbro superiore / Labbro inferiore / Corpo della lingua / Corde vocali', aural-quiz + mnemonico + Vocal Lab sections. (4) Deep-dive articulatory modal (data-testid=phoneme-articulatory-trigger) opens at effectively full viewport (1440×900 in a 1440×900 window — the previous 'too small' regression is FIXED). (5) Vocal Lab embed on card is bilingual: IT words ['lingua','apri','ascolta'] and EN words ['mouth','tongue','open','close'] both detected. (6) Admin login admin/VocalFitness2026! → redirects to /area-clienti (Administrator badge visible) → /admin panel loads with all tabs (Cartelle, Contenuti, YouTube, Utenti, Database, Messaggi Pop-up, Messaggi, Lead Inbox, Audio Studio, Phoneme CMS) and storage widget. Vimeo hover-prefetch: as expected, none of the 3 Video CTAs (phoneme-side/front/articulatory-video-cta) render on any current DB card because no card has a Vimeo URL yet — hasPlayableVideo() correctly returns false and the buttons are hidden. Importantly the import of prefetchVimeo in PhonemeCardPage does NOT throw and the page renders without any console errors, so the defensive no-op behaviour is confirmed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/lms/phonemes mono-dialect banner", "issues": ["Typo: '4 fonemai RP-only' should read '4 fonemi RP-only' (missing 'i' vs extra 'a'). Cosmetic only — not blocking."]},
+      {"screen": "/lms/phoneme/u-foot Deep-dive modal", "issues": ["Radix a11y console warning: 'Missing Description or aria-describedby={undefined} for {DialogContent}' (2 occurrences, from articulatory Dialog + possibly VocalLab Dialog). Add a <DialogDescription> or aria-describedby to silence. Non-blocking."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_24.json"],
+  "action_items": [
+    "Optional cosmetic: fix typo 'fonemai' → 'fonemi' in the mono-dialetto banner on /lms/phonemes (PhonemeLibraryPage.jsx).",
+    "Optional a11y: add <DialogDescription> to the articulatory deep-dive Dialog (and any other DialogContent) on /lms/phoneme/:id to silence Radix warning.",
+    "No functional regressions from prefetchVimeo — safe to keep. When first card gets a Vimeo URL, re-test hover→prefetch iframe injection using DevTools Network tab (should see a hidden 1×1 iframe hit player.vimeo.com within 250 ms of hover)."
+  ],
+  "critical_code_review_comments": [
+    "prefetchVimeo.js is well-defended: early returns on missing URL / unsupported provider / repeat prefetch (via Map cache), guarded by typeof document/window checks, uses requestIdleCallback with 250 ms timeout fallback. Zero risk of console errors when there is no Vimeo URL, which matches the current DB state — verified by 0 console errors across full library + card page.",
+    "PhonemeCardPage.jsx correctly gates each Video CTA behind hasPlayableVideo(phoneme.assets, view) so no CTA (and therefore no prefetch trigger) renders when the DB doesn't have a URL. The 3 CTAs also wire prefetch to onMouseEnter + onFocus + onTouchStart — good coverage for keyboard and touch users, not only mouse.",
+    "Deep-dive articulatory modal now uses effectively viewport-filling sizing (~min(95vw,150vh)) — the previous 'too small' bug is resolved. Visual inspection confirms the modal renders the full articulatory diagram at readable size.",
+    "Dialect toggle + DialectMismatchModal flow is UX-solid: greyed RP-only card + Italian explanation + concrete US equivalent CTA ('Esplora /ɪr/ KIT + /r/'). Nice educational touch.",
+    "Vocal Lab bilingual copy: verified that both IT and EN vocabulary appear in the embed panel — bilingual scaffolding is live."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (skipped per request)", "frontend": "100% (6/6 regression checks pass, 0 console errors — only 2 minor a11y warnings and 1 typo, all non-blocking)"},
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md) — login verified working, lands on /area-clienti with Administrator badge, /admin panel accessible.",
+  "seed_data_creation": "None. Read-only regression pass.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "iter_24 is a pure frontend regression sweep. Backend was intentionally skipped (user request). All the Phase F+ features previously delivered (dialect scope, muting, DialectMismatchModal, micro-stats, bilingual Vocal Lab, articulatory deep-dive modal sizing, RP/AmE aural audio infra, PhonemeAssetMedia loader spinner) plus the new prefetchVimeo helper are working and cause no console errors. If/when a phoneme card gets a real Vimeo URL added, re-run the hover-prefetch test — the CTAs will finally render and you should be able to observe (in Network tab) a hidden 1×1 iframe fired on hover targeting player.vimeo.com within ~250 ms. Public phoneme card route is /lms/phoneme/{id} (with 'lms' prefix). Preview URL is https://vocal-members-pro.preview.emergentagent.com — do NOT test against production vocalfitness.org.",
+  "rca of the issue": "N/A — no functional issues found. The only findings are one Italian typo ('fonemai' → 'fonemi') on PhonemeLibraryPage.jsx and two Radix a11y warnings for missing DialogDescription/aria-describedby. Both are cosmetic/non-blocking."
+}

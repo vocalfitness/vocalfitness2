@@ -22,6 +22,7 @@ import { pickDialectAudio } from '../lib/pickDialectAudio';
 import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
 import SagittalOverlay from '../components/SagittalOverlay';
+import { prefetchVimeo } from '../lib/prefetchVimeo';
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -769,6 +770,9 @@ const PhonemeCardPage = () => {
                 <button
                   type="button"
                   onClick={() => setSideVideoActive((v) => !v)}
+                  onMouseEnter={() => prefetchVimeo(phoneme.assets?.sideViewVideoLink)}
+                  onFocus={() => prefetchVimeo(phoneme.assets?.sideViewVideoLink)}
+                  onTouchStart={() => prefetchVimeo(phoneme.assets?.sideViewVideoLink)}
                   className={`pointer-events-auto group/vidcta w-full rounded-xl backdrop-blur-md px-3 py-2.5 transition-all duration-300 ${
                     sideVideoActive
                       ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
@@ -1203,6 +1207,9 @@ const PhonemeCardPage = () => {
                   <button
                     type="button"
                     onClick={() => setFrontVideoActive((v) => !v)}
+                    onMouseEnter={() => prefetchVimeo(phoneme.assets?.frontViewVideoLink)}
+                    onFocus={() => prefetchVimeo(phoneme.assets?.frontViewVideoLink)}
+                    onTouchStart={() => prefetchVimeo(phoneme.assets?.frontViewVideoLink)}
                     className={`absolute bottom-3 right-3 z-10 group/vidcta rounded-lg backdrop-blur-md px-3 py-2 transition-all duration-300 ${
                       frontVideoActive
                         ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
@@ -1286,6 +1293,9 @@ const PhonemeCardPage = () => {
                 <button
                   type="button"
                   onClick={() => setArticulatoryVideoActive((v) => !v)}
+                  onMouseEnter={() => prefetchVimeo(phoneme.assets?.articulatoryVideoLink)}
+                  onFocus={() => prefetchVimeo(phoneme.assets?.articulatoryVideoLink)}
+                  onTouchStart={() => prefetchVimeo(phoneme.assets?.articulatoryVideoLink)}
                   className={`absolute bottom-4 right-4 z-10 rounded-lg backdrop-blur-md px-3 py-2 transition-all duration-300 ${
                     articulatoryVideoActive
                       ? 'border border-orange-400/70 bg-slate-900/90 scale-[1.06] cta-playing-pulse'
