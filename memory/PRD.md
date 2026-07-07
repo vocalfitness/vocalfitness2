@@ -11,6 +11,25 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — HOTFIX Fase 3 · 3 bug prod segnalati dall'utente (i-kit) — DONE ✅
+
+**Bug 1 (P0 blocker)**: hotspot piazzati manualmente dall'admin si "spostano da soli" dopo save.
+- **Root cause**: il §3.4 hotspot rule engine, wired in `admin_update`, sovrascriveva `hotspots` a ogni PATCH indipendentemente da cosa l'utente stesse editando. Solo `hotspots_locked=true` lo fermava, ma il flag non era esposto in admin UI.
+- **Fix backend** (`admin_update` in `phoneme_cards.py`): se il PATCH body include esplicitamente `hotspots`, auto-lock a `hotspots_locked=true`. Il motore §3.4 skippa. Riabilitazione via `hotspots_locked=false` esplicito.
+- **Fix frontend** (`PhonemeAdminEditorPage.jsx`): pannello "Blocco hotspot manuali" con toggle checkbox visibile SEMPRE sopra la sezione Hotspot + auto-lock quando l'utente sposta/aggiunge/elimina un hotspot (nel callback `onChange`). Feedback visivo: 🔒 verde attivo, ⚠️ arancione non attivo.
+- **Verifica end-to-end**: PATCH con 2 custom hotspots → salvati + `locked=true`. PATCH altro campo → hotspot persistono. PATCH `hotspots_locked:false` → rigenerazione automatica canonical (9 hotspot).
+
+**Bug 2 (P1)**: sezione "Vocal Fitness articulatory protocol" appare vuota nella phoneme card.
+- **Root cause**: schema mismatch. AI batch-fill produce `pronunciationGuide = {body: "paragrafo AI", grounded_on, confidence}` mentre il frontend renderizzava SOLO la forma strutturata `{headline, steps: [{label, body}]}`.
+- **Fix frontend** (`PhonemeCardPage.jsx`): fallback multi-schema. Se `steps[]` presenti → render come lista ordinata (comportamento originale, tipo u-foot). Altrimenti se `body` presente → render come paragrafo coerente. Altrimenti → placeholder "Protocollo in preparazione" (bilingue IT/EN). Backward-compatible al 100% con u-foot autoriale.
+
+**Bug 3 (P1)**: 30 parole comuni mancanti su i-kit in produzione.
+- **Root cause**: in preview DB `i-kit` ha già 30 parole (verificato via API). In produzione probabilmente < 30 perché il backfill lexicon di startup skippa card con `>= 3` parole (safe default).
+- **Fix per l'utente**: dopo redeploy, cliccare "Rigenera derived su tutte" dalla Roadmap Dashboard → il backfill in memoria è rimasto conservative (skippa cards con >= 3 words) MA l'endpoint `batch/regenerate-derived` NON ha quel guard e rigenera tutto. Il PRD.md è aggiornato con questa nota.
+
+**Redeploy richiesto**: fix in preview, produzione (`vocalfitness-revamp.emergent.host` / `vocalfitness.org`) richiede redeploy da chat.
+
+
 ### 07/07/2026 — Phase-3 · Audio Studio (Iterazione B) — DONE ✅
 
 Fine-tuning autonomo audio come richiesto dall'utente: "voglio poter rigenerare ogni suono/audio della card, sia AmE che RP, se non soddisfacente".

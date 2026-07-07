@@ -132,6 +132,8 @@ const BLANK = {
   mnemonic: { phrase: '', highlights: [], note: '', audioAmE: '', audioRP: '' },
   pronunciationGuide: { headline: 'Vocal Fitness articulatory protocol', steps: [] },
   hotspots: [],
+  hotspots_locked: false,
+  lexicon_locked: false,
   commonWords: [],
   // Advanced / rendered blobs — edited via JSON textarea for now
   spellings: [],
@@ -1336,10 +1338,38 @@ export default function PhonemeAdminEditorPage() {
 
         {/* ================== HOTSPOTS ================== */}
         <Section title="Hotspot anatomici" icon={<MapPin className="w-4 h-4" />}>
+          <div className="mb-3 flex items-center justify-between rounded-lg border border-cyan-500/25 bg-slate-950/60 p-3">
+            <div className="text-xs text-cyan-100/90 leading-relaxed max-w-2xl">
+              <b>Blocco hotspot manuali</b> —{' '}
+              {card.hotspots_locked
+                ? <span className="text-emerald-300">🔒 Attivo: le tue posizioni manuali sono protette. Il motore §3.4 NON sovrascrive.</span>
+                : <span className="text-orange-300">⚠️ Non attivo: il motore §3.4 rigenera automaticamente gli hotspot al salvataggio.</span>}
+              <br />
+              <span className="text-slate-400">
+                Il blocco si attiva automaticamente quando modifichi/sposti/aggiungi/elimini un hotspot.
+                Disattivalo per tornare alla generazione automatica dal canonical.
+              </span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer flex-shrink-0 ml-3" data-testid="editor-hotspots-lock-toggle">
+              <input
+                type="checkbox"
+                checked={!!card.hotspots_locked}
+                onChange={(e) => setField('hotspots_locked', e.target.checked)}
+                className="w-4 h-4 accent-emerald-500"
+              />
+              <span className="text-xs font-bold text-cyan-200">Blocca</span>
+            </label>
+          </div>
           <HotspotSection
             image={card.assets?.sideView}
             hotspots={card.hotspots || []}
-            onChange={(items) => setField('hotspots', items)}
+            onChange={(items) => {
+              setField('hotspots', items);
+              // Auto-lock whenever the user manually edits the hotspot list
+              // so the deterministic §3.4 engine doesn't overwrite the work
+              // on next save. Explicit unlock via the toggle above.
+              if (!card.hotspots_locked) setField('hotspots_locked', true);
+            }}
           />
         </Section>
 

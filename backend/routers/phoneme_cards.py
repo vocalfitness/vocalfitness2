@@ -2269,6 +2269,15 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         update_fields["airflowArrows"]    = overlay_new["airflowArrows"]
         update_fields["voicing"]          = overlay_new["voicing"]
         # §3.4 hotspots — recompute unless hotspots_locked=true (skipped inside helper).
+        # 🔒 Fix 07/07/2026: if the PATCH body explicitly includes ``hotspots``
+        # (admin manually placed / edited / cleared them), auto-lock the card
+        # so the rule engine doesn't overwrite the manual work on next save.
+        # The admin must explicitly toggle ``hotspots_locked=false`` to opt
+        # back into auto-generation.
+        admin_touched_hotspots = "hotspots" in raw or raw.get("hotspots_locked") is not None
+        if admin_touched_hotspots:
+            update_fields["hotspots_locked"] = True if "hotspots" in raw and update_fields.get("hotspots_locked") is not False else update_fields.get("hotspots_locked", True)
+            merged["hotspots_locked"] = update_fields["hotspots_locked"]
         hotspots_new = await apply_hotspot_rule_to_doc(db, merged)
         if not merged.get("hotspots_locked"):
             update_fields["hotspots"] = hotspots_new

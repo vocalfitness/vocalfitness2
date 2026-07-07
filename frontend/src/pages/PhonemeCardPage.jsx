@@ -953,21 +953,38 @@ const PhonemeCardPage = () => {
           <div className="lg:col-span-5 bg-slate-900/60 border border-cyan-500/15 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Mic2 className="w-4 h-4 text-cyan-400" />
-              <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">{phoneme.pronunciationGuide?.headline}</p>
+              <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">
+                {phoneme.pronunciationGuide?.headline || 'Vocal Fitness articulatory protocol'}
+              </p>
             </div>
-            <ol className="space-y-2.5">
-              {phoneme.pronunciationGuide?.steps?.map((s, i) => (
-                <li key={i} className="flex gap-3" data-testid={`phoneme-guide-step-${i}`}>
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-200">
-                    {i + 1}
-                  </span>
-                  <div className="text-sm">
-                    <span className="text-cyan-200 font-bold">{s.label}:</span>{' '}
-                    <span className="text-cyan-100/85">{s.body}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            {Array.isArray(phoneme.pronunciationGuide?.steps) && phoneme.pronunciationGuide.steps.length > 0 ? (
+              <ol className="space-y-2.5">
+                {phoneme.pronunciationGuide.steps.map((s, i) => (
+                  <li key={i} className="flex gap-3" data-testid={`phoneme-guide-step-${i}`}>
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-200">
+                      {i + 1}
+                    </span>
+                    <div className="text-sm">
+                      <span className="text-cyan-200 font-bold">{s.label}:</span>{' '}
+                      <span className="text-cyan-100/85">{s.body}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : phoneme.pronunciationGuide?.body ? (
+              // Fallback: AI-drafted single paragraph. Renders as a
+              // coherent block until the deterministic §3.5 step engine
+              // populates the structured ``steps`` field.
+              <p className="text-cyan-100/85 text-sm leading-relaxed" data-testid="phoneme-guide-body">
+                {phoneme.pronunciationGuide.body}
+              </p>
+            ) : (
+              <p className="text-cyan-500/50 italic text-sm">
+                {language === 'it'
+                  ? 'Protocollo articolatorio in preparazione.'
+                  : 'Articulatory protocol in preparation.'}
+              </p>
+            )}
           </div>
 
           {/* Common words grid */}
