@@ -5,6 +5,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0284c7" />
 
+        <!-- Video-CDN preconnect — sagittal-view videos are hosted on
+             Vimeo (and occasionally YouTube). Warming DNS + TLS ahead of
+             the iframe load shaves ~300-500ms off the black-screen gap
+             students used to see when tapping the Play CTA. -->
+        <link rel="preconnect" href="https://player.vimeo.com" />
+        <link rel="preconnect" href="https://f.vimeocdn.com" crossorigin />
+        <link rel="preconnect" href="https://i.vimeocdn.com" crossorigin />
+        <link rel="dns-prefetch" href="https://player.vimeo.com" />
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" crossorigin />
+
         <!-- Barlow Condensed — matches the printed-card anatomical label style
              used by the §3.2 SagittalOverlay (tall, narrow sans-serif). -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />

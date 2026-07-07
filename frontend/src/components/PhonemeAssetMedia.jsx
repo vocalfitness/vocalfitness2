@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { parseVideoUrl } from './VideoLinkInput';
 
 /**
@@ -42,6 +42,16 @@ export default function PhonemeAssetMedia({
 }) {
   const API = process.env.REACT_APP_BACKEND_URL;
   const videoElRef = useRef(null);
+  // ``videoReady`` flips true once the video is actually playable — for
+  // <video> tags via ``canplay``, for iframes via ``onLoad`` (best proxy
+  // available without pulling in the Vimeo Player SDK). While false the
+  // still image stays visible **behind** the loading spinner, so the
+  // page never turns black waiting on Vimeo's ~1-3s boot.
+  const [videoReady, setVideoReady] = useState(false);
+  // Reset the ready flag whenever the video source or active flag flips
+  useEffect(() => {
+    setVideoReady(false);
+  }, [videoUploadUrl, videoLinkUrl, videoActive]);
 
   // Resolve a single video source. Uploaded file wins over external link.
   const videoResolved = useMemo(() => {
@@ -109,11 +119,13 @@ export default function PhonemeAssetMedia({
           preload="auto"
           aria-label={alt}
           className={mediaClassName}
+          onCanPlay={() => setVideoReady(true)}
+          onLoadedData={() => setVideoReady(true)}
           onError={(e) => {
-            // Silent — a failed video load must not crash the card;
-            // the underlying <img> is still rendered behind us.
-            // eslint-disable-next-line no-console
             console.warn('PhonemeAssetMedia: video source failed', e?.currentTarget?.error);
+            // On error surface the still image again — don't leave a
+            // black hole behind the failed <video>.
+            setVideoReady(false);
           }}
           data-testid={testId ? `${testId}-video` : undefined}
         />
@@ -128,10 +140,33 @@ export default function PhonemeAssetMedia({
         allowFullScreen
         frameBorder="0"
         className={iframeClassName || mediaClassName.replace(/object-\S+/g, '').trim()}
+        onLoad={() => setVideoReady(true)}
         data-testid={testId ? `${testId}-video` : undefined}
       />
     );
   };
+
+  // Reusable loader overlay — mirrors the cyan HUD spinner style used
+  // by other loading states across the LMS. Rendered while the parent
+  // has flipped ``videoActive`` on but the underlying video hasn't
+  // reported ``ready`` yet.
+  const renderLoader = () => (
+    <div
+      className="absolute inset-0 flex items-center justify-center bg-slate-950/45 backdrop-blur-[2px] pointer-events-none"
+      data-testid={testId ? `${testId}-loader` : 'phoneme-asset-loader'}
+      aria-live="polite"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative">
+          <div className="w-11 h-11 rounded-full border-2 border-cyan-500/25" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-300 border-r-cyan-300 animate-spin" />
+        </div>
+        <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-200/85">
+          Caricamento video…
+        </span>
+      </div>
+    </div>
+  );
 
   // ---- CASE A: only image -----------------------------------------------
   if (!hasVideo) {
@@ -159,17 +194,28 @@ export default function PhonemeAssetMedia({
 
   // ---- CASE B: only video ------------------------------------------------
   if (alwaysVideo) {
-    return <div className={className}>{renderVideoNode()}</div>;
+    // No fallback image → we still need to show the loader on top of
+    // the raw video area so the section isn't empty while Vimeo boots.
+    return (
+      <div className={`relative ${className}`}>
+        {renderVideoNode()}
+        {!videoReady && renderLoader()}
+      </div>
+    );
   }
 
   // ---- CASE C: image + video (parent-controlled) ------------------------
+  // The still image only fades out once the video has reported ``ready``.
+  // While the video is booting we keep the image at full opacity and
+  // stack the loader spinner in front — no more black gap on Vimeo tap.
+  const videoIsPlaying = displayingVideo && videoReady;
   return (
     <div className={`relative ${className}`}>
       <img
         src={imageUrl}
         alt={alt}
         className={`${mediaClassName} transition-opacity duration-500 ${
-          displayingVideo ? 'opacity-0' : 'opacity-100'
+          videoIsPlaying ? 'opacity-0' : 'opacity-100'
         }`}
         data-testid={testId}
       />
@@ -180,6 +226,7 @@ export default function PhonemeAssetMedia({
       >
         {renderVideoNode()}
       </div>
+      {displayingVideo && !videoReady && renderLoader()}
     </div>
   );
 }
