@@ -11,6 +11,20 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — HOTFIX Vimeo loader infinite spinner (P0 blocker prod) — DONE ✅
+Bug prod: utente clicca CTA "Video" sulla phoneme card → spinner infinito, immagine ancora visibile, video non parte. Segnalato dall'utente dopo deploy: "compared to our earlier setup, this got worse".
+
+**Root cause** (`PhonemeAssetMedia.jsx`):
+- In CASE C (immagine + video) l'iframe Vimeo è **sempre montato** con `opacity-0` dal primo render (per pre-boot Vimeo dietro l'immagine).
+- `onLoad` dell'iframe scatta UNA sola volta al mount iniziale → `videoReady=true`.
+- Al click su Play, `videoActive` cambia → `useEffect` con `[videoUploadUrl, videoLinkUrl, videoActive]` resetta `setVideoReady(false)`.
+- L'iframe NON si rimonta (stesso `src`) → `onLoad` non ri-scatta → `videoReady` resta false per sempre → loader spinner infinito, immagine mai fade-out.
+
+**Fix**: rimosso `videoActive` dalle dipendenze del reset useEffect. Ora `videoReady=true` persiste dopo il primo load — il click Play rivela il video istantaneamente (comportamento desiderato = "click → reveal mid-playback muted"). Lint pulito.
+
+**Nota deploy**: fix è in preview, l'utente redeploya per pushare in produzione.
+
+
 ### 07/07/2026 — Vimeo hover-prefetch + cosmetics — DONE ✅
 - Nuovo helper `/app/frontend/src/lib/prefetchVimeo.js`: iniezione idempotente di iframe nascosto 1×1 su hover/focus/touchstart delle CTA video della phoneme card, per pre-boot del player Vimeo (DNS/TLS/JS/config JSON/primo segmento video). Usa `requestIdleCallback` (250ms fallback) e Map cache per non duplicare. Muted=1 sempre → nessun audio leak.
 - Wired in `PhonemeCardPage.jsx` alle 3 CTA (side/front/articulatory video) via `onMouseEnter` + `onFocus` + `onTouchStart` (copertura mouse/keyboard/touch).
