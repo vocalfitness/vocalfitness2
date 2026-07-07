@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { PHONEMES } from '../data/phonemes';
 import {
@@ -1188,6 +1188,11 @@ const PhonemeCardPage = () => {
             <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
               <span className="text-orange-400">{phoneme.displayIpa}</span> · {language === 'it' ? 'Attivazione muscolare del volto' : 'Facial Muscle Activation'}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {language === 'it'
+                ? `Mappa dei muscoli facciali che si attivano nella produzione del fonema ${phoneme.displayIpa}.`
+                : `Facial muscle activation map for the phoneme ${phoneme.displayIpa}.`}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid lg:grid-cols-5 gap-0 flex-1 overflow-hidden">
             <div className="lg:col-span-3 bg-slate-950 flex items-center justify-center overflow-auto p-2">
@@ -1275,6 +1280,11 @@ const PhonemeCardPage = () => {
             <DialogTitle className="text-cyan-50 text-base sm:text-xl font-black flex items-center gap-3">
               <span className="text-orange-400">{phoneme.displayIpa}</span> · Articulatory Position — Deep Dive
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {language === 'it'
+                ? `Ingrandimento della posizione articolatoria per il fonema ${phoneme.displayIpa}.`
+                : `Deep-dive articulatory position for the phoneme ${phoneme.displayIpa}.`}
+            </DialogDescription>
           </DialogHeader>
           <div className="bg-slate-950 flex items-center justify-center">
             <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>

@@ -556,7 +556,7 @@ const PhonemeLibraryPage = () => {
                 <p className="text-[9px] uppercase tracking-widest text-orange-300 font-bold">Mono-dialetto</p>
                 <p className="text-white text-sm">
                   {muted > 0
-                    ? <><b className="text-orange-300 font-black">{muted}</b> fonema{muted === 1 ? '' : 'i'} {dialect === 'AmE' ? 'RP-only' : 'GA-only'} — grigiati in questo accento perché non esistono in {activeLabel}.</>
+                    ? <><b className="text-orange-300 font-black">{muted}</b> fonem{muted === 1 ? 'a' : 'i'} {dialect === 'AmE' ? 'RP-only' : 'GA-only'} — grigiati in questo accento perché non esistono in {activeLabel}.</>
                     : <>Nessun fonema mono-dialetto attivo in {activeLabel} — tutte le card sono compatibili.</>}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">

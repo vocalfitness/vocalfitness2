@@ -11,6 +11,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — Vimeo hover-prefetch + cosmetics — DONE ✅
+- Nuovo helper `/app/frontend/src/lib/prefetchVimeo.js`: iniezione idempotente di iframe nascosto 1×1 su hover/focus/touchstart delle CTA video della phoneme card, per pre-boot del player Vimeo (DNS/TLS/JS/config JSON/primo segmento video). Usa `requestIdleCallback` (250ms fallback) e Map cache per non duplicare. Muted=1 sempre → nessun audio leak.
+- Wired in `PhonemeCardPage.jsx` alle 3 CTA (side/front/articulatory video) via `onMouseEnter` + `onFocus` + `onTouchStart` (copertura mouse/keyboard/touch).
+- Fix cosmetico: typo IT `fonemai` → `fonemi` nella banner "Mono-dialetto" di `PhonemeLibraryPage.jsx`.
+- Fix a11y: aggiunta `DialogDescription` (sr-only, bilingue) ai 2 Dialog "Facial Muscle Activation" e "Articulatory Deep-Dive" per silenziare warning Radix.
+- **Testing agent iter_24**: 6/6 regression checks PASS · 0 console errors · retest_needed=false.
+- Nota: nessuna card DB ha ancora un URL Vimeo → CTA video non renderizzate (gate `hasPlayableVideo`); il prefetch è no-op difensivo confermato. Quando il Prof caricherà il primo Vimeo, la Network tab mostrerà l'iframe nascosto su hover.
+
+
 ### 06/07/2026 — Phoneme Card · Video rendering pubblico armonico — DONE ✅
 Nuovo componente `PhonemeAssetMedia.jsx` che gestisce le 3 casistiche di rendering media
 sulla card pubblica, sostituendo i vecchi `<img>` per sideView / frontView / articulatory:
