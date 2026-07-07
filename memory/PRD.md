@@ -11,6 +11,51 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — §3.5 Pronunciation Protocol Canonical + Engine — DONE ✅
+
+**Contesto**: utente ha confermato che i 3 hotfix precedenti (hotspot auto-lock, pronunciationGuide.body fallback, 30 words backfill) hanno risolto tutto tranne "Vocal Fitness articulatory protocol" ancora vuoto. Ha chiesto: "controlla se esiste un CANONICAL, se no formalizzane uno solido sul piano scientifico". Nessun canonical esisteva.
+
+**Base scientifica adottata** per §3.5:
+- IPA descriptor system (place × manner × voicing per consonanti; height × backness × rounding × tenseness per vocali).
+- Ladefoged & Johnson, "A Course in Phonetics" (7th ed.) — descrizioni articolatorie standard.
+- Chomsky & Halle, "The Sound Pattern of English" (1968) — feature-based underlying representation.
+- Roach (RP reference), Ladefoged (GenAm reference).
+- Vocal Fitness method — la sequenza pedagogica 6-step (Jaw / Lips / Tongue / Apex / Voicing / Velum) è marchio didattico Steve Dapper.
+
+**Nuovo canonical spec** `/app/backend/canonical_data/PronunciationProtocol_v1.md` (~180 righe):
+- §3.5.1 Jaw aperture: table height→aperture per vocali + place→aperture per consonanti (10 casi).
+- §3.5.2 Lips: mapping rounding enum + case-per-place per consonanti (bilabiale/labiodentale/labiovelare/approx-r/neutro).
+- §3.5.3 Tongue body: 15 buckets height×backness per vocali + 9 casi place per consonanti.
+- §3.5.4 Apex: front/central/back per vocali + active/passive per consonanti + caso speciale lateral (dark L americano).
+- §3.5.5 Voicing: vowel/voiced/voiceless/aspirated con test cinestetico.
+- §3.5.6 Velum: RAISED oral / LOWERED nasal.
+- §3.5.7 Localizzazione IT/EN completa (labelLocalized + bodyLocalized).
+- §3.5.8 Idempotency + `pronunciation_locked` contract.
+
+**Nuovo engine** `/app/backend/routers/phoneme_pronunciation_rule.py` (~330 righe):
+- `generate_pronunciation_protocol(ipa, canon)` → dict con `headline`, `steps: [Jaw/Lips/Tongue/Apex/Voicing/Velum]`, `grounded_on: [features usate]`, `confidence: 1.0`.
+- Ogni step: `label`, `body`, `labelLocalized: {it,en}`, `bodyLocalized: {it,en}`.
+
+**Wiring backend** in `phoneme_cards.py`:
+- `apply_pronunciation_rule_to_doc(db, doc, preserve_body=True)` — helper con lock + preserva `body` AI-drafted preesistente.
+- `admin_create`: aggiunto step §3.5.
+- `admin_update`: auto-lock su `pronunciationGuide` in PATCH body (stesso pattern hotspots).
+- `batch/regenerate-derived`: nuova sezione §3.5 in loop bulk.
+- `ensure_phoneme_seed` step 10: backfill idempotente (rewrite solo se le 6 label mancanti/differenti).
+- Model `PhonemeCardBase`: nuovo campo `pronunciation_locked: bool = False`.
+- Protetti u-foot + i-fleece con `pronunciation_locked=True`.
+
+**Frontend** `PhonemeCardPage.jsx`:
+- Renderizza `pickLang(headlineLocalized)`, `pickLang(labelLocalized)`, `pickLang(bodyLocalized)` con fallback ai campi English + fallback finale a `pronunciationGuide.body` (compatibilità AI-drafted) + placeholder bilingue se vuoto.
+
+**Verifica end-to-end**:
+- i-kit (vocale /ɪ/): 6 step generati, grounded_on=[backness,height,rounding,voicing], body AI preservato ✓
+- p-pen (consonante /p/): 6 step generati, grounded_on=[aspiration,place,voicing], caratteristica "voiceless aspirated puff" correttamente inclusa ✓
+- 44/44 card processate, u-foot e i-fleece protetti con lock.
+
+**Redeploy richiesto**: cambiamenti in preview. Redeploy per portare in produzione.
+
+
 ### 07/07/2026 — HOTFIX Fase 3 · 3 bug prod segnalati dall'utente (i-kit) — DONE ✅
 
 **Bug 1 (P0 blocker)**: hotspot piazzati manualmente dall'admin si "spostano da soli" dopo save.

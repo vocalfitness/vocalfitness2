@@ -954,7 +954,9 @@ const PhonemeCardPage = () => {
             <div className="flex items-center gap-2 mb-4">
               <Mic2 className="w-4 h-4 text-cyan-400" />
               <p className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-bold">
-                {phoneme.pronunciationGuide?.headline || 'Vocal Fitness articulatory protocol'}
+                {pickLang(phoneme.pronunciationGuide?.headlineLocalized, language)
+                  || phoneme.pronunciationGuide?.headline
+                  || (language === 'it' ? 'Protocollo articolatorio Vocal Fitness' : 'Vocal Fitness articulatory protocol')}
               </p>
             </div>
             {Array.isArray(phoneme.pronunciationGuide?.steps) && phoneme.pronunciationGuide.steps.length > 0 ? (
@@ -965,8 +967,8 @@ const PhonemeCardPage = () => {
                       {i + 1}
                     </span>
                     <div className="text-sm">
-                      <span className="text-cyan-200 font-bold">{s.label}:</span>{' '}
-                      <span className="text-cyan-100/85">{s.body}</span>
+                      <span className="text-cyan-200 font-bold">{pickLang(s.labelLocalized, language) || s.label}:</span>{' '}
+                      <span className="text-cyan-100/85">{pickLang(s.bodyLocalized, language) || s.body}</span>
                     </div>
                   </li>
                 ))}

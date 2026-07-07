@@ -60,6 +60,9 @@ class PhonemeCardBase(BaseModel):
     # §3.2/§3.3 · When true, the deterministic lexicon engine (commonWords +
     # spellings) skips this card — protects manually curated reference cards.
     lexicon_locked: bool = False
+    # §3.5 · When true, the deterministic pronunciation protocol engine
+    # skips this card — protects manually curated reference cards (u-foot).
+    pronunciation_locked: bool = False
     spellings: List[Dict[str, Any]] = Field(default_factory=list)
     frequencyChart: List[Dict[str, Any]] = Field(default_factory=list)
     features: List[Dict[str, Any]] = Field(default_factory=list)
@@ -103,6 +106,7 @@ class PhonemeCardUpdate(BaseModel):
     hotspots: Optional[List[Dict[str, Any]]] = None
     hotspots_locked: Optional[bool] = None
     lexicon_locked: Optional[bool] = None
+    pronunciation_locked: Optional[bool] = None
     spellings: Optional[List[Dict[str, Any]]] = None
     frequencyChart: Optional[List[Dict[str, Any]]] = None
     features: Optional[List[Dict[str, Any]]] = None
@@ -463,6 +467,44 @@ async def apply_hotspot_rule_to_doc(db, doc: dict) -> List[Dict[str, Any]]:
     hotspots = generate_hotspots_for_canonical(ipa, canonical)
     doc["hotspots"] = hotspots
     return hotspots
+
+
+async def apply_pronunciation_rule_to_doc(db, doc: dict, preserve_body: bool = True) -> Dict[str, Any]:
+    """§3.5 · Compose the 6-step "Vocal Fitness articulatory protocol"
+    from canonical features (height/backness/rounding for vowels;
+    place/manner/voicing for consonants).
+
+    Behaviour:
+      • ``pronunciation_locked=true`` → skip (protects manually curated
+        cards like u-foot).
+      • ``preserve_body=True`` (default) → keep any pre-existing
+        ``pronunciationGuide.body`` paragraph (AI-drafted or authored).
+        The engine only rewrites ``headline`` + ``steps`` + metadata.
+
+    Returns the composed guide dict that was written (or the existing
+    guide if locked / IPA missing).
+    """
+    if doc.get("pronunciation_locked"):
+        return doc.get("pronunciationGuide") or {}
+    ipa = (doc.get("ipa") or "").strip()
+    if not ipa:
+        return doc.get("pronunciationGuide") or {}
+    canonical = None
+    for cand in _ipa_equivalents(ipa):
+        canonical = await db.canonical_phonemes.find_one({"ipa": cand}, {"_id": 0})
+        if canonical:
+            break
+    if not canonical:
+        return doc.get("pronunciationGuide") or {}
+
+    from .phoneme_pronunciation_rule import generate_pronunciation_protocol
+    fresh = generate_pronunciation_protocol(ipa, canonical)
+
+    existing = doc.get("pronunciationGuide") or {}
+    if preserve_body and (existing.get("body") or "").strip():
+        fresh["body"] = existing["body"]
+    doc["pronunciationGuide"] = fresh
+    return fresh
 
 
 async def apply_lexicon_rule_to_doc(db, doc: dict, preserve_audio: bool = True) -> Dict[str, list]:
@@ -1599,7 +1641,17 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 except Exception as exc:  # noqa: BLE001
                     entry["skipped"].append(f"lexicon({type(exc).__name__})")
 
-            # Persist the diff (all four fields at once — atomic).
+            # §3.5 pronunciation protocol
+            if card.get("pronunciation_locked"):
+                entry["skipped"].append("pronunciation(locked)")
+            else:
+                try:
+                    await apply_pronunciation_rule_to_doc(db, card, preserve_body=True)
+                    entry["applied"].append("pronunciation")
+                except Exception as exc:  # noqa: BLE001
+                    entry["skipped"].append(f"pronunciation({type(exc).__name__})")
+
+            # Persist the diff (all fields at once — atomic).
             await coll.update_one({"id": cid}, {"$set": {
                 "facialMuscles":     card.get("facialMuscles") or [],
                 "anatomicalLabels":  card.get("anatomicalLabels") or [],
@@ -1608,6 +1660,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 "hotspots":          card.get("hotspots") or [],
                 "commonWords":       card.get("commonWords") or [],
                 "spellings":         card.get("spellings") or [],
+                "pronunciationGuide": card.get("pronunciationGuide") or {},
                 "updatedAt":         _now_iso(),
                 "updatedBy":         admin.get("username"),
             }})
@@ -2224,6 +2277,10 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         # §3.2/§3.3 lockdown: commonWords + spellings are DERIVED from cmudict
         # + wordfreq (skipped when lexicon_locked=true).
         await apply_lexicon_rule_to_doc(db, doc, preserve_audio=True)
+        # §3.5 lockdown: pronunciationGuide 6-step protocol from canonical
+        # features (skipped when pronunciation_locked=true). Body paragraph
+        # is preserved if present.
+        await apply_pronunciation_rule_to_doc(db, doc, preserve_body=True)
         doc["createdAt"] = now
         doc["updatedAt"] = now
         doc["createdBy"] = admin.get("username")
@@ -2281,6 +2338,19 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         hotspots_new = await apply_hotspot_rule_to_doc(db, merged)
         if not merged.get("hotspots_locked"):
             update_fields["hotspots"] = hotspots_new
+
+        # §3.5 pronunciation protocol — same auto-lock policy as hotspots.
+        # If the admin explicitly PATCH-es ``pronunciationGuide`` (steps or
+        # body edits), auto-lock the card so subsequent saves don't
+        # overwrite the manual work. Otherwise recompute deterministically
+        # from the canonical features + preserve any AI-drafted body.
+        admin_touched_pron = "pronunciationGuide" in raw or raw.get("pronunciation_locked") is not None
+        if admin_touched_pron:
+            update_fields["pronunciation_locked"] = True if "pronunciationGuide" in raw and update_fields.get("pronunciation_locked") is not False else update_fields.get("pronunciation_locked", True)
+            merged["pronunciation_locked"] = update_fields["pronunciation_locked"]
+        pron_new = await apply_pronunciation_rule_to_doc(db, merged, preserve_body=True)
+        if not merged.get("pronunciation_locked"):
+            update_fields["pronunciationGuide"] = pron_new
 
         if not update_fields:
             existing_computed = dict(existing)
@@ -2579,5 +2649,38 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
         lexicon_fixed += 1
     if lexicon_fixed:
         patched.append(f"lexicon.§3.2×{lexicon_fixed}")
+
+    # 10) §3.5 pronunciation protocol backfill — recompute the 6-step
+    #     guide for every card except those flagged ``pronunciation_locked``.
+    #     Preserves any pre-existing ``body`` paragraph (AI-drafted).
+    #     Skips cards that already have >= 6 steps AND identical grounded_on
+    #     signature (idempotent — avoids write churn on already-composed cards).
+    pron_fixed = 0
+    async for card in coll.find({}, {"_id": 0, "id": 1, "ipa": 1,
+                                     "pronunciationGuide": 1,
+                                     "pronunciation_locked": 1}):
+        if card.get("pronunciation_locked"):
+            continue
+        try:
+            fresh = await apply_pronunciation_rule_to_doc(db, dict(card), preserve_body=True)
+        except Exception:  # noqa: BLE001
+            continue
+        if not fresh or not fresh.get("steps"):
+            continue
+        existing = card.get("pronunciationGuide") or {}
+        existing_steps = existing.get("steps") or []
+        # If existing has 6 steps already, only rewrite when the step
+        # labels differ (schema drift) — spec change scenario.
+        if len(existing_steps) == 6 and all(
+            (existing_steps[i].get("label") == fresh["steps"][i]["label"])
+            for i in range(6)
+        ):
+            continue
+        await coll.update_one({"id": card["id"]}, {"$set": {
+            "pronunciationGuide": fresh,
+        }})
+        pron_fixed += 1
+    if pron_fixed:
+        patched.append(f"pronunciation.§3.5×{pron_fixed}")
 
     return {"inserted": inserted, "skipped": skipped, "patched": patched}
