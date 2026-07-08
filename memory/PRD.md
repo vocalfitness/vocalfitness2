@@ -12,6 +12,34 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 29 — Voice Lab external URL fetcher + "Associa a fonema" (one-click) — DONE ✅
+
+**Contesto**: l'utente ha chiesto come associare i suoni delle repository IPA scientifiche (Wikimedia, UCLA, IPA.org, GitHub raw) ai fonemi come file URL. Il workflow manuale precedente aveva 5-6 step (scarica → salva su PC → trascina in Voice Lab → copia URL → vai in Phoneme CMS → incolla in slot audio). Ora è **un solo click**.
+
+**Backend `elevenlabs.py`**:
+- Nuovo modello Pydantic **`FetchExternalAudioRequest`** a livello modulo (fuori dalla closure per evitare ForwardRef PydanticUserError).
+- Nuovo endpoint **`POST /api/admin/elevenlabs/fetch-external-audio`**:
+  - Body: `{url, filename_hint?}`
+  - Guardrails: solo http/https · timeout 30s · max 5 MB · 6 estensioni audio · User-Agent conforme Wikimedia policy · Accept header audio-first · content-type detection con fallback URL extension
+  - Server-side download via `httpx.AsyncClient(follow_redirects=True)` → persist via `emergent_put` in `manual/<hint>_<ts>.<ext>` → ritorna `{url, relative_url, filename, content_type, size_bytes, source_url}`
+  - Rifiuta HTML (`text/html`), ftp://, file://, empty body
+
+**Frontend `ElevenLabsStudio.jsx`**:
+- Nuovo state: `externalUrl`, `fetchingExternal`, `phonemeCards`, `assocCardId`, `assocSlot`, `assocWordIndex`, `assocExampleIndex`, `associating`, `associated`.
+- Load automatico del catalogo fonemi via `GET /api/admin/phonemes` all'apertura.
+- Handler `handleFetchExternal()` → POST fetch-external-audio → popola result panel.
+- Handler `handleAssociate()` + `buildAssocKey()` → PATCH audio-url del card con la key giusta.
+- **Nuovo campo "Da URL esterno · fetch server-side"** dentro pannello upload emerald.
+- **Nuovo pannello cyan "ASSOCIA DIRETTAMENTE A FONEMA"** nel result panel · dopo qualsiasi TTS/upload/fetch:
+  - Dropdown card fonema (44 opzioni con IPA + nome)
+  - Dropdown slot con optgroups: Isolato AmE/RP · Mnemonica · Esempi AmE/RP · Parole comuni AmE/RP
+  - Input Indice numerico (mostrato solo per example/word slots) con live-preview della key
+  - Pulsante "Associa e salva" → flip verde "Associata ✓" al successo
+
+**Testing**: iteration_29.json — 9/9 pytest backend (auth guard, input validation 400, non-audio rejection 415, happy path, reachability, E2E fetch → PATCH → verify persistence). Frontend Playwright: 7/7 testid, dropdown 44 fonemi popolato, indice mostra/nasconde correttamente, network trace conferma i 2 endpoint chiamati esattamente in sequenza.
+
+
+
 ### 08/02/2026 · Iteration 28 — Common Words UI Redesign — DONE ✅
 
 **Contesto**: la riga a 12 colonne era sovrastata, il pulsante "Rigenera" si sovrapponeva agli input URL. Ridisegno completo con:
