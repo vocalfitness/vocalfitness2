@@ -11,6 +11,40 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — SSML IPA scientific mode per Audio Studio + isolated clips — DONE ✅
+
+**Richiesta utente**: "se scrivo /ʌ/ voglio che mi restituisca il suono isolato di quel fonema. Ora devo scrivere 'uh' e sperare che sia corretto — così non è come voglio lavorare. La scientificità dev'essere assoluta."
+
+**Root cause**: fino ad ora l'audio "isolated" della card usava testo come `"The /ʌ/ sound. As in strut."` → ElevenLabs sintetizzava la stringa letterale, non il fonema IPA. Digitare `/ʌ/` non aveva effetto: veniva letto come slash-simbolo-slash.
+
+**Fix — SSML IPA wrapping** (basato su spec ElevenLabs v2 English models):
+- Estesa `synthesize_and_store()` in `elevenlabs.py` con parametro `ipa_phoneme: Optional[str]`.
+- Quando `ipa_phoneme` è presente, il testo viene wrappato in `<phoneme alphabet="ipa" ph="{ipa}">fallback_text</phoneme>` (XML-escape del contenuto).
+- Auto-switch model da `eleven_multilingual_v2` a `eleven_turbo_v2` (unico che supporta SSML `<phoneme>`).
+- Strip automatico di barre `/…/` circostanti (input utente `/ʌ/` → `ph="ʌ"`).
+
+**Wiring**:
+- `_compute_card_audio_items()` in phoneme_cards.py: le clip `group='isolated'` ora usano testo = solo il simbolo IPA + `ipa_phoneme = card.ipa`. **Le clip isolated in tutte le 42 card diventano suoni puri**, non frasi.
+- `BatchAudioRequest`: aggiunti `text_override: Dict[str,str]` e `ipa_override: Dict[str,str]` per per-clip customization dall'Audio Studio.
+- Auto-detect: se `text_override` è tipo `/ʌ/` (barre + 1-4 char + barre), viene interpretato come IPA.
+
+**Frontend Audio Studio**:
+- Banner informativo in alto (gradient fuchsia/cyan): spiega la modalità IPA con esempi.
+- Nuovo pulsante **Sparkles** ✨ per riga accanto al regen: apre prompt che accetta simbolo IPA (opzionale, autofill dal testo attuale) → invia `text_override + ipa_override` al backend.
+- Comportamento auto: digitando `/ʌ/` come `text_override` di qualsiasi clip → SSML kicks in automaticamente.
+
+**Testing rigoroso**:
+- Nuovo `/app/backend/tests/test_ssml_ipa_wrapping.py` con 5 test (5/5 PASS in 0.22s):
+  - Verifica wrapping SSML corretto + switch model
+  - Strip di slash `/`
+  - No-op quando `ipa_phoneme=None` → mantiene `eleven_multilingual_v2` senza SSML
+  - Escape XML dei caratteri speciali nel fallback
+  - Input degenere (`"/   /"`) trattato come no-IPA
+- Test end-to-end su schwa + ah-strut: 3 clip generate senza errori, URL persistiti correttamente.
+
+**Redeploy richiesto** per portare in produzione. Post-redeploy consigliato: lanciare bulk audio (o rigenerare manualmente le clip isolated più critiche) per aggiornarle con il suono puro IPA.
+
+
 ### 07/07/2026 — HOTFIX §3.2 · Stress-sensitive phoneme lexicon bug (schwa=STRUT) — DONE ✅
 
 **Bug**: utente segnalava che `/ə/` (schwa) su `vocalfitness.org/admin/phonemes/schwa` mostrava parole di `/ʌ/` (STRUT) come "one, just, up, us"…

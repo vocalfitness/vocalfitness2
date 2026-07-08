@@ -1697,24 +1697,28 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         include_words_rp: bool = True # if False, words only get AmE audio
         overwrite:     bool = False   # if True, regenerate even if URL exists
         only_keys:     Optional[List[str]] = None  # if provided, only items with key in this list
+        # Per-clip overrides applied when regenerating from Audio Studio:
+        # ``text_override[key]`` swaps the item's text (e.g. custom mnemonic
+        # phrase). ``ipa_override[key]`` forces SSML IPA wrapping with the
+        # given phoneme (e.g. user types "/ʌ/" in the studio → we send
+        # ``<phoneme alphabet="ipa" ph="ʌ">…</phoneme>`` to ElevenLabs).
+        text_override: Optional[Dict[str, str]] = None
+        ipa_override:  Optional[Dict[str, str]] = None
 
     def _compute_card_audio_items(card: dict, words_limit: int,
                                     include_words_rp: bool) -> List[dict]:
-        """Return the list of ``{key, group, dialect, path, text, current_url,
-        filename_slug}`` for a single card, mirroring the frontend
-        BulkAudioGenerator.computeItems logic. ``path`` is the list of Mongo
-        dotted-key components to $set the resulting URL under.
-
-        Skips items whose text is empty. Never generates work for missing
-        fields — empty beats invented.
+        """Return the list of audio items for a single card. Includes an
+        ``ipa`` field per item — set on ``group='isolated'`` clips so the
+        TTS pipeline wraps them in SSML for scientifically accurate IPA
+        pronunciation (see ``synthesize_and_store``).
         """
         items: List[dict] = []
-        primary = ((card.get("examples") or []) + [""])[0] or card.get("ipa", "")
         display_ipa = card.get("displayIpa") or f"/{card.get('ipa','')}/"
-        isolated_text = (
-            f"The {display_ipa} sound. As in {str(primary).lower()}."
-            if primary else display_ipa
-        )
+        # For isolated clips we emit ONLY the pure phoneme; the SSML
+        # wrapping in ``synthesize_and_store`` turns this into the exact
+        # IPA sound instead of "the letter U" or an approximate spelling.
+        ipa_symbol = (card.get("ipa") or "").strip()
+        isolated_text = ipa_symbol or (display_ipa.strip("/") if display_ipa else "")
 
         audio = card.get("audio") or {}
         for dialect in ("AmE", "RP"):
@@ -1725,6 +1729,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 "current_url": cur,
                 "path": ["audio", dialect, "isolated"],
                 "filename_slug": f"{card.get('id','card')}_isolated_{dialect}",
+                "ipa": ipa_symbol,
             })
 
         for i, ex in enumerate(card.get("exampleSentences") or []):
@@ -1739,6 +1744,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                     "dialect": dialect, "text": txt, "current_url": cur,
                     "path": ["audio", dialect, "examples", i],
                     "filename_slug": f"{card.get('id','card')}_example_{dialect}_{i+1}",
+                    "ipa": "",
                 })
 
         mn = card.get("mnemonic") or {}
@@ -1749,6 +1755,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 "current_url": mn.get("audio") or mn.get("audioAmE") or "",
                 "path": ["mnemonic", "audio"],
                 "filename_slug": f"{card.get('id','card')}_mnemonic",
+                "ipa": "",
             })
 
         # Common words — top N by list order (already zipf-sorted from lexicon)
@@ -1756,13 +1763,13 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
             word = (w or {}).get("w", "").strip()
             if not word:
                 continue
-            # AmE always
             items.append({
                 "key": f"word-{i}-AmE", "group": "words", "dialect": "AmE",
                 "text": word,
                 "current_url": (w.get("audioAmE") or w.get("audio") or ""),
                 "path": ["commonWords", i, "audioAmE"],
                 "filename_slug": f"{card.get('id','card')}_word_{re.sub(r'[^a-z0-9]+','_', word.lower())}_AmE",
+                "ipa": "",
             })
             if include_words_rp:
                 items.append({
@@ -1771,6 +1778,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                     "current_url": (w.get("audioRP") or ""),
                     "path": ["commonWords", i, "audioRP"],
                     "filename_slug": f"{card.get('id','card')}_word_{re.sub(r'[^a-z0-9]+','_', word.lower())}_RP",
+                    "ipa": "",
                 })
         return items
 
@@ -1843,9 +1851,21 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 continue
 
             voice_id = voice_map.get(it["dialect"]) or voice_map.get("default")
+            # Apply per-clip overrides if the caller provided them (Audio Studio).
+            item_text = (payload.text_override or {}).get(it["key"]) if payload.text_override else None
+            item_text = item_text if item_text is not None else it["text"]
+            item_ipa  = (payload.ipa_override or {}).get(it["key"]) if payload.ipa_override else None
+            if item_ipa is None:
+                # Auto-detect: if the text is a bare /…/ IPA token, treat as isolated phoneme.
+                stripped = (item_text or "").strip()
+                if len(stripped) >= 3 and stripped.startswith("/") and stripped.endswith("/"):
+                    item_ipa = stripped.strip("/").strip()
+            # Fall back to the item's baked-in IPA hint (only set for isolated).
+            item_ipa = item_ipa if item_ipa is not None else it.get("ipa") or None
+
             try:
                 res = synthesize_and_store(
-                    text=it["text"],
+                    text=item_text,
                     voice_id=voice_id,
                     emergent_put=_emergent_put,
                     uploads_dir=uploads_dir,
@@ -1856,6 +1876,7 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                     model_id=payload.model_id,
                     output_format=payload.output_format,
                     filename_hint=it["filename_slug"],
+                    ipa_phoneme=item_ipa,
                 )
                 rel_url = res["relative_url"]
                 # Write into the in-memory doc at ``path`` — arrays are

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Volume2, Search, Filter, Play, Pause,
-  RefreshCw, CheckCircle2, X, Loader2, Wand2,
+  RefreshCw, CheckCircle2, X, Loader2, Wand2, Sparkles,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -200,7 +200,7 @@ export default function PhonemeAudioStudioPage() {
   const selectAllVisible = () => setSelected(new Set(rows.map((r) => `${r.cardId}::${r.key}`)));
   const clearSelection   = () => setSelected(new Set());
 
-  const regenOne = async (row) => {
+  const regenOne = async (row, opts = {}) => {
     const token = localStorage.getItem('vf_token');
     const rid = `${row.cardId}::${row.key}`;
     setRunningRows((prev) => { const s = new Set(prev); s.add(rid); return s; });
@@ -214,6 +214,8 @@ export default function PhonemeAudioStudioPage() {
           voice_ame:      voiceAme,
           voice_rp:       voiceRp,
           voice_default:  voiceDef,
+          text_override:  opts.text ? { [row.key]: opts.text } : undefined,
+          ipa_override:   opts.ipa  ? { [row.key]: opts.ipa  } : undefined,
           ...PROSODY_PRESETS[prosody],
         }),
       });
@@ -229,6 +231,25 @@ export default function PhonemeAudioStudioPage() {
     } finally {
       setRunningRows((prev) => { const s = new Set(prev); s.delete(rid); return s; });
     }
+  };
+
+  // Prompt the user for an IPA override + regenerate the single clip.
+  // Auto-strips /…/ wrapping. Empty submission uses just the row's own ipa.
+  const regenWithIpa = (row) => {
+    const suggestedIpa = row.dialect === 'AmE' || row.dialect === 'RP'
+      ? (row.text.match(/\/([^/]+)\//)?.[1] || row.text)
+      : row.text;
+    const raw = window.prompt(
+      `Rigenera "${row.key}" con SSML IPA scientifico.\n\n` +
+      `Testo attuale: "${row.text}"\n\n` +
+      `Inserisci il simbolo IPA (es. ʌ, ə, iː, aɪ):\n` +
+      `Le barre /…/ sono opzionali — vengono rimosse automaticamente.\n` +
+      `Lascia vuoto per usare la voce naturale senza SSML.`,
+      suggestedIpa
+    );
+    if (raw === null) return;   // cancel
+    const clean = raw.trim().replace(/^\/+|\/+$/g, '').trim();
+    regenOne(row, { ipa: clean || undefined, text: clean ? clean : undefined });
   };
 
   const runBulkRegenSelected = async () => {
@@ -319,6 +340,16 @@ export default function PhonemeAudioStudioPage() {
       </div>
 
       <div className="max-w-[1800px] mx-auto px-6 py-5">
+        {/* IPA SSML hint banner */}
+        <div className="mb-4 rounded-xl bg-gradient-to-r from-fuchsia-500/10 to-cyan-500/10 border border-fuchsia-500/25 p-3 flex items-start gap-3" data-testid="audio-studio-ipa-hint">
+          <Sparkles className="w-5 h-5 text-fuchsia-300 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-cyan-100/90 leading-relaxed">
+            <b className="text-fuchsia-200">Modalità IPA scientifica</b> — clicca l&apos;icona <Sparkles className="w-3 h-3 inline text-fuchsia-300" /> su qualsiasi clip per rigenerare con SSML IPA (<code className="text-fuchsia-200 bg-slate-800/70 px-1 rounded">&lt;phoneme alphabet=&quot;ipa&quot; ph=&quot;ʌ&quot;&gt;</code>).
+            Puoi anche digitare direttamente <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/ʌ/</code> o <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/ə/</code> come testo — il motore lo riconoscerà.
+            Le clip <b>isolated</b> ora usano SSML automaticamente per suono puro (non &quot;the schwa sound as in ...&quot;). Modello auto-switched a <code className="bg-slate-800/70 px-1 rounded">eleven_turbo_v2</code> quando SSML è attivo.
+          </div>
+        </div>
+
         {/* Voice + Prosody controls */}
         <div className="mb-4 p-4 rounded-xl bg-slate-900/50 border border-cyan-500/15 grid md:grid-cols-4 gap-3" data-testid="audio-studio-voices">
           <div>
@@ -473,6 +504,15 @@ export default function PhonemeAudioStudioPage() {
                             data-testid={`audio-studio-regen-${rid}`}
                           >
                             {isRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => regenWithIpa(r)}
+                            disabled={isRunning}
+                            className="p-1.5 rounded hover:bg-fuchsia-500/30 text-fuchsia-300 disabled:opacity-40"
+                            title="Rigenera con SSML IPA scientifico (es. inserisci ʌ, ə, iː)"
+                            data-testid={`audio-studio-regen-ipa-${rid}`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

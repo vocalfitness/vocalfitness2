@@ -76,12 +76,21 @@ def synthesize_and_store(
     model_id: str = "eleven_multilingual_v2",
     output_format: str = "mp3_44100_128",
     filename_hint: Optional[str] = None,
+    ipa_phoneme: Optional[str] = None,
 ) -> dict:
     """Synthesise ``text`` with ElevenLabs and persist the audio to storage.
 
-    Returns ``{url, relative_url, filename, voice_id, content_type, size_bytes}``.
-    Raises ``RuntimeError`` on client/API/empty-audio failure so callers can
-    turn the exception into a per-item error entry in bulk pipelines.
+    ⚙️ ``ipa_phoneme`` (07/07/2026): when set, the text is wrapped in an
+    SSML ``<phoneme alphabet="ipa" ph="…">…</phoneme>`` tag so the model
+    pronounces the exact IPA transcription rather than the surface
+    spelling. This is REQUIRED for isolated phoneme clips ("say /ʌ/")
+    where scientific accuracy trumps naturalness. Because ElevenLabs
+    SSML phoneme tags only work with v2 English models, we AUTO-SWITCH
+    to ``eleven_turbo_v2`` when an IPA hint is present (unless the caller
+    explicitly overrides ``model_id``).
+
+    Returns ``{url, relative_url, filename, voice_id, content_type, size_bytes,
+    ssml_used, ipa_phoneme}``.
     """
     if not (text or "").strip():
         raise RuntimeError("text vuoto")
@@ -94,6 +103,24 @@ def synthesize_and_store(
     if not vid:
         raise RuntimeError("voice_id mancante")
 
+    # SSML IPA wrapping + auto-switch to SSML-compatible English model.
+    # We first strip any surrounding /…/ notation the caller may have
+    # passed as raw input (``/ʌ/`` → ``ʌ``).
+    ipa_clean = (ipa_phoneme or "").strip().strip("/").strip()
+    ssml_used = False
+    final_text = text
+    if ipa_clean:
+        # XML-escape the fallback word (the tag's text content, spoken by
+        # non-SSML-aware models as a graceful degradation).
+        fallback = (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")) or ipa_clean
+        ph_attr  = ipa_clean.replace('"', "&quot;")
+        final_text = f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>'
+        ssml_used = True
+        # Model auto-switch: SSML <phoneme> works ONLY on v2 English models.
+        # Preserve caller override if they explicitly chose a v2 English model.
+        if model_id.startswith("eleven_multilingual"):
+            model_id = "eleven_turbo_v2"
+
     from elevenlabs import VoiceSettings
     settings = VoiceSettings(
         stability=float(stability),
@@ -102,7 +129,7 @@ def synthesize_and_store(
         use_speaker_boost=bool(use_speaker_boost),
     )
     chunks = client.text_to_speech.convert(
-        text=text,
+        text=final_text,
         voice_id=vid,
         model_id=model_id,
         voice_settings=settings,
@@ -141,6 +168,9 @@ def synthesize_and_store(
         "voice_id":     vid,
         "content_type": content_type,
         "size_bytes":   len(audio_data),
+        "ssml_used":    ssml_used,
+        "ipa_phoneme":  ipa_clean or None,
+        "model_id":     model_id,
     }
 
 
