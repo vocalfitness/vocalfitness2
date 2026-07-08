@@ -23,8 +23,10 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
+from urllib.parse import urlparse, unquote
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+import httpx
+from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 
@@ -46,6 +48,11 @@ class ElevenLabsTTSRequest(BaseModel):
     # engine still scans ``text`` for inline /…/ fragments and wraps each
     # in an SSML tag (auto model switch applies as soon as any wrap occurs).
     ipa_phoneme: Optional[str] = None
+
+
+class FetchExternalAudioRequest(BaseModel):
+    url:            str
+    filename_hint:  Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -402,6 +409,117 @@ def build_elevenlabs_router(
             "filename":     filename,
             "content_type": content_type,
             "size_bytes":   len(raw),
+        }
+
+    # ------------------------------------------------------------------ #
+    # Fetch from external URL — server-side download of a phoneme audio
+    # clip hosted on a scientific IPA repository (Wikimedia Commons,
+    # UCLA archive, IPA.org, GitHub raw, etc.). Avoids the manual
+    # download → re-upload dance: paste the URL, hit fetch, done.
+    # ------------------------------------------------------------------ #
+
+    @router.post("/admin/elevenlabs/fetch-external-audio")
+    async def elevenlabs_fetch_external_audio(
+        payload: FetchExternalAudioRequest = Body(...),
+        _admin: dict = Depends(get_admin_user),
+    ):
+        """Server-side download of a remote audio file → persist to
+        Emergent storage → return the internal URL.
+
+        Guardrails: http/https only, 5 MB cap, 6 audio extensions,
+        30 s timeout. The remote server MUST advertise an audio
+        content-type OR the URL must end in a recognised audio
+        extension — otherwise we refuse (prevents fetching HTML pages
+        by accident).
+        """
+        raw_url = (payload.url or "").strip()
+        if not raw_url:
+            raise HTTPException(status_code=400, detail="URL vuoto")
+
+        parsed = urlparse(raw_url)
+        if parsed.scheme not in ("http", "https"):
+            raise HTTPException(status_code=400,
+                                 detail="Solo URL http/https sono ammessi")
+        if not parsed.netloc:
+            raise HTTPException(status_code=400, detail="URL malformato")
+
+        # Extension detection from URL path (many CDN URLs strip the
+        # query string but keep the extension — Wikimedia OGG, GitHub
+        # raw MP3, UCLA WAV).
+        path_lower = unquote(parsed.path).lower()
+        url_ext = path_lower.rsplit(".", 1)[-1] if "." in path_lower else ""
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                r = await client.get(raw_url, headers={
+                    # Wikimedia requires an identifiable User-Agent per
+                    # https://meta.wikimedia.org/wiki/User-Agent_policy
+                    "User-Agent": "VocalFitnessPhonemeCMS/1.0 (https://vocalfitness.org; admin@vocalfitness.org)",
+                    "Accept": "audio/*, application/octet-stream, */*;q=0.5",
+                })
+            if r.status_code >= 400:
+                raise HTTPException(status_code=502,
+                                     detail=f"Remote returned HTTP {r.status_code}")
+            data = r.content
+            ct   = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+        except HTTPException:
+            raise
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=502,
+                                 detail=f"Errore fetch: {e.__class__.__name__}: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Errore fetch: {e}")
+
+        if not data:
+            raise HTTPException(status_code=502, detail="Il file remoto è vuoto")
+        if len(data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413,
+                                 detail=f"File troppo grande ({len(data)} bytes, max 5 MB)")
+
+        # Map remote content-type → local extension. If content-type is
+        # generic (application/octet-stream) fall back to the URL ext.
+        CT_MAP = {
+            "audio/mpeg": "mp3", "audio/mp3": "mp3",
+            "audio/wav": "wav", "audio/wave": "wav", "audio/x-wav": "wav",
+            "audio/ogg": "ogg", "audio/vorbis": "ogg", "application/ogg": "ogg",
+            "audio/mp4": "m4a", "audio/x-m4a": "m4a", "audio/aac": "aac",
+            "audio/flac": "flac", "audio/x-flac": "flac",
+        }
+        ext = CT_MAP.get(ct) or (url_ext if url_ext in {"mp3","wav","ogg","m4a","flac","aac"} else "")
+        if not ext:
+            raise HTTPException(
+                status_code=415,
+                detail=f"Content-type non riconosciuto come audio (got '{ct}', url ext '{url_ext}')",
+            )
+
+        # Filename: prefer explicit hint; else derive from URL basename.
+        default_stem = path_lower.rsplit("/", 1)[-1].rsplit(".", 1)[0] or "ext"
+        safe_hint = re.sub(r"[^a-zA-Z0-9_-]+", "_",
+                             (payload.filename_hint or default_stem))[:64].strip("_") or "ext"
+        ts = int(datetime.now(timezone.utc).timestamp())
+        filename = f"manual/{safe_hint}_{ts}.{ext}"
+
+        content_type_out = {
+            "mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
+            "m4a": "audio/mp4", "flac": "audio/flac", "aac": "audio/aac",
+        }.get(ext, "audio/mpeg")
+
+        ok = emergent_put(filename, data, content_type_out)
+        if not ok:
+            local_path = uploads_dir / filename
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.write_bytes(data)
+
+        base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+        public_url   = f"{base}/api/uploads/{filename}" if base else f"/api/uploads/{filename}"
+        relative_url = f"/api/uploads/{filename}"
+        return {
+            "url":          public_url,
+            "relative_url": relative_url,
+            "filename":     filename,
+            "content_type": content_type_out,
+            "size_bytes":   len(data),
+            "source_url":   raw_url,
         }
 
     return router

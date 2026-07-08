@@ -27,6 +27,16 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);   // NEW · file upload
+  const [externalUrl, setExternalUrl] = useState('');
+  const [fetchingExternal, setFetchingExternal] = useState(false);
+  // Associate result → phoneme card slot
+  const [phonemeCards, setPhonemeCards] = useState([]);
+  const [assocCardId, setAssocCardId] = useState('');
+  const [assocSlot,   setAssocSlot]   = useState('isolated-AmE');
+  const [assocWordIndex, setAssocWordIndex] = useState(0);
+  const [assocExampleIndex, setAssocExampleIndex] = useState(0);
+  const [associating, setAssociating] = useState(false);
+  const [associated,  setAssociated]  = useState(false);
   const audioRef = useRef(null);
   const uploadInputRef = useRef(null);
 
@@ -64,6 +74,23 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
         setVoiceId(res.data.default_voice_id || (res.data.voices?.[0]?.voice_id ?? ''));
       } catch (e) {
         setError(e.response?.data?.detail || 'Errore caricamento voci ElevenLabs');
+      }
+    })();
+  }, [token]);
+
+  // Load the phoneme catalogue once — used by the "Associa a fonema"
+  // panel to let the user pick a target card + slot for the clip.
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await axios.get(`${BACKEND_URL}/api/admin/phonemes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const list = res.data?.cards || res.data || [];
+        setPhonemeCards(list);
+      } catch (e) {
+        // silently fail — the associate panel just won't show cards
       }
     })();
   }, [token]);
@@ -149,6 +176,55 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     e.preventDefault();
     const f = e.dataTransfer.files?.[0];
     if (f) handleFileUpload(f);
+  };
+
+  // ─── Fetch audio from an EXTERNAL URL (Wikimedia, GitHub raw, etc.)
+  // The backend downloads the file server-side and persists it to
+  // Emergent Storage, bypassing the manual download → re-upload dance.
+  const handleFetchExternal = async () => {
+    const url = externalUrl.trim();
+    if (!url) return;
+    setError(''); setResult(null); setFetchingExternal(true); setAssociated(false);
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/admin/elevenlabs/fetch-external-audio`, {
+        url,
+        filename_hint: filenameHint || undefined,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setResult({ ...res.data, __external: true });
+    } catch (e) {
+      setError(e.response?.data?.detail || `Errore fetch: ${e.message}`);
+    } finally {
+      setFetchingExternal(false);
+    }
+  };
+
+  // ─── Associate the currently-loaded clip to a phoneme card slot
+  // via PATCH /api/admin/phonemes/{card_id}/audio-url. Zero UX friction:
+  // pick card + slot from dropdowns → one click → done.
+  const buildAssocKey = () => {
+    if (assocSlot === 'isolated-AmE' || assocSlot === 'isolated-RP' || assocSlot === 'mnemonic') return assocSlot;
+    if (assocSlot === 'example-AmE') return `example-AmE-${assocExampleIndex}`;
+    if (assocSlot === 'example-RP')  return `example-RP-${assocExampleIndex}`;
+    if (assocSlot === 'word-AmE')    return `word-${assocWordIndex}-AmE`;
+    if (assocSlot === 'word-RP')     return `word-${assocWordIndex}-RP`;
+    return assocSlot;
+  };
+  const handleAssociate = async () => {
+    if (!result?.relative_url || !assocCardId) return;
+    setAssociating(true); setAssociated(false); setError('');
+    try {
+      await axios.patch(
+        `${BACKEND_URL}/api/admin/phonemes/${encodeURIComponent(assocCardId)}/audio-url`,
+        { key: buildAssocKey(), url: result.relative_url },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setAssociated(true);
+      setTimeout(() => setAssociated(false), 4000);
+    } catch (e) {
+      setError(e.response?.data?.detail || `Errore associazione: ${e.message}`);
+    } finally {
+      setAssociating(false);
+    }
   };
 
   const t = language === 'it'
@@ -345,6 +421,37 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
               />
             </div>
 
+            {/* Fetch from external URL — the backend downloads the
+                clip server-side (no need to save on the PC and re-upload).
+                Great for Wikimedia Commons OGG links, GitHub raw MP3,
+                UCLA archive WAV, etc. */}
+            <div className="mt-3 pt-3 border-t border-emerald-500/20">
+              <label className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold mb-1 block">
+                Da URL esterno · fetch server-side
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={externalUrl}
+                  onChange={(e) => setExternalUrl(e.target.value)}
+                  placeholder="https://upload.wikimedia.org/…/vowel.ogg"
+                  className="flex-1 bg-slate-900 border border-emerald-500/40 text-slate-100 rounded-lg px-3 py-2 text-xs font-mono"
+                  data-testid="el-external-url"
+                />
+                <Button
+                  onClick={handleFetchExternal}
+                  disabled={!externalUrl.trim() || fetchingExternal}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs disabled:opacity-40"
+                  data-testid="el-external-fetch-btn"
+                >
+                  {fetchingExternal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Scarica'}
+                </Button>
+              </div>
+              <p className="text-[10px] text-emerald-300/60 mt-1">
+                Il file viene scaricato dal server → salvato su Emergent Storage → URL restituito qui a destra.
+              </p>
+            </div>
+
             {/* Scientific IPA repositories · CC-BY-SA sources for isolated
                 phoneme audio. Prof clicks link → downloads → uploads. */}
             <details className="mt-3 group">
@@ -472,6 +579,97 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
                 <p><span className="text-slate-500">filename:</span> {result.filename}</p>
                 <p><span className="text-slate-500">voice_id:</span> {result.voice_id}</p>
                 <p><span className="text-slate-500">format:</span> {result.content_type}</p>
+              </div>
+
+              {/* ═══════════════════════════════════════════════════════
+                  Associa direttamente a fonema — one-click PATCH to
+                  route this URL into any of the ~29 audio slots of any
+                  phoneme card, without leaving Voice Lab.
+                  ═══════════════════════════════════════════════════ */}
+              <div className="bg-cyan-500/10 border-2 border-cyan-500/40 rounded-lg p-3 mt-3 space-y-2" data-testid="el-associate-panel">
+                <p className="text-xs uppercase tracking-wider text-cyan-300 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> Associa direttamente a fonema
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold block mb-0.5">Card fonema</label>
+                    <select
+                      value={assocCardId}
+                      onChange={(e) => setAssocCardId(e.target.value)}
+                      className="w-full bg-slate-900 border border-cyan-500/40 text-cyan-100 rounded px-2 py-1 text-xs"
+                      data-testid="el-assoc-card"
+                    >
+                      <option value="">— seleziona —</option>
+                      {(phonemeCards || []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          /{c.ipa || '?'}/ · {c.displayName || c.title || c.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold block mb-0.5">Slot</label>
+                    <select
+                      value={assocSlot}
+                      onChange={(e) => setAssocSlot(e.target.value)}
+                      className="w-full bg-slate-900 border border-cyan-500/40 text-cyan-100 rounded px-2 py-1 text-xs"
+                      data-testid="el-assoc-slot"
+                    >
+                      <optgroup label="Isolato">
+                        <option value="isolated-AmE">🇺🇸 Isolato · AmE</option>
+                        <option value="isolated-RP">🇬🇧 Isolato · RP</option>
+                      </optgroup>
+                      <optgroup label="Mnemonica">
+                        <option value="mnemonic">🎵 Mnemonica</option>
+                      </optgroup>
+                      <optgroup label="Esempi">
+                        <option value="example-AmE">🇺🇸 Frase esempio · AmE</option>
+                        <option value="example-RP">🇬🇧 Frase esempio · RP</option>
+                      </optgroup>
+                      <optgroup label="Parole comuni">
+                        <option value="word-AmE">🇺🇸 Parola comune · AmE</option>
+                        <option value="word-RP">🇬🇧 Parola comune · RP</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                </div>
+                {(assocSlot.startsWith('example-') || assocSlot.startsWith('word-')) && (
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold block mb-0.5">
+                      Indice ({assocSlot.startsWith('example-') ? 'frase esempio' : 'parola comune'})
+                    </label>
+                    <input
+                      type="number"
+                      min="0" max="29"
+                      value={assocSlot.startsWith('example-') ? assocExampleIndex : assocWordIndex}
+                      onChange={(e) => {
+                        const n = Math.max(0, parseInt(e.target.value, 10) || 0);
+                        if (assocSlot.startsWith('example-')) setAssocExampleIndex(n);
+                        else setAssocWordIndex(n);
+                      }}
+                      className="w-24 bg-slate-900 border border-cyan-500/40 text-cyan-100 rounded px-2 py-1 text-xs font-mono"
+                      data-testid="el-assoc-index"
+                    />
+                    <span className="ml-2 text-[10px] text-cyan-200/60">→ key: <code className="text-cyan-100">{buildAssocKey()}</code></span>
+                  </div>
+                )}
+                <Button
+                  onClick={handleAssociate}
+                  disabled={!assocCardId || associating}
+                  className={`w-full text-xs ${associated ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-cyan-600 hover:bg-cyan-700'} disabled:opacity-40`}
+                  data-testid="el-assoc-btn"
+                >
+                  {associating
+                    ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Associo…</>
+                    : associated
+                      ? <><Check className="w-3.5 h-3.5 mr-1" /> Associata ✓</>
+                      : <><Sparkles className="w-3.5 h-3.5 mr-1" /> Associa e salva</>}
+                </Button>
+                {associated && assocCardId && (
+                  <p className="text-[11px] text-emerald-300">
+                    ✓ URL salvato in <code className="text-emerald-100">/{phonemeCards.find(c => c.id === assocCardId)?.ipa || '?'}/</code> · <code className="text-emerald-100">{buildAssocKey()}</code>
+                  </p>
+                )}
               </div>
 
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-3">
