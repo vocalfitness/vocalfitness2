@@ -12,6 +12,35 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 26 — 3 issue fixes + Voice Lab evolution — DONE ✅
+
+**Issue #3 · Toggle IPA dialect-sync (P0 · bug fix)**
+- `AudioPlayButton` in `PhonemeCardPage.jsx` non ricreava l'oggetto `Audio` quando la prop `src` cambiava (utente cambia AmE↔RP → primo play riproduceva ancora il vecchio dialetto).
+- Fix: nuovo `useEffect` sul cambio di `src` che smonta `audioRef.current` (pause + null-out + reset di playing/loading state) → il prossimo click ricrea l'audio con l'URL fresco.
+
+**Issue #1 · Common Words · Manual URL paste + <audio> remount (P1)**
+- Bug root-cause: `<audio src={audioSrc}>` HTML DOM element **non ricarica** automaticamente il src attribute quando la prop cambia — l'utente sentiva ancora l'MP3 cached. Fix: aggiunto `key={audioSrc}` per forzare React a remontare l'element quando l'URL cambia.
+- Nuovo endpoint backend: `PATCH /api/admin/phonemes/{card_id}/audio-url` accetta `{key, url}` per aggiornare qualsiasi slot audio del card. Taxonomy: `isolated-{dialect}`, `example-{dialect}-{i}`, `mnemonic`, `word-{i}-{dialect}`.
+- Nuovo pulsante inline verde (Wand2 icon, `data-testid="audio-studio-paste-{cardId::key}"`) su ogni riga dell'Audio Studio → apre prompt, incolla URL manuale, PATCH → refresh card riga.
+
+**Issue #2 · Voice Lab evolution (P2)**
+- **(a) Repository IPA scientifiche** (`<details>` collapsible in Voice Lab): 5 fonti CC-BY-SA:
+  - IPA.org · Chart with sounds
+  - UCLA Phonetics Lab Archive (Ladefoged)
+  - GitHub UCLA-IPA-Phonetic-Corpus (`eng/audio` folder)
+  - Wikimedia Commons · IPA sound files (OGG)
+  - Pronunciation Studio · English IPA Chart (streaming)
+- **(b) Upload da PC**: dropzone drag-and-drop + file picker in Voice Lab (border emerald). Endpoint backend `POST /api/admin/elevenlabs/upload-audio` accetta multipart file (MP3/WAV/OGG/M4A/FLAC/AAC ≤ 5MB), persiste in `/api/uploads/manual/{hint}_{ts}.{ext}`, ritorna `{url, relative_url, filename, content_type, size_bytes}`.
+- SSML IPA fonema isolato (fucsia) resta come opzione secondaria — non rimosso.
+
+**Tech**:
+- Nuovo file backend nessuno (endpoint aggiunti a `phoneme_cards.py` e `elevenlabs.py`).
+- Nuovo state frontend `uploading` + `uploadInputRef` in `ElevenLabsStudio.jsx`.
+- 16/16 test backend verdi (`iteration_26.json`).
+- Frontend E2E: 1256 pulsanti Wand2, upload operativo, repository panel completo.
+
+
+
 ### 08/02/2026 — §3.6 · Mnemonic Inline-IPA Rewriter (bracket syntax + Tooltip UI) — DONE ✅
 
 **Feature completa full-stack**. Le frasi mnemoniche vengono automaticamente annotate con la sintassi `[word|/ipa/]` derivata **deterministicamente** da CMUdict (mai LLM). Al passaggio del mouse, il frontend mostra un tooltip Radix con la trascrizione IPA; l'audio ElevenLabs riceve SSML `<phoneme>` per ogni parola annotata.
