@@ -10,6 +10,7 @@ import {
   ArrowLeft, Save, ExternalLink, ChevronDown, ChevronRight, Plus, Trash2,
   Info, Sparkles, GraduationCap, Volume2, MapPin, BookOpen, FileText, Image as ImageIcon,
   Video, Type, Palette, Wand2, Check, AlertCircle, MousePointer2, ListTree, Layers, Zap,
+  RefreshCw, Loader2,
 } from 'lucide-react';
 import HotspotVisualEditor from '../components/HotspotVisualEditor';
 import ImageUploader from '../components/ImageUploader';
@@ -162,6 +163,10 @@ export default function PhonemeAdminEditorPage() {
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
   const [toast, setToast]     = useState('');
+
+  // Set of "word-{i}-{dialect}" keys currently regenerating audio via
+  // ElevenLabs. Used to display a spinner on the row's refresh button.
+  const [regenBusy, setRegenBusy] = useState(new Set());
   const [advancedJson, setAdvancedJson] = useState('');
   const [jsonError, setJsonError]     = useState('');
 
@@ -325,6 +330,65 @@ export default function PhonemeAdminEditorPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ─── Regenerate a SINGLE common-word audio slot via ElevenLabs ────
+  // Called by the refresh buttons in the "Parole comuni" section.
+  // ``dialect`` is either "AmE" or "RP" (or "both" to regen both dialects
+  // in one shot). Uses the existing batch-audio endpoint with
+  // ``only_keys`` for surgical precision → doesn't touch the other 29
+  // words nor the isolated/example/mnemonic clips.
+  const regenCommonWordAudio = async (index, dialect = 'both') => {
+    if (isNew) {
+      setError('Salva prima la scheda per poter rigenerare l\'audio.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const wordEntry = (card.commonWords || [])[index] || {};
+    const w = (wordEntry.w || '').trim();
+    if (!w) {
+      setError(`La parola #${index + 1} è vuota — inserisci il testo prima di rigenerare l'audio.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const keys = dialect === 'both'
+      ? [`word-${index}-AmE`, `word-${index}-RP`]
+      : [`word-${index}-${dialect}`];
+    const busyKeys = new Set(regenBusy);
+    keys.forEach((k) => busyKeys.add(k));
+    setRegenBusy(busyKeys);
+    setError(''); setToast('');
+    try {
+      const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
+        method:  'POST',
+        headers: authHeaders(),
+        body:    JSON.stringify({
+          only_keys:        keys,
+          overwrite:        true,
+          words_limit:      Math.max(30, (card.commonWords || []).length),
+          include_words_rp: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      // Refresh the card so the new audio URLs land in state.
+      const refreshed = await fetch(`${API}/api/admin/phonemes/${routeId}`, {
+        headers: authHeaders(),
+      }).then((r) => r.json());
+      const merged = deepMerge(BLANK, refreshed);
+      setCard(merged); setInitial(merged);
+      setToast(`Audio "${w}" (${dialect === 'both' ? 'AmE + RP' : dialect}) rigenerato ✓`);
+      setTimeout(() => setToast(''), 3000);
+    } catch (e) {
+      setError(`Errore rigenerazione audio "${w}": ${e.message}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setRegenBusy((prev) => {
+        const next = new Set(prev);
+        keys.forEach((k) => next.delete(k));
+        return next;
+      });
     }
   };
 
@@ -1379,6 +1443,86 @@ export default function PhonemeAdminEditorPage() {
             Le parole più frequenti che contengono questo fonema. Consigliate: 20–30 elementi.
             Ogni parola ha <b className="text-cyan-200">due tracce audio</b> (AmE 🇺🇸 e RP 🇬🇧) — l&rsquo;audio giusto suona automaticamente in base al dialetto selezionato dal cliente sulla scheda.
           </p>
+
+          {/* Bulk regen: fill missing audios OR force-overwrite all 30 * 2. */}
+          {!isNew && (card.commonWords || []).length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-3 p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+              <span className="text-[11px] text-cyan-200 font-semibold mr-auto">
+                🎙️ Bulk audio ElevenLabs — {(card.commonWords || []).length} parole ×2 dialetti = {(card.commonWords || []).length * 2} clip
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  const words = card.commonWords || [];
+                  const missing = [];
+                  words.forEach((w, i) => {
+                    if (!(w.audioAmE || w.audio)) missing.push(`word-${i}-AmE`);
+                    if (!w.audioRP)               missing.push(`word-${i}-RP`);
+                  });
+                  if (missing.length === 0) {
+                    setToast('Tutte le parole hanno già entrambi gli audio ✓');
+                    setTimeout(() => setToast(''), 2500);
+                    return;
+                  }
+                  if (!window.confirm(`Genererò ${missing.length} audio mancanti via ElevenLabs. Procedere?`)) return;
+                  setRegenBusy(new Set(missing));
+                  try {
+                    const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
+                      method: 'POST', headers: authHeaders(),
+                      body: JSON.stringify({ only_keys: missing, overwrite: false, words_limit: Math.max(30, words.length), include_words_rp: true }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+                    const refreshed = await fetch(`${API}/api/admin/phonemes/${routeId}`, { headers: authHeaders() }).then((r) => r.json());
+                    const merged = deepMerge(BLANK, refreshed);
+                    setCard(merged); setInitial(merged);
+                    setToast(`${(data.generated || []).length} audio generati · ${(data.errors || []).length} errori`);
+                    setTimeout(() => setToast(''), 4000);
+                  } catch (e) {
+                    setError(`Errore bulk: ${e.message}`);
+                  } finally { setRegenBusy(new Set()); }
+                }}
+                disabled={regenBusy.size > 0}
+                className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40"
+                data-testid="editor-cw-bulk-missing"
+              >
+                {regenBusy.size > 0 ? <Loader2 className="w-3.5 h-3.5 inline mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 inline mr-1" />}
+                Genera solo mancanti
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const words = card.commonWords || [];
+                  const allKeys = [];
+                  words.forEach((_, i) => { allKeys.push(`word-${i}-AmE`, `word-${i}-RP`); });
+                  if (!window.confirm(`⚠️ SOVRASCRIVERÒ tutti i ${allKeys.length} audio (AmE + RP) delle parole comuni. Costoso in crediti ElevenLabs. Procedere?`)) return;
+                  setRegenBusy(new Set(allKeys));
+                  try {
+                    const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
+                      method: 'POST', headers: authHeaders(),
+                      body: JSON.stringify({ only_keys: allKeys, overwrite: true, words_limit: Math.max(30, words.length), include_words_rp: true }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+                    const refreshed = await fetch(`${API}/api/admin/phonemes/${routeId}`, { headers: authHeaders() }).then((r) => r.json());
+                    const merged = deepMerge(BLANK, refreshed);
+                    setCard(merged); setInitial(merged);
+                    setToast(`${(data.generated || []).length} audio rigenerati`);
+                    setTimeout(() => setToast(''), 4000);
+                  } catch (e) {
+                    setError(`Errore bulk: ${e.message}`);
+                  } finally { setRegenBusy(new Set()); }
+                }}
+                disabled={regenBusy.size > 0}
+                className="text-[11px] px-3 py-1.5 rounded-lg border border-rose-500/40 text-rose-200 hover:bg-rose-500/10 disabled:opacity-40"
+                data-testid="editor-cw-bulk-overwrite"
+                title="Sovrascrive tutte le clip esistenti"
+              >
+                <RefreshCw className="w-3.5 h-3.5 inline mr-1" /> Sovrascrivi tutti
+              </button>
+            </div>
+          )}
+
           <Repeater
             label="Parola"
             items={card.commonWords || []}
@@ -1399,6 +1543,20 @@ export default function PhonemeAdminEditorPage() {
                   <Input value={item.audioRP || ''} onChange={(e) => upd({ ...item, audioRP: e.target.value })} placeholder="RP audio URL" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio-rp`} />
                 </div>
                 <div className="sm:col-span-1 flex items-center justify-end gap-1">
+                  {/* One-shot regenerate BOTH dialects via ElevenLabs */}
+                  <button
+                    type="button"
+                    onClick={() => regenCommonWordAudio(i, 'both')}
+                    disabled={regenBusy.has(`word-${i}-AmE`) || regenBusy.has(`word-${i}-RP`) || !((item.w || '').trim())}
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/40 text-cyan-100 hover:bg-cyan-500/10 disabled:opacity-40 flex items-center gap-0.5"
+                    title="Rigenera audio ElevenLabs AmE + RP per questa parola"
+                    data-testid={`editor-cw-${i}-regen-both`}
+                  >
+                    {(regenBusy.has(`word-${i}-AmE`) || regenBusy.has(`word-${i}-RP`))
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <RefreshCw className="w-3 h-3" />}
+                    <span className="hidden md:inline">Genera</span>
+                  </button>
                   {(item.audioAmE || item.audio) && (
                     <button
                       type="button"

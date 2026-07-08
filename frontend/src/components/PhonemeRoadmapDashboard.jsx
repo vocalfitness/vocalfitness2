@@ -277,7 +277,7 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
           {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body:    JSON.stringify({ words_limit: 10, include_words_rp: true }),
+            body:    JSON.stringify({ words_limit: 30, include_words_rp: true }),
           },
         );
         const data = await res.json();

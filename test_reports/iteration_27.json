@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 27 (words_limit 10→30 default + per-row refresh button in card CMS) — full-stack validation PASS. Backend: 9/9 pytest cases green covering (a) BatchAudioRequest defaults now `words_limit=30` + `include_words_rp=true` — empty body {} to POST /api/admin/phonemes/u-foot/batch-audio returns all 60 expected word-{0..29}-{AmE,RP} keys in the combined generated/skipped/errors set, (b) idempotency: overwrite=false on already-populated u-foot => 60 word items in `skipped`, 0 word items in `generated`, (c) surgical only_keys=['word-29-AmE','word-29-RP'] => total=2, skipped both, (d) include_words_rp=false honoured (RP word keys excluded), (e) 401 without auth, (f) 404 on unknown card, (g) PATCH /api/admin/phonemes/{id}/audio-url regression for `word-29-AmE` still persists correctly. Frontend: /admin/phonemes/u-foot editor 'Parole comuni' section VERIFIED after expanding the collapsed <Section> — cyan banner text 'Bulk audio ElevenLabs — 30 parole ×2 dialetti = 60 clip' FOUND; data-testid='editor-cw-bulk-missing' (green 'Genera solo mancanti') and 'editor-cw-bulk-overwrite' (rose 'Sovrascrivi tutti') PRESENT; exactly 30 data-testid='editor-cw-{i}-regen-both' buttons rendered; 30 ✕ AmE + 30 ✕ RP clear buttons still present; word 29 specific testids all rendered. Interaction test: clicking 'editor-cw-29-regen-both' fires POST /api/admin/phonemes/u-foot/batch-audio with EXACT payload {only_keys:['word-29-AmE','word-29-RP'], overwrite:true, words_limit:30, include_words_rp:true} → real ElevenLabs response 200 with generated=['word-29-AmE','word-29-RP'], errors=[]; the AmE and RP inputs of PAROLA 30 (crook, index 29) both populated with /api/uploads/elevenlabs/u-foot_word_crook_* URLs on refresh. Regression: PhonemeRoadmapDashboard.jsx:280 confirmed sending words_limit:30 (code review). Audio Studio manual URL paste path unchanged and re-verified via pytest.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter27_words_limit_30.py",
+    "/app/test_reports/pytest/iter27_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "regenCommonWordAudio() at PhonemeAdminEditorPage.jsx:342 sets `words_limit: Math.max(30, (card.commonWords || []).length)` — good defensive behaviour if a card ever gets >30 words. Also both bulk buttons at lines 1472 and 1503 use the same Math.max(30, words.length) pattern → consistent.",
+    "The three code paths in the editor (per-row regen, bulk-missing, bulk-overwrite) each duplicate ~20 lines of fetch + refresh-card + setToast logic. Extraction into a shared `runBatchAudio({only_keys, overwrite, successMsg})` helper would DRY the three blocks and reduce the file's footprint (currently 2308 lines).",
+    "Backend BatchAudioRequest.words_limit is not upper-bounded — a caller could send words_limit=10000 and force the endpoint to iterate through the full commonWords array. Since it's an admin-only endpoint and commonWords list is naturally short (~30 elements), impact is low, but adding `Field(ge=0, le=200)` would harden the input.",
+    "The pre-existing observations from iter-26 still stand: phoneme_cards.py is 2951 lines and PhonemeAdminEditorPage.jsx is 2308 lines — both well above the 700-line guideline. Extracting the batch-audio runner and the AI-drafting blocks (backend) and the Parole-comuni + Audio Studio panels (frontend) is overdue but not iter-27 blocking.",
+    "The confirm() dialogs in the two bulk buttons (lines 1467 and 1498) use native window.confirm() — inconsistent with the app's shadcn/dialog UI vocabulary but acceptable for admin-only, cost-sensitive actions."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter27_words_limit_30.py (NEW — 9 pytest cases, 1.41s runtime)"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9)",
+    "frontend": "100% — banner text, bulk buttons, 30 regen-both buttons, 30 AmE clear + 30 RP clear buttons all present with correct data-testids; interactive click on editor-cw-29-regen-both produced the exact expected POST payload and a real 200 ElevenLabs generation."
+  },
+  "test_credentials": "admin / VocalFitness2026! (placeholder-based selectors + press Enter on password to submit; response.access_token JWT)",
+  "seed_data_creation": "The interactive test genuinely regenerated audio for word 29 (crook) on u-foot via ElevenLabs (~2 credits burned). Old URL was https://customer-assets.emergentagent.com/... , new URL is /api/uploads/elevenlabs/u-foot_word_crook_{AmE,RP}_<ts>.mp3. Not destructive — the card still has all 30 AmE + 30 RP populated after the test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 27 verified. Reusable test file /app/backend/tests/test_iter27_words_limit_30.py — 9 fast pytests that don't burn ElevenLabs credits (they exercise only skip/only_keys paths on a fully-populated card). Frontend testids working: editor-cw-bulk-missing, editor-cw-bulk-overwrite, editor-cw-{0..29}-regen-both, editor-cw-{0..29}-audio-ame-clear, editor-cw-{0..29}-audio-rp-clear. 'Parole comuni (con audio)' section is COLLAPSED by default — a click on the header expands it before the buttons become interactable. Login → an 'Updated Title / Updated content after edit' modal pops up on /area-clienti and must be dismissed with the OK button before proceeding to /admin/phonemes/u-foot; the same modal reappears on the editor page and must be dismissed again. Preview data still has both u-foot and i-fleece with IDENTICAL AmE/RP isolated URLs (carryover from iter-26); the nested-<button> hydration warning on phoneme card pages is still present (unchanged, not iter-27 scope).",
+  "rca of the issue": "N/A — all iter-27 acceptance criteria verified end-to-end. Nothing to fix."
+}
