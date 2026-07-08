@@ -111,3 +111,67 @@ def test_empty_ipa_phoneme_is_treated_as_no_ipa(fake_client, tmp_path):
     assert res["ssml_used"] is False
     call = fake_client.last_call
     assert call["text"] == "hello"
+
+
+# =========================================================================
+# Inline IPA auto-wrapping (07/07/2026 · feature suggerimento §3.6)
+# =========================================================================
+
+def test_inline_ipa_wraps_all_fragments(fake_client, tmp_path):
+    """Multi-fragment prose: "The word /kʊk/ has /ʊ/." → 2 phoneme tags."""
+    from routers.elevenlabs import synthesize_and_store
+    res = synthesize_and_store(
+        text="The word /kʊk/ has the vowel /ʊ/.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    assert res["ssml_used"] is True
+    assert res["inline_ipa_hits"] == ["kʊk", "ʊ"]
+    call = fake_client.last_call
+    assert '<phoneme alphabet="ipa" ph="kʊk">kʊk</phoneme>' in call["text"]
+    assert '<phoneme alphabet="ipa" ph="ʊ">ʊ</phoneme>' in call["text"]
+    assert "The word " in call["text"]
+    assert " has the vowel " in call["text"]
+    assert call["model_id"] == "eleven_turbo_v2"
+
+
+def test_inline_ipa_ignores_slashes_with_whitespace(fake_client, tmp_path):
+    """False positives guard: '1/2 cup' or 'foo / bar' should NOT be
+    interpreted as IPA fragments."""
+    from routers.elevenlabs import synthesize_and_store
+    res = synthesize_and_store(
+        text="Add 1/2 cup — foo / bar / baz.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    assert res["ssml_used"] is False
+    assert res["inline_ipa_hits"] is None
+    call = fake_client.last_call
+    assert "<phoneme" not in call["text"]
+
+
+def test_explicit_ipa_phoneme_beats_inline_scan(fake_client, tmp_path):
+    """When ``ipa_phoneme`` is provided, the inline scanner is skipped —
+    the whole text becomes one phoneme (isolated-clip case)."""
+    from routers.elevenlabs import synthesize_and_store
+    res = synthesize_and_store(
+        text="The word /kʊk/ has /ʊ/.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+        ipa_phoneme="ʊ",
+    )
+    assert res["ipa_phoneme"] == "ʊ"
+    assert res["inline_ipa_hits"] is None
+    call = fake_client.last_call
+    # The whole text is wrapped by the explicit override, no per-fragment split.
+    assert call["text"].count("<phoneme") == 1
+
+
+def test_inline_ipa_xml_escapes_surrounding_prose(fake_client, tmp_path):
+    from routers.elevenlabs import synthesize_and_store
+    synthesize_and_store(
+        text='2 < 5 & 5 > 2. Say /ʊ/.',
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    call = fake_client.last_call
+    assert "&lt;" in call["text"]
+    assert "&amp;" in call["text"]
+    assert "&gt;" in call["text"]
+    assert 'ph="ʊ"' in call["text"]

@@ -11,6 +11,42 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — SSML IPA inline auto-wrap per frasi ibride prose+IPA — DONE ✅
+
+**Estensione del suggerimento**: il motore SSML IPA ora funziona anche INLINE dentro qualsiasi frase. Esempio d'uso pedagogico:
+
+Input: `"The word /kʊk/ contains the vowel /ʊ/, not /uː/."`
+
+Output SSML inviato a ElevenLabs:
+```
+The word <phoneme alphabet="ipa" ph="kʊk">kʊk</phoneme> contains the vowel <phoneme alphabet="ipa" ph="ʊ">ʊ</phoneme>, not <phoneme alphabet="ipa" ph="uː">uː</phoneme>.
+```
+
+Il modello pronuncia esattamente i 3 fonemi mentre le parti in prosa restano naturali.
+
+**Logica** (in `synthesize_and_store`):
+- Se `ipa_phoneme` fornito esplicitamente → wrap full text (comportamento isolated invariato).
+- Altrimenti → scan regex `/([^/\s]{1,8})/` sul text (guard anti-false-positive: nessuno spazio dentro le barre, 1-8 char max).
+- Per ogni match: XML-escape della prosa circostante + `<phoneme alphabet="ipa" ph="…">…</phoneme>` sul fragment.
+- Auto-switch model a `eleven_turbo_v2` se qualsiasi wrap avviene.
+- Response arricchita: `inline_ipa_hits: List[str]` per debug/analytics.
+
+**False-positive guard verificato**: `"1/2 cup"`, `"foo / bar"`, `"path/to/file"` → NO wrap (regex esige assenza di whitespace dentro).
+
+**Refactor `/tts` endpoint** legacy: ora usa `synthesize_and_store` (prima era codice duplicato). Beneficia automaticamente del pattern SSML IPA + campo nuovo `ipa_phoneme` esposto.
+
+**Test end-to-end via curl**:
+- Test 1 (inline hybrid): `ssml_used=True model=eleven_turbo_v2 hits=['kʊk','ʊ']` ✅
+- Test 2 (explicit): `ssml_used=True ipa=ʌ model=eleven_turbo_v2` ✅
+- Test 3 (normal): `ssml_used=False model=eleven_multilingual_v2` ✅
+
+**Test unit**: `tests/test_ssml_ipa_wrapping.py` estesi da 5 → **9 test, 9/9 PASS** in 0.22s (aggiunti: multi-fragment wrap, whitespace guard, ipa_phoneme override precedence, XML escape circostante).
+
+**Audio Studio UI**: banner IPA aggiornato per spiegare la modalità inline auto-detect + esempi cliccabili.
+
+**Redeploy richiesto**. Post-redeploy: puoi scrivere frasi ibride in qualsiasi campo (mnemonic, example, custom prompt Audio Studio) — l'engine wrappa automaticamente.
+
+
 ### 07/07/2026 — SSML IPA scientific mode per Audio Studio + isolated clips — DONE ✅
 
 **Richiesta utente**: "se scrivo /ʌ/ voglio che mi restituisca il suono isolato di quel fonema. Ora devo scrivere 'uh' e sperare che sia corretto — così non è come voglio lavorare. La scientificità dev'essere assoluta."

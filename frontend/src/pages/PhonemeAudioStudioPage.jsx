@@ -344,9 +344,7 @@ export default function PhonemeAudioStudioPage() {
         <div className="mb-4 rounded-xl bg-gradient-to-r from-fuchsia-500/10 to-cyan-500/10 border border-fuchsia-500/25 p-3 flex items-start gap-3" data-testid="audio-studio-ipa-hint">
           <Sparkles className="w-5 h-5 text-fuchsia-300 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-cyan-100/90 leading-relaxed">
-            <b className="text-fuchsia-200">Modalità IPA scientifica</b> — clicca l&apos;icona <Sparkles className="w-3 h-3 inline text-fuchsia-300" /> su qualsiasi clip per rigenerare con SSML IPA (<code className="text-fuchsia-200 bg-slate-800/70 px-1 rounded">&lt;phoneme alphabet=&quot;ipa&quot; ph=&quot;ʌ&quot;&gt;</code>).
-            Puoi anche digitare direttamente <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/ʌ/</code> o <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/ə/</code> come testo — il motore lo riconoscerà.
-            Le clip <b>isolated</b> ora usano SSML automaticamente per suono puro (non &quot;the schwa sound as in ...&quot;). Modello auto-switched a <code className="bg-slate-800/70 px-1 rounded">eleven_turbo_v2</code> quando SSML è attivo.
+            <b className="text-fuchsia-200">Modalità IPA scientifica</b> — <b>auto-detect inline</b>: qualsiasi <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/ʌ/</code> o <code className="text-cyan-200 bg-slate-800/70 px-1 rounded">/kʊk/</code> dentro un testo viene wrappato in SSML (<code className="text-fuchsia-200 bg-slate-800/70 px-1 rounded">&lt;phoneme alphabet=&quot;ipa&quot; ph=&quot;…&quot;&gt;</code>). Puoi scrivere frasi ibride tipo <i>&quot;The word /kʊk/ contains /ʊ/&quot;</i> e i fonemi verranno pronunciati esattamente. Clicca l&apos;icona <Sparkles className="w-3 h-3 inline text-fuchsia-300" /> per override manuale del singolo clip. Modello auto-switched a <code className="bg-slate-800/70 px-1 rounded">eleven_turbo_v2</code> quando SSML è attivo.
           </div>
         </div>
 

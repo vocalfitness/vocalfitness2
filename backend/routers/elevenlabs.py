@@ -41,6 +41,11 @@ class ElevenLabsTTSRequest(BaseModel):
     model_id: str = "eleven_multilingual_v2"
     output_format: str = "mp3_44100_128"  # mp3 default; "pcm_44100" for raw waveguide source
     filename_hint: Optional[str] = None   # optional human-readable hint for saved filename
+    # Optional IPA hint: when set, wraps text in SSML <phoneme alphabet="ipa"
+    # ph="…">…</phoneme> and auto-switches to eleven_turbo_v2. If unset, the
+    # engine still scans ``text`` for inline /…/ fragments and wraps each
+    # in an SSML tag (auto model switch applies as soon as any wrap occurs).
+    ipa_phoneme: Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -109,17 +114,49 @@ def synthesize_and_store(
     ipa_clean = (ipa_phoneme or "").strip().strip("/").strip()
     ssml_used = False
     final_text = text
+    inline_ipa_hits: list[str] = []
     if ipa_clean:
-        # XML-escape the fallback word (the tag's text content, spoken by
-        # non-SSML-aware models as a graceful degradation).
+        # Explicit single-phoneme override (Audio Studio Sparkles button,
+        # or auto-generated for isolated clips).
         fallback = (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")) or ipa_clean
         ph_attr  = ipa_clean.replace('"', "&quot;")
         final_text = f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>'
         ssml_used = True
+    else:
+        # Inline IPA scan — detect /…/ fragments in any text (example
+        # sentences, mnemonic phrases). Each ``/…/`` up to 8 chars is
+        # wrapped in a phoneme tag while surrounding prose is XML-escaped
+        # and left in natural language. This lets the Prof write hybrid
+        # pedagogy like:
+        #     "The word /kʊk/ contains the vowel /ʊ/."
+        # and get scientifically accurate pronunciation on both IPA slots.
+        # Whitespace inside the slashes disables the match (prevents
+        # false positives on filepaths / dates / regex).
+        inline_re = re.compile(r'/([^/\s]{1,8})/')
+        if inline_re.search(text):
+            parts: list[str] = []
+            last = 0
+            def _xml_escape(s: str) -> str:
+                return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            for m in inline_re.finditer(text):
+                if m.start() > last:
+                    parts.append(_xml_escape(text[last:m.start()]))
+                ipa = m.group(1)
+                inline_ipa_hits.append(ipa)
+                ph_attr = ipa.replace('"', "&quot;")
+                # Use the IPA symbol itself as visible fallback text so
+                # older models degrade to "reading the letters" instead
+                # of silence.
+                parts.append(f'<phoneme alphabet="ipa" ph="{ph_attr}">{ph_attr}</phoneme>')
+                last = m.end()
+            if last < len(text):
+                parts.append(_xml_escape(text[last:]))
+            final_text = "".join(parts)
+            ssml_used = True
+
+    if ssml_used and model_id.startswith("eleven_multilingual"):
         # Model auto-switch: SSML <phoneme> works ONLY on v2 English models.
-        # Preserve caller override if they explicitly chose a v2 English model.
-        if model_id.startswith("eleven_multilingual"):
-            model_id = "eleven_turbo_v2"
+        model_id = "eleven_turbo_v2"
 
     from elevenlabs import VoiceSettings
     settings = VoiceSettings(
@@ -170,6 +207,7 @@ def synthesize_and_store(
         "size_bytes":   len(audio_data),
         "ssml_used":    ssml_used,
         "ipa_phoneme":  ipa_clean or None,
+        "inline_ipa_hits": inline_ipa_hits or None,
         "model_id":     model_id,
     }
 
@@ -235,82 +273,36 @@ def build_elevenlabs_router(
         """Generate TTS audio with the user's ElevenLabs voice clone and persist
         the result to Emergent Object Storage. Returns a public URL ready to be
         set as ``voiceClone.url`` in the VocalLab profiles or referenced elsewhere.
+
+        Uses the shared ``synthesize_and_store`` helper so it benefits from
+        the same SSML IPA logic (auto-wrap of ``/ʌ/`` fragments, explicit
+        ``ipa_phoneme`` override, auto model-switch to ``eleven_turbo_v2``
+        when SSML is used).
         """
         if not (req.text or "").strip():
             raise HTTPException(status_code=400, detail="text obbligatorio")
-
-        client = _get_elevenlabs_client()
-        if not client:
-            raise HTTPException(
-                status_code=503,
-                detail="ElevenLabs non configurato (ELEVENLABS_API_KEY mancante)",
-            )
-
-        voice_id = (req.voice_id or os.environ.get("ELEVENLABS_DEFAULT_VOICE_ID", "")).strip()
-        if not voice_id:
-            raise HTTPException(
-                status_code=400,
-                detail="voice_id richiesto (oppure setta ELEVENLABS_DEFAULT_VOICE_ID)",
-            )
-
         try:
-            from elevenlabs import VoiceSettings
-            voice_settings = VoiceSettings(
-                stability=float(req.stability),
-                similarity_boost=float(req.similarity_boost),
-                style=float(req.style),
-                use_speaker_boost=bool(req.use_speaker_boost),
-            )
-            # `convert` returns a generator yielding bytes chunks
-            chunks = client.text_to_speech.convert(
+            res = synthesize_and_store(
                 text=req.text,
-                voice_id=voice_id,
+                voice_id=req.voice_id or "",
+                emergent_put=emergent_put,
+                uploads_dir=uploads_dir,
+                stability=req.stability,
+                similarity_boost=req.similarity_boost,
+                style=req.style,
+                use_speaker_boost=req.use_speaker_boost,
                 model_id=req.model_id,
-                voice_settings=voice_settings,
                 output_format=req.output_format,
+                filename_hint=req.filename_hint,
+                ipa_phoneme=req.ipa_phoneme,
             )
-            audio_data = b"".join(chunks)
-            if not audio_data:
-                raise HTTPException(status_code=502, detail="ElevenLabs returned empty audio")
-
-            # Pick extension/content type from output_format
-            fmt = (req.output_format or "").lower()
-            if fmt.startswith("mp3"):
-                ext, content_type = "mp3", "audio/mpeg"
-            elif fmt.startswith("pcm"):
-                ext, content_type = "pcm", "audio/L16"
-            elif fmt.startswith("ulaw"):
-                ext, content_type = "ulaw", "audio/basic"
-            else:
-                ext, content_type = "mp3", "audio/mpeg"
-
-            # Save to storage with a deterministic-ish name
-            safe_hint = re.sub(r"[^a-zA-Z0-9_-]+", "_", (req.filename_hint or "tts"))[:48].strip("_") or "tts"
-            ts = int(datetime.now(timezone.utc).timestamp())
-            filename = f"elevenlabs/{safe_hint}_{voice_id[:8]}_{ts}.{ext}"
-
-            ok = emergent_put(filename, audio_data, content_type)
-            if not ok:
-                # Fallback: write to local uploads dir
-                local_path = uploads_dir / filename
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_bytes(audio_data)
-
-            # Build public URL
-            base = os.environ.get("FRONTEND_URL", "").rstrip("/")
-            public_url = f"{base}/api/uploads/{filename}" if base else f"/api/uploads/{filename}"
-
-            return {
-                "url": public_url,
-                "relative_url": f"/api/uploads/{filename}",
-                "filename": filename,
-                "voice_id": voice_id,
-                "content_type": content_type,
-                "size_bytes": len(audio_data),
-                "text": req.text,
-                "model_id": req.model_id,
-                "output_format": req.output_format,
-            }
+            # Enrich with echo fields for backward-compat with older callers
+            res["text"]          = req.text
+            res["output_format"] = req.output_format
+            return res
+        except RuntimeError as e:
+            # ``synthesize_and_store`` raises RuntimeError for config or empty-audio
+            raise HTTPException(status_code=502, detail=str(e))
         except HTTPException:
             raise
         except Exception as e:
