@@ -22,7 +22,7 @@ Reference spec: `/app/backend/canonical_data/HotspotRule_v1.md` §3.2/§3.3
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import re
 
 
@@ -45,18 +45,20 @@ _ARPABET_TO_IPA: Dict[str, str] = {
 
 
 # Reverse map: for a target IPA, which ARPAbet base phones match?
-# We accept the primary map plus common IPA-equivalent inputs so the
-# canonical inventory's Unicode variants all resolve to the same phone.
+# ⚠️ Some IPA symbols share the same ARPAbet BASE phone but differ by STRESS:
+#   • AH0 (unstressed) → /ə/ (schwa)          ·  AH1/AH2 → /ʌ/ (STRUT)
+#   • ER0 (unstressed) → /ɚ/ (r-colored ə)   ·  ER1/ER2 → /ɝ/ (r-colored ʌ / NURSE)
+# So for those IPAs we ALSO filter by stress digit — see ``_STRESS_FILTER``.
 _IPA_TO_ARPABET: Dict[str, str] = {
     # vowel canonical equivalences
     "ʊ": "UH",  "u": "UW", "uː": "UW",
     "ɪ": "IH",  "i": "IY", "iː": "IY",
     "ɛ": "EH",  "e": "EH",
     "æ": "AE",
-    "ʌ": "AH",  "ə": "AH",
+    "ʌ": "AH",  "ə": "AH",           # SAME base — disambiguated via stress
     "ɑ": "AA",  "ɑː": "AA",  "ɒ": "AA",
     "ɔ": "AO",  "ɔː": "AO",
-    "ɝ": "ER",  "ɜː": "ER",  "ɚ": "ER",
+    "ɝ": "ER",  "ɜː": "ER",  "ɚ": "ER",   # SAME base — disambiguated via stress
     "eɪ": "EY",
     "aɪ": "AY",
     "aʊ": "AW",
@@ -70,6 +72,25 @@ _IPA_TO_ARPABET: Dict[str, str] = {
     "ɹ": "R",   "r": "R",   "s": "S",   "ʃ": "SH",  "t": "T",
     "θ": "TH",  "v": "V",   "w": "W",   "j": "Y",   "z": "Z",
     "ʒ": "ZH",
+}
+
+
+# Stress predicate per IPA symbol. A missing entry means "any stress"
+# (default). Returns True when the phone's stress digit is acceptable
+# for the target IPA.
+_STRESS_FILTER: Dict[str, Callable[[str], bool]] = {
+    # Unstressed schwas
+    "ə":  lambda s: s == "0",
+    "ɚ":  lambda s: s == "0",
+    # Stressed strut / nurse vowels
+    "ʌ":  lambda s: s in ("1", "2"),
+    "ɝ":  lambda s: s in ("1", "2"),
+    "ɜː": lambda s: s in ("1", "2"),   # RP NURSE
+    "ɑː": lambda s: s in ("1", "2"),   # PALM
+    "ɔː": lambda s: s in ("1", "2"),   # THOUGHT
+    "iː": lambda s: s in ("1", "2"),   # FLEECE (tense-long)
+    "uː": lambda s: s in ("1", "2"),   # GOOSE (tense-long)
+    # Lax short vowels — allow any stress by omitting from this table.
 }
 
 
@@ -127,17 +148,20 @@ _WORD_RE = re.compile(r"^[a-z]+$")
 
 
 def _extract_matching_words(target_arpa: str, max_words: int = 30,
-                              min_zipf: float = 2.5) -> List[Dict[str, str]]:
+                              min_zipf: float = 2.5,
+                              target_ipa: str = "") -> List[Dict[str, str]]:
     """Scan CMUdict for words whose GenAm pronunciation contains the target
-    ARPAbet phone (any stress). Sort by Zipf frequency DESC, return the top
-    ``max_words``.
+    ARPAbet phone. Sort by Zipf frequency DESC, return the top ``max_words``.
 
-    Only lowercase single-word entries are considered (no proper nouns,
-    contractions or hyphenated). ``min_zipf`` filters out obscure words —
-    a Zipf of 2.5 corresponds to roughly 1 occurrence per 100k tokens.
+    ⚠️ Stress-sensitive phonemes (schwa /ə/, STRUT /ʌ/, /ɚ/ vs /ɝ/, long
+    vs short vowels sharing an ARPAbet base) require that the matching
+    phone ALSO satisfy ``_STRESS_FILTER[target_ipa]`` — otherwise the
+    lexicon for /ə/ ends up populated with /ʌ/ words (bug reported by
+    user on schwa card in production, 07/07/2026).
     """
     cmu = _get_cmudict()
     wf  = _get_wordfreq()
+    stress_pred = _STRESS_FILTER.get(target_ipa)
 
     matches: List[Tuple[float, str, List[str]]] = []
     for word, prons in cmu.items():
@@ -149,8 +173,19 @@ def _extract_matching_words(target_arpa: str, max_words: int = 30,
         if not prons:
             continue
         pron = prons[0]
-        base_phones = [_strip_stress(p) for p in pron]
-        if target_arpa not in base_phones:
+        # Find any phone matching (base, stress-predicate).
+        found = False
+        for p in pron:
+            base = _strip_stress(p)
+            if base != target_arpa:
+                continue
+            if stress_pred is not None:
+                stress_digit = p[-1] if p and p[-1].isdigit() else ""
+                if not stress_pred(stress_digit):
+                    continue
+            found = True
+            break
+        if not found:
             continue
         zipf = wf.zipf_frequency(word, "en")
         if zipf < min_zipf:
@@ -312,6 +347,6 @@ def generate_lexicon_for_canonical(target_ipa: str,
     if not arpa:
         return {"commonWords": [], "spellings": []}
 
-    words = _extract_matching_words(arpa, max_words=max_words)
+    words = _extract_matching_words(arpa, max_words=max_words, target_ipa=target_ipa)
     spellings = _compute_spelling_distribution(target_ipa, words)
     return {"commonWords": words, "spellings": spellings}

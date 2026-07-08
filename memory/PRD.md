@@ -11,6 +11,43 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+### 07/07/2026 — HOTFIX §3.2 · Stress-sensitive phoneme lexicon bug (schwa=STRUT) — DONE ✅
+
+**Bug**: utente segnalava che `/ə/` (schwa) su `vocalfitness.org/admin/phonemes/schwa` mostrava parole di `/ʌ/` (STRUT) come "one, just, up, us"…
+
+**Root cause identificato in `phoneme_lexicon_rule.py`**:
+- CMUdict codifica /ə/ e /ʌ/ con lo stesso ARPAbet base "AH" — la differenza è nello STRESS DIGIT (`AH0` = schwa unstressed · `AH1`/`AH2` = STRUT stressed).
+- Il mio motore strippava lo stress prima del matching (`_strip_stress`) → schwa e STRUT collassavano nello stesso pool di parole.
+- Stessa classe di bug per: `/ɚ/` vs `/ɝ/` (entrambi ER), `/iː/` vs `/ɪ/` (IY vs IH), `/uː/` vs `/ʊ/` (UW vs UH), `/ɑː/` (AA stressed), `/ɔː/` (AO stressed), `/ɜː/` (ER stressed).
+
+**Fix**:
+- Nuovo `_STRESS_FILTER: Dict[str, Callable[[str], bool]]` — predicati stress per IPA che condividono base ARPAbet. `/ə/` accetta solo stress=0, `/ʌ/` solo stress ∈ {1,2}, ecc.
+- `_extract_matching_words()` estende il matching a `(base_phone == target_arpa) AND (stress_pred(stress_digit))`.
+- Signature estesa a `target_ipa=""` per passare l'IPA originale (serve al lookup predicato).
+
+**Verifica automatica**:
+- Rigenerate 6 card impattate (schwa, ah-strut, a-palm, o-thought, u-goose, er-nurse) via `POST /generate-lexicon` — ora tutte con parole corrette.
+- Nuovo test file `/app/backend/tests/test_lexicon_stress_filter.py` con 15 test:
+  - 10 test parametrici verificano che ogni fonema stress-sensitive contenga almeno 1 parola canonica attesa.
+  - 4 test parametrici verificano disgiunzione top-5 tra coppie confusable (/ə/ vs /ʌ/, /ɚ/ vs /ɝ/, /ɪ/ vs /iː/, /ʊ/ vs /uː/).
+  - 1 sentinel test esplicito: schwa MUST NOT contain "from, one, just, up, us".
+- **15/15 PASS** in 4.4 sec.
+
+**Card in preview verificate**:
+- /ə/ → "about, people, little, another, again, against, family, second…" ✅
+- /ʌ/ → "from, one, just, up, what, some, other, us…" ✅
+- /ɚ/ → "other, our, after, over, never…" ✅
+- /ɝ/ → "were, her, first, work, world…" ✅
+- /iː/ → "be, he, we, me, she, people, see…" ✅
+- /ɪ/ → "is, it, with, this, his, will…" ✅
+- /uː/ → "you, do, who, new, two, too…" ✅
+- /ʊ/ → "would, good, could, should, look…" ✅
+- /ɑː/ → "was, are, not, want, got, part…" ✅
+- /ɔː/ → "for, your, all, more, also, because…" ✅
+
+**Redeploy richiesto**: fix in preview. Redeploy per produzione (`vocalfitness.org`). Post-redeploy: click "Rigenera derived su tutte" dalla Roadmap Dashboard per applicare il fix a tutte le card affette in produzione.
+
+
 ### 07/07/2026 — §3.5 Pronunciation Protocol Canonical + Engine — DONE ✅
 
 **Contesto**: utente ha confermato che i 3 hotfix precedenti (hotspot auto-lock, pronunciationGuide.body fallback, 30 words backfill) hanno risolto tutto tranne "Vocal Fitness articulatory protocol" ancora vuoto. Ha chiesto: "controlla se esiste un CANONICAL, se no formalizzane uno solido sul piano scientifico". Nessun canonical esisteva.
