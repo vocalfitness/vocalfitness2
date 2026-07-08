@@ -106,6 +106,67 @@ const ConfidencePill = ({ value }) => {
 };
 
 // ============================================================
+// MiniAudioButton — inline play/pause for the common-words rows
+// Small footprint (24×24) — plays an <audio> element that is
+// re-created every time the src prop changes so switching a URL
+// (e.g. after regeneration) doesn't replay the cached old clip.
+// ============================================================
+const MiniAudioButton = ({ src, testId }) => {
+  const [playing, setPlaying] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const audioRef = React.useRef(null);
+
+  // Re-create the Audio element whenever ``src`` changes → prevents
+  // stale-cached playback after regeneration.
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+      setPlaying(false);
+      setLoading(false);
+    }
+  }, [src]);
+
+  const toggle = async () => {
+    if (!src) return;
+    if (!audioRef.current) {
+      const a = new Audio(src);
+      a.addEventListener('ended', () => setPlaying(false));
+      a.addEventListener('error', () => { setPlaying(false); setLoading(false); });
+      a.addEventListener('canplay', () => setLoading(false));
+      audioRef.current = a;
+    }
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      setLoading(true);
+      try {
+        await audioRef.current.play();
+        setPlaying(true);
+      } catch { setPlaying(false); }
+      finally { setLoading(false); }
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={!src}
+      className={`w-6 h-6 rounded-full flex items-center justify-center transition ${
+        playing ? 'bg-cyan-500 text-slate-900' : 'bg-slate-800 hover:bg-cyan-500/30 text-cyan-200'
+      } disabled:opacity-30`}
+      title={playing ? 'Ferma' : 'Riproduci'}
+      data-testid={testId}
+    >
+      {loading ? <span className="text-[10px]">…</span> : playing ? <span className="text-[10px]">■</span> : <span className="text-[10px]">▶</span>}
+    </button>
+  );
+};
+
+// ============================================================
 // Blank template for /new
 // ============================================================
 const BLANK = {
@@ -167,6 +228,29 @@ export default function PhonemeAdminEditorPage() {
   // Set of "word-{i}-{dialect}" keys currently regenerating audio via
   // ElevenLabs. Used to display a spinner on the row's refresh button.
   const [regenBusy, setRegenBusy] = useState(new Set());
+
+  // Set of "word-{i}-{dialect}" keys the user has selected via the
+  // per-track checkbox → used by the bulk "Genera N selezionati" button.
+  const [selectedTracks, setSelectedTracks] = useState(new Set());
+
+  // Set of row indices whose "detail" panel (URL fields + note) is
+  // currently expanded — collapsed by default to keep the list clean.
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  const toggleSelected = (key) => {
+    setSelectedTracks((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  const toggleExpanded = (i) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
   const [advancedJson, setAdvancedJson] = useState('');
   const [jsonError, setJsonError]     = useState('');
 
@@ -389,6 +473,38 @@ export default function PhonemeAdminEditorPage() {
         keys.forEach((k) => next.delete(k));
         return next;
       });
+    }
+  };
+
+  // ─── Batch-regen the tracks currently selected via checkbox ─────────
+  const regenSelectedTracks = async ({ overwrite = true } = {}) => {
+    const keys = Array.from(selectedTracks);
+    if (keys.length === 0) return;
+    if (!window.confirm(`Rigenerà ${keys.length} clip audio selezionate via ElevenLabs. Procedere?`)) return;
+    setRegenBusy(new Set(keys));
+    setError(''); setToast('');
+    try {
+      const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({
+          only_keys: keys,
+          overwrite,
+          words_limit: Math.max(30, (card.commonWords || []).length),
+          include_words_rp: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      const refreshed = await fetch(`${API}/api/admin/phonemes/${routeId}`, { headers: authHeaders() }).then((r) => r.json());
+      const merged = deepMerge(BLANK, refreshed);
+      setCard(merged); setInitial(merged);
+      setSelectedTracks(new Set());
+      setToast(`${(data.generated || []).length} clip generate · ${(data.errors || []).length} errori`);
+      setTimeout(() => setToast(''), 4000);
+    } catch (e) {
+      setError(`Errore batch selezione: ${e.message}`);
+    } finally {
+      setRegenBusy(new Set());
     }
   };
 
@@ -1449,7 +1565,24 @@ export default function PhonemeAdminEditorPage() {
             <div className="flex flex-wrap items-center gap-2 mb-3 p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
               <span className="text-[11px] text-cyan-200 font-semibold mr-auto">
                 🎙️ Bulk audio ElevenLabs — {(card.commonWords || []).length} parole ×2 dialetti = {(card.commonWords || []).length * 2} clip
+                {selectedTracks.size > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 rounded-full bg-fuchsia-500/30 border border-fuchsia-400/50 text-fuchsia-100">
+                    {selectedTracks.size} selezionate
+                  </span>
+                )}
               </span>
+              {selectedTracks.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => regenSelectedTracks({ overwrite: true })}
+                  disabled={regenBusy.size > 0}
+                  className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40"
+                  data-testid="editor-cw-bulk-selected"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 inline mr-1" />
+                  Genera {selectedTracks.size} selezionate
+                </button>
+              )}
               <button
                 type="button"
                 onClick={async () => {
@@ -1527,57 +1660,157 @@ export default function PhonemeAdminEditorPage() {
             label="Parola"
             items={card.commonWords || []}
             onChange={(items) => setField('commonWords', items)}
-            template={{ w: '', ipa: '', audioAmE: '', audioRP: '' }}
+            template={{ w: '', ipa: '', audioAmE: '', audioRP: '', note: '' }}
             testId="editor-common-words"
             compact
-            renderItem={(item, upd, i) => (
-              <div className="grid sm:grid-cols-12 gap-2">
-                <Input value={item.w || ''} onChange={(e) => upd({ ...item, w: e.target.value })} placeholder="look" className="sm:col-span-1 bg-slate-900 border-slate-700 text-slate-100" data-testid={`editor-cw-${i}-w`} />
-                <Input value={item.ipa || ''} onChange={(e) => upd({ ...item, ipa: e.target.value })} placeholder="/lʊk/" className="sm:col-span-2 bg-slate-900 border-slate-700 text-slate-100 font-mono" data-testid={`editor-cw-${i}-ipa`} />
-                <div className="sm:col-span-4 flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-cyan-300/80 shrink-0">🇺🇸</span>
-                  <Input value={item.audioAmE || item.audio || ''} onChange={(e) => upd({ ...item, audioAmE: e.target.value })} placeholder="AmE audio URL" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio-ame`} />
-                </div>
-                <div className="sm:col-span-4 flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-cyan-300/80 shrink-0">🇬🇧</span>
-                  <Input value={item.audioRP || ''} onChange={(e) => upd({ ...item, audioRP: e.target.value })} placeholder="RP audio URL" className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs" data-testid={`editor-cw-${i}-audio-rp`} />
-                </div>
-                <div className="sm:col-span-1 flex items-center justify-end gap-1">
-                  {/* One-shot regenerate BOTH dialects via ElevenLabs */}
-                  <button
-                    type="button"
-                    onClick={() => regenCommonWordAudio(i, 'both')}
-                    disabled={regenBusy.has(`word-${i}-AmE`) || regenBusy.has(`word-${i}-RP`) || !((item.w || '').trim())}
-                    className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/40 text-cyan-100 hover:bg-cyan-500/10 disabled:opacity-40 flex items-center gap-0.5"
-                    title="Rigenera audio ElevenLabs AmE + RP per questa parola"
-                    data-testid={`editor-cw-${i}-regen-both`}
-                  >
-                    {(regenBusy.has(`word-${i}-AmE`) || regenBusy.has(`word-${i}-RP`))
-                      ? <Loader2 className="w-3 h-3 animate-spin" />
-                      : <RefreshCw className="w-3 h-3" />}
-                    <span className="hidden md:inline">Genera</span>
-                  </button>
-                  {(item.audioAmE || item.audio) && (
+            renderItem={(item, upd, i) => {
+              const keyAme = `word-${i}-AmE`;
+              const keyRp  = `word-${i}-RP`;
+              const busyAme = regenBusy.has(keyAme);
+              const busyRp  = regenBusy.has(keyRp);
+              const selAme = selectedTracks.has(keyAme);
+              const selRp  = selectedTracks.has(keyRp);
+              const isExpanded = expandedRows.has(i);
+              const urlAme = item.audioAmE || item.audio || '';
+              const urlRp  = item.audioRP || '';
+              const canRegen = !!((item.w || '').trim());
+
+              return (
+                <div className="space-y-2">
+                  {/* Row 1 — word + IPA + note preview + expand + edit URLs */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      value={item.w || ''}
+                      onChange={(e) => upd({ ...item, w: e.target.value })}
+                      placeholder="look"
+                      className="w-32 bg-slate-900 border-slate-700 text-slate-100 font-semibold"
+                      data-testid={`editor-cw-${i}-w`}
+                    />
+                    <Input
+                      value={item.ipa || ''}
+                      onChange={(e) => upd({ ...item, ipa: e.target.value })}
+                      placeholder="/lʊk/"
+                      className="w-28 bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs"
+                      data-testid={`editor-cw-${i}-ipa`}
+                    />
+                    <Input
+                      value={item.note || ''}
+                      onChange={(e) => upd({ ...item, note: e.target.value })}
+                      placeholder="note (opzionale)"
+                      className="flex-1 min-w-[120px] bg-slate-900 border-slate-700 text-slate-100 text-xs"
+                      data-testid={`editor-cw-${i}-note`}
+                    />
                     <button
                       type="button"
-                      onClick={() => { upd({ ...item, audioAmE: '', audio: '' }); }}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
-                      title="Svuota audio AmE"
-                      data-testid={`editor-cw-${i}-audio-ame-clear`}
-                    >🇺🇸 ✕</button>
-                  )}
-                  {item.audioRP && (
-                    <button
-                      type="button"
-                      onClick={() => upd({ ...item, audioRP: '' })}
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
-                      title="Svuota audio RP"
-                      data-testid={`editor-cw-${i}-audio-rp-clear`}
-                    >🇬🇧 ✕</button>
+                      onClick={() => toggleExpanded(i)}
+                      className={`text-[10px] px-2 py-1 rounded border transition ${
+                        isExpanded
+                          ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-100'
+                          : 'border-slate-600 text-slate-400 hover:text-cyan-200 hover:border-cyan-500/40'
+                      }`}
+                      title={isExpanded ? 'Nascondi URL' : 'Modifica URL manualmente'}
+                      data-testid={`editor-cw-${i}-expand`}
+                    >
+                      {isExpanded ? <ChevronDown className="w-3 h-3 inline" /> : <ChevronRight className="w-3 h-3 inline" />}
+                      <span className="ml-1">URL</span>
+                    </button>
+                  </div>
+
+                  {/* Row 2 — two mini audio tracks (US + RP), each with
+                      independent checkbox + play + regenerate. */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[
+                      { label: '🇺🇸 AmE', url: urlAme, key: keyAme, dialect: 'AmE', sel: selAme, busy: busyAme, testId: `editor-cw-${i}-ame` },
+                      { label: '🇬🇧 RP',  url: urlRp,  key: keyRp,  dialect: 'RP',  sel: selRp,  busy: busyRp,  testId: `editor-cw-${i}-rp`  },
+                    ].map((t) => (
+                      <div
+                        key={t.key}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border transition ${
+                          t.sel
+                            ? 'border-fuchsia-400/70 bg-fuchsia-500/10'
+                            : t.url
+                              ? 'border-emerald-500/25 bg-emerald-500/5'
+                              : 'border-rose-500/25 bg-rose-500/5'
+                        }`}
+                        data-testid={t.testId}
+                      >
+                        {/* Checkbox for batch selection */}
+                        <input
+                          type="checkbox"
+                          checked={t.sel}
+                          onChange={() => toggleSelected(t.key)}
+                          className="w-4 h-4 accent-fuchsia-500 cursor-pointer"
+                          title="Seleziona per batch"
+                          data-testid={`${t.testId}-select`}
+                        />
+                        <span className="text-[11px] font-bold w-16 shrink-0">{t.label}</span>
+
+                        {/* Play button (or missing indicator) */}
+                        {t.url ? (
+                          <MiniAudioButton
+                            src={t.url.startsWith('http') ? t.url : `${API}${t.url}`}
+                            testId={`${t.testId}-play`}
+                          />
+                        ) : (
+                          <span className="text-[10px] text-rose-300/90 flex items-center gap-1 flex-1">
+                            <AlertCircle className="w-3 h-3" /> nessun audio
+                          </span>
+                        )}
+
+                        {/* Per-track regenerate */}
+                        <button
+                          type="button"
+                          onClick={() => regenCommonWordAudio(i, t.dialect)}
+                          disabled={t.busy || !canRegen}
+                          className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/40 text-cyan-100 hover:bg-cyan-500/10 disabled:opacity-40 flex items-center gap-1"
+                          title={`Rigenera solo ${t.dialect} via ElevenLabs`}
+                          data-testid={`${t.testId}-regen`}
+                        >
+                          {t.busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        </button>
+
+                        {/* Clear URL */}
+                        {t.url && (
+                          <button
+                            type="button"
+                            onClick={() => upd(t.dialect === 'AmE' ? { ...item, audioAmE: '', audio: '' } : { ...item, audioRP: '' })}
+                            className="text-[10px] w-5 h-5 rounded border border-rose-500/40 text-rose-200 hover:bg-rose-500/10 flex items-center justify-center"
+                            title={`Svuota audio ${t.dialect}`}
+                            data-testid={`${t.testId}-clear`}
+                          >✕</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Expandable URL editor — only shown on demand */}
+                  {isExpanded && (
+                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 pl-2 border-l-2 border-cyan-500/30">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold">🇺🇸 URL AmE</label>
+                        <Input
+                          value={urlAme}
+                          onChange={(e) => upd({ ...item, audioAmE: e.target.value })}
+                          placeholder="/api/uploads/elevenlabs/…mp3"
+                          className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs"
+                          data-testid={`editor-cw-${i}-audio-ame`}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold">🇬🇧 URL RP</label>
+                        <Input
+                          value={urlRp}
+                          onChange={(e) => upd({ ...item, audioRP: e.target.value })}
+                          placeholder="/api/uploads/elevenlabs/…mp3"
+                          className="bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs"
+                          data-testid={`editor-cw-${i}-audio-rp`}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            }}
           />
         </Section>
 
