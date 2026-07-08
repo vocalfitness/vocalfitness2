@@ -185,54 +185,59 @@ def test_inline_ipa_xml_escapes_surrounding_prose(fake_client, tmp_path):
 # Mnemonic bracket syntax  ``[word|/ipa/]``  (§3.6 · Feb 2026)
 # =========================================================================
 
-def test_bracket_syntax_produces_ssml_with_surface_fallback(fake_client, tmp_path):
-    """A mnemonic like ``A good [cook|/kʊk/] should ...`` must produce SSML
-    where the surface word (``cook``) is the fallback text and the IPA
-    (``kʊk``) is the ``ph`` attribute."""
+def test_bracket_syntax_strips_to_surface_prose_no_ssml(fake_client, tmp_path):
+    """08/02/2026 · empirical fix: ElevenLabs voice clones produce
+    truncated audio when SSML ``<phoneme>`` tags appear inside prose.
+    For mnemonic phrases we STRIP the bracket syntax back to surface
+    words and send natural prose — the native voice pronounces the
+    words correctly. Bracket syntax is retained ONLY for the frontend
+    tooltip, never sent to TTS.
+    """
     from routers.elevenlabs import synthesize_and_store
     res = synthesize_and_store(
         text="A good [cook|/kʊk/] should [look|/lʊk/] carefully.",
         voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
     )
-    assert res["ssml_used"] is True
+    # Bracket IPA is still reported for debug/analytics …
     assert res["inline_ipa_hits"] == ["kʊk", "lʊk"]
+    # … but the text sent to ElevenLabs is CLEAN PROSE without SSML.
+    assert res["ssml_used"] is False
     call = fake_client.last_call
-    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
-    assert '<phoneme alphabet="ipa" ph="lʊk">look</phoneme>' in call["text"]
-    assert "A good " in call["text"]
-    assert " should " in call["text"]
-    assert " carefully." in call["text"]
+    assert call["text"] == "A good cook should look carefully."
+    assert "<phoneme" not in call["text"]
+    assert "[cook|" not in call["text"]
+    # Model stays on multilingual_v2 (voice clone preserved).
     assert call["model_id"] == "eleven_multilingual_v2"
 
 
 def test_bracket_and_bare_ipa_mixed(fake_client, tmp_path):
-    """Both ``[word|/ipa/]`` and bare ``/ipa/`` can co-exist in one text
-    and are both wrapped in a single pass."""
+    """When both syntaxes co-exist: brackets → surface (no SSML),
+    bare ``/ipa/`` → SSML wrap (isolated phoneme demo)."""
     from routers.elevenlabs import synthesize_and_store
     res = synthesize_and_store(
         text="The [cook|/kʊk/] pronounces /ʊ/.",
         voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
     )
     call = fake_client.last_call
-    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
+    # Bracket became surface, bare /ʊ/ became SSML.
+    assert "cook" in call["text"]
+    assert "[cook|" not in call["text"]
     assert '<phoneme alphabet="ipa" ph="ʊ">ʊ</phoneme>' in call["text"]
-    assert res["inline_ipa_hits"] == ["kʊk", "ʊ"]
+    # Hits captured from both syntaxes.
+    assert "kʊk" in res["inline_ipa_hits"]
+    assert "ʊ"   in res["inline_ipa_hits"]
+    assert res["ssml_used"] is True
 
 
-def test_bracket_syntax_xml_escapes_prose_but_not_ssml_tags(fake_client, tmp_path):
-    """SSML tags we emit must NOT be double-escaped; surrounding prose
-    with ``<`` / ``&`` / ``>`` must still be XML-escaped."""
+def test_bracket_syntax_xml_escapes_prose(fake_client, tmp_path):
+    """After bracket stripping, surrounding text may still contain
+    XML specials — but since NO SSML is emitted we do NOT escape them
+    (plain prose is sent verbatim)."""
     from routers.elevenlabs import synthesize_and_store
     synthesize_and_store(
-        text="A & B [cook|/kʊk/] < C > D.",
+        text="A & B [cook|/kʊk/] then rest.",
         voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
     )
     call = fake_client.last_call
-    # Escaped prose
-    assert "&amp;" in call["text"]
-    assert "&lt;" in call["text"]
-    assert "&gt;" in call["text"]
-    # SSML tag preserved
-    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
-    # No double-escape of our own tags
-    assert "&lt;phoneme" not in call["text"]
+    # Pure prose, sent as-is (no XML escaping needed when no SSML).
+    assert call["text"] == "A & B cook then rest."

@@ -127,41 +127,53 @@ def synthesize_and_store(
         final_text = f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>'
         ssml_used = True
     else:
-        # Unified scanner over the ORIGINAL text that supports:
-        #   • Mnemonic bracket syntax  ``[word|/ipa/]``  → SSML tag with
-        #     surface word as natural-language fallback.
-        #   • Bare inline IPA  ``/ipa/`` (≤ 8 chars, no whitespace) → SSML
-        #     tag with the IPA itself as fallback.
-        # Running in one pass avoids double-escaping SSML tags we've just
-        # emitted (which would happen if we called the two scanners in
-        # sequence). Whitespace inside bare slashes disables the match
-        # (prevents false positives on filepaths / dates / regex).
-        combined_re = re.compile(
-            r'\[([^\|\]\r\n]{1,40})\|/([^/\r\n]{1,20})/\]'   # group 1+2 = bracket
-            r'|/([^/\s]{1,8})/'                                # group 3   = bare IPA
-        )
-        if combined_re.search(text):
+        # -----------------------------------------------------------------
+        # Empirical finding (08/02/2026):
+        #   ElevenLabs multilingual_v2 (and turbo_v2) with Professional
+        #   Voice Clones produce heavily truncated audio when SSML
+        #   ``<phoneme>`` tags appear inside prose. A 6-word sentence
+        #   went from 2.12 s (plain) → 1.02 s (SSML), essentially
+        #   dropping the tail of the utterance. The voice clone reads
+        #   through the first tag then stops.
+        #
+        #   For MNEMONIC PROSE the surface spelling is already perfect
+        #   (Steve is a native speaker) — so we STRIP the bracket
+        #   syntax back to surface words and send natural prose to TTS.
+        #   For BARE ``/ipa/`` fragments (isolated-phoneme demonstrations
+        #   like "Say /ʌ/") we keep the SSML wrap because the clip is
+        #   supposed to be short by design.
+        # -----------------------------------------------------------------
+        bracket_re = re.compile(r'\[([^\|\]\r\n]{1,40})\|/([^/\r\n]{1,20})/\]')
+        bare_re    = re.compile(r'/([^/\s]{1,8})/')
+
+        # 1. Strip bracket syntax to surface spelling (no SSML for prose).
+        def _bracket_to_surface(m: re.Match) -> str:
+            inline_ipa_hits.append(m.group(2).strip())
+            return m.group(1).strip()
+        text_after_brackets = bracket_re.sub(_bracket_to_surface, text)
+
+        # 2. Scan the (bracket-stripped) text for bare ``/ipa/`` fragments
+        #    → SSML wrap those (isolated phoneme demonstrations).
+        if bare_re.search(text_after_brackets):
             parts: list[str] = []
             last = 0
-            for m in combined_re.finditer(text):
+            for m in bare_re.finditer(text_after_brackets):
                 if m.start() > last:
-                    parts.append(_xml_escape(text[last:m.start()]))
-                if m.group(3) is not None:
-                    ipa = m.group(3)
-                    fallback = ipa.replace('"', "&quot;")
-                    ph_attr  = fallback
-                else:
-                    surface = (m.group(1) or "").strip()
-                    ipa     = (m.group(2) or "").strip()
-                    ph_attr  = ipa.replace('"', "&quot;")
-                    fallback = _xml_escape(surface) or ph_attr
+                    parts.append(_xml_escape(text_after_brackets[last:m.start()]))
+                ipa = m.group(1)
                 inline_ipa_hits.append(ipa)
+                ph_attr  = ipa.replace('"', "&quot;")
+                fallback = ph_attr
                 parts.append(f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>')
                 last = m.end()
-            if last < len(text):
-                parts.append(_xml_escape(text[last:]))
+            if last < len(text_after_brackets):
+                parts.append(_xml_escape(text_after_brackets[last:]))
             final_text = "".join(parts)
             ssml_used = True
+        else:
+            # No bare IPA remaining → pure prose, no SSML wrap.
+            final_text = text_after_brackets
+            ssml_used = False
 
     # NOTE (Feb 2026): earlier versions of this file force-switched the
     # request to ``eleven_turbo_v2`` whenever SSML ``<phoneme>`` tags were
