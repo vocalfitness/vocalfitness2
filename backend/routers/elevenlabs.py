@@ -115,39 +115,48 @@ def synthesize_and_store(
     ssml_used = False
     final_text = text
     inline_ipa_hits: list[str] = []
+
+    def _xml_escape(s: str) -> str:
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     if ipa_clean:
         # Explicit single-phoneme override (Audio Studio Sparkles button,
         # or auto-generated for isolated clips).
-        fallback = (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")) or ipa_clean
+        fallback = _xml_escape(text) or ipa_clean
         ph_attr  = ipa_clean.replace('"', "&quot;")
         final_text = f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>'
         ssml_used = True
     else:
-        # Inline IPA scan — detect /…/ fragments in any text (example
-        # sentences, mnemonic phrases). Each ``/…/`` up to 8 chars is
-        # wrapped in a phoneme tag while surrounding prose is XML-escaped
-        # and left in natural language. This lets the Prof write hybrid
-        # pedagogy like:
-        #     "The word /kʊk/ contains the vowel /ʊ/."
-        # and get scientifically accurate pronunciation on both IPA slots.
-        # Whitespace inside the slashes disables the match (prevents
-        # false positives on filepaths / dates / regex).
-        inline_re = re.compile(r'/([^/\s]{1,8})/')
-        if inline_re.search(text):
+        # Unified scanner over the ORIGINAL text that supports:
+        #   • Mnemonic bracket syntax  ``[word|/ipa/]``  → SSML tag with
+        #     surface word as natural-language fallback.
+        #   • Bare inline IPA  ``/ipa/`` (≤ 8 chars, no whitespace) → SSML
+        #     tag with the IPA itself as fallback.
+        # Running in one pass avoids double-escaping SSML tags we've just
+        # emitted (which would happen if we called the two scanners in
+        # sequence). Whitespace inside bare slashes disables the match
+        # (prevents false positives on filepaths / dates / regex).
+        combined_re = re.compile(
+            r'\[([^\|\]\r\n]{1,40})\|/([^/\r\n]{1,20})/\]'   # group 1+2 = bracket
+            r'|/([^/\s]{1,8})/'                                # group 3   = bare IPA
+        )
+        if combined_re.search(text):
             parts: list[str] = []
             last = 0
-            def _xml_escape(s: str) -> str:
-                return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            for m in inline_re.finditer(text):
+            for m in combined_re.finditer(text):
                 if m.start() > last:
                     parts.append(_xml_escape(text[last:m.start()]))
-                ipa = m.group(1)
+                if m.group(3) is not None:
+                    ipa = m.group(3)
+                    fallback = ipa.replace('"', "&quot;")
+                    ph_attr  = fallback
+                else:
+                    surface = (m.group(1) or "").strip()
+                    ipa     = (m.group(2) or "").strip()
+                    ph_attr  = ipa.replace('"', "&quot;")
+                    fallback = _xml_escape(surface) or ph_attr
                 inline_ipa_hits.append(ipa)
-                ph_attr = ipa.replace('"', "&quot;")
-                # Use the IPA symbol itself as visible fallback text so
-                # older models degrade to "reading the letters" instead
-                # of silence.
-                parts.append(f'<phoneme alphabet="ipa" ph="{ph_attr}">{ph_attr}</phoneme>')
+                parts.append(f'<phoneme alphabet="ipa" ph="{ph_attr}">{fallback}</phoneme>')
                 last = m.end()
             if last < len(text):
                 parts.append(_xml_escape(text[last:]))

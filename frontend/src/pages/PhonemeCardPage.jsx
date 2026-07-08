@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { Button } from '../components/ui/button';
 import { PHONEMES } from '../data/phonemes';
 import {
@@ -23,6 +24,95 @@ import LMSPremiumPaywall from '../components/LMSPremiumPaywall';
 import PhonemeAssetMedia, { hasPlayableVideo } from '../components/PhonemeAssetMedia';
 import SagittalOverlay from '../components/SagittalOverlay';
 import { prefetchVimeo } from '../lib/prefetchVimeo';
+
+// ============================================================
+// Mnemonic phrase renderer  ·  supports  [word|/ipa/]  bracket
+// tokens produced by the §3.6 auto-annotator. Bracket-tagged
+// words are wrapped in a Tooltip that reveals the IPA on hover
+// (or on focus for keyboard users); plain words keep the
+// existing "highlight-if-in-highlights-list" styling.
+// ============================================================
+const _MNEMONIC_BRACKET_RE = /\[([^\|\]]{1,40})\|\/([^\/\]]{1,20})\/\]/g;
+
+function renderMnemonicPhrase(phrase, highlights = []) {
+  if (!phrase) return null;
+  const hlSet = new Set(
+    (highlights || []).map((h) => (h || '').toLowerCase())
+  );
+  const nodes = [];
+  let last = 0;
+  let key = 0;
+  const re = new RegExp(_MNEMONIC_BRACKET_RE.source, 'g');
+  let m;
+  while ((m = re.exec(phrase)) !== null) {
+    if (m.index > last) {
+      // Emit the plain-text slice (may contain multiple words) with
+      // per-word highlight styling.
+      const slice = phrase.slice(last, m.index);
+      slice.split(/(\s+)/).forEach((tok) => {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) {
+          nodes.push(<React.Fragment key={`s-${key++}`}>{tok}</React.Fragment>);
+          return;
+        }
+        const clean = tok.replace(/[.,!?;:]/g, '').toLowerCase();
+        const isHL = hlSet.has(clean);
+        nodes.push(
+          <span
+            key={`w-${key++}`}
+            className={isHL ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]' : ''}
+          >
+            {tok}
+          </span>
+        );
+      });
+    }
+    const surface = m[1];
+    const ipa     = m[2];
+    nodes.push(
+      <Tooltip key={`t-${key++}`}>
+        <TooltipTrigger asChild>
+          <span
+            className="text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)] border-b border-dashed border-orange-400/50 cursor-help decoration-orange-400/60 focus:outline-none focus:ring-2 focus:ring-orange-400/70 rounded-sm"
+            tabIndex={0}
+            data-testid={`mnemonic-ipa-${surface.toLowerCase()}`}
+          >
+            {surface}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          className="bg-slate-900/95 border border-cyan-400/40 text-cyan-50 font-mono text-sm px-3 py-1.5 shadow-[0_0_18px_rgba(34,211,238,0.25)]"
+          data-testid={`mnemonic-ipa-tooltip-${surface.toLowerCase()}`}
+        >
+          /{ipa}/
+        </TooltipContent>
+      </Tooltip>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < phrase.length) {
+    const rest = phrase.slice(last);
+    rest.split(/(\s+)/).forEach((tok) => {
+      if (!tok) return;
+      if (/^\s+$/.test(tok)) {
+        nodes.push(<React.Fragment key={`s-${key++}`}>{tok}</React.Fragment>);
+        return;
+      }
+      const clean = tok.replace(/[.,!?;:]/g, '').toLowerCase();
+      const isHL = hlSet.has(clean);
+      nodes.push(
+        <span
+          key={`w-${key++}`}
+          className={isHL ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]' : ''}
+        >
+          {tok}
+        </span>
+      );
+    });
+  }
+  return nodes;
+}
 
 // ============================================================
 // AnimatedKnob — circular gauge with stroke-dashoffset animation
@@ -1082,15 +1172,9 @@ const PhonemeCardPage = () => {
                 <p className="text-[10px] text-orange-400 uppercase tracking-widest font-bold">Vocal Fitness mnemonic</p>
               </div>
               <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-50 leading-tight mb-4" data-testid="phoneme-mnemonic-phrase">
-                {(phoneme.mnemonic?.phrase || '').split(' ').map((word, i) => {
-                  const clean = word.replace(/[.,!?]/g, '').toLowerCase();
-                  const isHL = (phoneme.mnemonic?.highlights || []).some((h) => clean === (h || '').toLowerCase());
-                  return (
-                    <span key={i} className={isHL ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.45)]' : ''}>
-                      {word}{' '}
-                    </span>
-                  );
-                })}
+                <TooltipProvider delayDuration={80} skipDelayDuration={0}>
+                  {renderMnemonicPhrase(phoneme.mnemonic?.phrase || '', phoneme.mnemonic?.highlights || [])}
+                </TooltipProvider>
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <AudioPlayButton src={pickDialectAudio(phoneme.mnemonic, dialect)} size="md" label="Play mnemonic" onPlayingChange={setAudioPlaying} />

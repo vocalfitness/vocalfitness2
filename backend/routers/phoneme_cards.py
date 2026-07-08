@@ -63,6 +63,9 @@ class PhonemeCardBase(BaseModel):
     # §3.5 · When true, the deterministic pronunciation protocol engine
     # skips this card — protects manually curated reference cards (u-foot).
     pronunciation_locked: bool = False
+    # §3.6 · When true, the mnemonic inline-IPA rewriter skips this card —
+    # protects manually curated mnemonic prose.
+    mnemonic_locked: bool = False
     spellings: List[Dict[str, Any]] = Field(default_factory=list)
     frequencyChart: List[Dict[str, Any]] = Field(default_factory=list)
     features: List[Dict[str, Any]] = Field(default_factory=list)
@@ -1672,6 +1675,160 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
             "skipped":  skipped,
             "errors":   errors,
             "results":  results,
+        }
+
+    # =====================================================================
+    # §3.6 · Mnemonic Inline-IPA Rewriter — deterministic, CMUdict-grounded
+    # =====================================================================
+    # Rewrites each card's mnemonic phrase from plain prose into the
+    # ``[word|/ipa/]`` bracket syntax so:
+    #   • the frontend can render a Tooltip showing the IPA on hover
+    #     while the surface spelling stays readable, and
+    #   • the ElevenLabs SSML pipeline pronounces each annotated word
+    #     via its exact IPA (see ``elevenlabs.synthesize_and_store``).
+    #
+    # STRICT RULES (Feb 2026):
+    #   • IPA transcriptions come from CMUdict — never from the LLM.
+    #   • Only words that ACTUALLY contain the card's target phoneme
+    #     (with correct stress) are annotated; other words stay bare.
+    #   • Words already annotated with ``[…|/…/]`` are preserved verbatim
+    #     (idempotent — safe to re-run).
+    #   • Cards flagged ``mnemonic_locked=true`` are skipped.
+    #   • When the phrase changes, the previously-recorded mnemonic
+    #     audio URL is cleared so the next audio batch regenerates
+    #     with the new SSML.
+    # =====================================================================
+    _BRACKET_TOKEN_RE = re.compile(r'\[([^\|\]\r\n]{1,40})\|/([^/\r\n]{1,20})/\]')
+
+    def _rewrite_mnemonic_phrase(phrase: str, target_ipa: str) -> tuple[str, list[str]]:
+        """Deterministic rewrite of ``phrase`` using CMUdict.
+
+        Returns ``(rewritten, annotated_surface_words)``. If nothing
+        changes, ``rewritten == phrase``.
+        """
+        from .phoneme_lexicon_rule import word_to_ipa, word_contains_phoneme
+        if not phrase or not target_ipa:
+            return phrase, []
+
+        # Walk the string preserving whitespace + punctuation. We tokenize
+        # into (word|separator) runs so we can rebuild the string exactly.
+        out: list[str] = []
+        annotated: list[str] = []
+        i = 0
+        n = len(phrase)
+        while i < n:
+            # Preserve any existing bracket token verbatim (idempotency).
+            m_br = _BRACKET_TOKEN_RE.match(phrase, i)
+            if m_br:
+                out.append(m_br.group(0))
+                annotated.append(m_br.group(1))
+                i = m_br.end()
+                continue
+            ch = phrase[i]
+            if ch.isalpha() or ch == "'":
+                j = i
+                while j < n and (phrase[j].isalpha() or phrase[j] == "'"):
+                    j += 1
+                word = phrase[i:j]
+                # Only annotate pure alphabetic words (no contractions).
+                if word.isalpha() and word_contains_phoneme(word, target_ipa):
+                    ipa = word_to_ipa(word)
+                    if ipa:
+                        out.append(f"[{word}|/{ipa}/]")
+                        annotated.append(word)
+                        i = j
+                        continue
+                out.append(word)
+                i = j
+            else:
+                out.append(ch)
+                i += 1
+        return "".join(out), annotated
+
+    class BatchRewriteMnemonicsRequest(BaseModel):
+        overwrite_existing_brackets: bool = False   # if True, strip prior [w|/ipa/] tokens and re-annotate from scratch
+        only_ids: Optional[List[str]] = None        # if provided, restrict to this subset
+
+    @router.post("/admin/phonemes/batch/rewrite-mnemonics")
+    async def admin_batch_rewrite_mnemonics(
+        payload: BatchRewriteMnemonicsRequest = BatchRewriteMnemonicsRequest(),
+        admin: dict = Depends(get_admin_user),
+    ):
+        """Bulk-annotate every card's ``mnemonic.phrase`` with
+        ``[word|/ipa/]`` bracket tokens derived from CMUdict.
+
+        Returns per-card summary: ``{id, ipa, before, after, annotated,
+        changed, skipped_reason?}``.
+        """
+        query: Dict[str, Any] = {}
+        if payload.only_ids:
+            query["id"] = {"$in": payload.only_ids}
+
+        results: List[Dict[str, Any]] = []
+        changed = 0
+        skipped = 0
+        async for card in coll.find(query, {"_id": 0, "id": 1, "ipa": 1,
+                                              "mnemonic": 1, "mnemonic_locked": 1}):
+            cid = card.get("id")
+            ipa = (card.get("ipa") or "").strip()
+            mn  = card.get("mnemonic") or {}
+            phrase = (mn.get("phrase") or "").strip()
+
+            entry: Dict[str, Any] = {"id": cid, "ipa": ipa, "before": phrase,
+                                      "after": phrase, "annotated": [],
+                                      "changed": False}
+
+            if card.get("mnemonic_locked"):
+                entry["skipped_reason"] = "mnemonic_locked"
+                results.append(entry)
+                skipped += 1
+                continue
+            if not phrase:
+                entry["skipped_reason"] = "empty_phrase"
+                results.append(entry)
+                skipped += 1
+                continue
+            if not ipa:
+                entry["skipped_reason"] = "no_target_ipa"
+                results.append(entry)
+                skipped += 1
+                continue
+
+            source_phrase = phrase
+            if payload.overwrite_existing_brackets:
+                # Strip existing bracket tokens back to plain surface words
+                # before re-annotating from scratch.
+                source_phrase = _BRACKET_TOKEN_RE.sub(
+                    lambda m: m.group(1), phrase,
+                )
+
+            new_phrase, annotated = _rewrite_mnemonic_phrase(source_phrase, ipa)
+            entry["after"] = new_phrase
+            entry["annotated"] = annotated
+
+            if new_phrase != phrase:
+                # Clear stale audio so the next batch regenerates with SSML.
+                new_mn = {**mn, "phrase": new_phrase}
+                # Only wipe audio when the surface prose (post-bracket)
+                # actually changed — pure bracket additions don't change
+                # what a human hears, but SSML tags DO change the audio
+                # pipeline, so we clear anyway.
+                new_mn["audio"] = ""
+                await coll.update_one({"id": cid}, {"$set": {
+                    "mnemonic": new_mn,
+                    "updatedAt": _now_iso(),
+                    "updatedBy": admin.get("username"),
+                }})
+                entry["changed"] = True
+                changed += 1
+            results.append(entry)
+
+        return {
+            "ok":        True,
+            "processed": len(results),
+            "changed":   changed,
+            "skipped":   skipped,
+            "results":   results,
         }
 
 

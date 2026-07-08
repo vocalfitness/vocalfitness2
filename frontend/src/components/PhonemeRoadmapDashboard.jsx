@@ -194,6 +194,44 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
     }
   };
 
+  // ─── Bulk mnemonic rewrite (§3.6): annotates every phrase with
+  // [word|/ipa/] bracket tokens sourced from CMUdict. Deterministic.
+  const [mnemRunning, setMnemRunning] = useState(false);
+  const [mnemResult,  setMnemResult]  = useState(null);
+  const runBulkMnemonicRewrite = async (overwrite = false) => {
+    const ok = window.confirm(
+      overwrite
+        ? 'RE-annota da zero le mnemoniche: rimuove le annotazioni [w|/ipa/] esistenti e le rigenera con CMUdict.\n\nSicuro?'
+        : 'Annota tutte le mnemoniche con la sintassi [word|/ipa/] usando CMUdict.\n\n' +
+          '  • Solo le parole che contengono realmente il fonema target vengono annotate.\n' +
+          '  • Le trascrizioni IPA arrivano da CMUdict (mai LLM).\n' +
+          '  • Le card con mnemonic_locked=true vengono saltate.\n' +
+          '  • Le mnemoniche già annotate vengono preservate (idempotente).\n' +
+          '  • L\'audio della mnemonica viene azzerato: rilancia poi il batch audio.\n\n' +
+          'Procedere?'
+    );
+    if (!ok) return;
+    setMnemRunning(true);
+    setMnemResult(null);
+    try {
+      const token = localStorage.getItem('vf_token');
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const res = await fetch(`${API}/api/admin/phonemes/batch/rewrite-mnemonics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ overwrite_existing_brackets: !!overwrite }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Errore server');
+      setMnemResult({ ok: true, ...data });
+      if (typeof onRefresh === 'function') await onRefresh();
+    } catch (e) {
+      setMnemResult({ ok: false, error: e.message });
+    } finally {
+      setMnemRunning(false);
+    }
+  };
+
   // ─── Bulk audio: mass ElevenLabs generation across ALL cards ───
   // Iterates card-by-card (backend keeps each request short ~30s), streams
   // progress into the UI, collects all per-clip errors and shows them at
@@ -463,6 +501,72 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
                 ? <X className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 : <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />}
               <p className="font-bold min-w-0">{derivedResult}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Bulk mnemonic inline-IPA rewrite (§3.6) — CMUdict-grounded */}
+        <div className="relative mt-5 pt-5 border-t border-fuchsia-500/15" data-testid="roadmap-bulk-mnemonic">
+          <div className="flex flex-wrap items-center gap-3 justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-fuchsia-300 font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Annota mnemoniche con IPA inline (bulk · §3.6)
+              </p>
+              <p className="text-sm text-white mt-1 max-w-2xl leading-relaxed">
+                Aggiunge la sintassi <code className="text-fuchsia-300">[word|/ipa/]</code> a ogni parola
+                che contiene il fonema target. Fonte: <b>CMUdict</b> (mai LLM). Al passaggio del mouse sulla
+                card apparirà un tooltip con la trascrizione IPA e l&apos;audio ElevenLabs userà SSML per la pronuncia esatta.
+                <br /><span className="text-xs text-fuchsia-300/80">Nota: l&apos;audio della mnemonica viene azzerato al rewrite — rilancia poi il batch audio.</span>
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button
+                onClick={() => runBulkMnemonicRewrite(false)}
+                disabled={mnemRunning}
+                className="bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white font-bold hover:scale-[1.03] transition"
+                data-testid="roadmap-bulk-mnemonic-button"
+              >
+                {mnemRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1.5" />}
+                {mnemRunning ? 'Annotazione…' : 'Annota mnemoniche'}
+              </Button>
+              <Button
+                onClick={() => runBulkMnemonicRewrite(true)}
+                disabled={mnemRunning}
+                variant="outline"
+                className="border-fuchsia-500/40 text-fuchsia-200 hover:bg-fuchsia-500/10"
+                data-testid="roadmap-bulk-mnemonic-force-button"
+                title="Rimuove [word|/ipa/] esistenti e ri-annota da zero"
+              >
+                Re-annota da zero
+              </Button>
+            </div>
+          </div>
+          {mnemResult && (
+            <div className={`mt-3 flex items-start gap-2 rounded-lg p-3 text-sm ${
+              mnemResult.ok
+                ? 'bg-fuchsia-500/10 border border-fuchsia-500/40 text-fuchsia-100'
+                : 'bg-rose-500/10 border border-rose-500/40 text-rose-200'
+            }`} data-testid="roadmap-bulk-mnemonic-result">
+              {mnemResult.ok
+                ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                : <X className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+              <div className="min-w-0">
+                {mnemResult.ok ? (
+                  <>
+                    <p className="font-bold">
+                      Processate {mnemResult.processed} · modificate {mnemResult.changed} · saltate {mnemResult.skipped}
+                    </p>
+                    {Array.isArray(mnemResult.results) && mnemResult.results.filter((r) => r.changed).length > 0 && (
+                      <p className="text-xs mt-1 opacity-80">
+                        Es.: {mnemResult.results.filter((r) => r.changed).slice(0, 3).map((r) => r.id).join(', ')}…
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="font-bold">Errore: {mnemResult.error}</p>
+                )}
+              </div>
             </div>
           )}
         </div>

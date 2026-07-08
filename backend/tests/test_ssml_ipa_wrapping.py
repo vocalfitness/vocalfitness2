@@ -175,3 +175,61 @@ def test_inline_ipa_xml_escapes_surrounding_prose(fake_client, tmp_path):
     assert "&amp;" in call["text"]
     assert "&gt;" in call["text"]
     assert 'ph="ʊ"' in call["text"]
+
+
+
+# =========================================================================
+# Mnemonic bracket syntax  ``[word|/ipa/]``  (§3.6 · Feb 2026)
+# =========================================================================
+
+def test_bracket_syntax_produces_ssml_with_surface_fallback(fake_client, tmp_path):
+    """A mnemonic like ``A good [cook|/kʊk/] should ...`` must produce SSML
+    where the surface word (``cook``) is the fallback text and the IPA
+    (``kʊk``) is the ``ph`` attribute."""
+    from routers.elevenlabs import synthesize_and_store
+    res = synthesize_and_store(
+        text="A good [cook|/kʊk/] should [look|/lʊk/] carefully.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    assert res["ssml_used"] is True
+    assert res["inline_ipa_hits"] == ["kʊk", "lʊk"]
+    call = fake_client.last_call
+    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
+    assert '<phoneme alphabet="ipa" ph="lʊk">look</phoneme>' in call["text"]
+    assert "A good " in call["text"]
+    assert " should " in call["text"]
+    assert " carefully." in call["text"]
+    assert call["model_id"] == "eleven_turbo_v2"
+
+
+def test_bracket_and_bare_ipa_mixed(fake_client, tmp_path):
+    """Both ``[word|/ipa/]`` and bare ``/ipa/`` can co-exist in one text
+    and are both wrapped in a single pass."""
+    from routers.elevenlabs import synthesize_and_store
+    res = synthesize_and_store(
+        text="The [cook|/kʊk/] pronounces /ʊ/.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    call = fake_client.last_call
+    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
+    assert '<phoneme alphabet="ipa" ph="ʊ">ʊ</phoneme>' in call["text"]
+    assert res["inline_ipa_hits"] == ["kʊk", "ʊ"]
+
+
+def test_bracket_syntax_xml_escapes_prose_but_not_ssml_tags(fake_client, tmp_path):
+    """SSML tags we emit must NOT be double-escaped; surrounding prose
+    with ``<`` / ``&`` / ``>`` must still be XML-escaped."""
+    from routers.elevenlabs import synthesize_and_store
+    synthesize_and_store(
+        text="A & B [cook|/kʊk/] < C > D.",
+        voice_id="v1", emergent_put=_fake_put, uploads_dir=tmp_path,
+    )
+    call = fake_client.last_call
+    # Escaped prose
+    assert "&amp;" in call["text"]
+    assert "&lt;" in call["text"]
+    assert "&gt;" in call["text"]
+    # SSML tag preserved
+    assert '<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>' in call["text"]
+    # No double-escape of our own tags
+    assert "&lt;phoneme" not in call["text"]

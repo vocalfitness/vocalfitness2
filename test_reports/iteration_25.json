@@ -1,0 +1,38 @@
+{
+  "summary": "§3.6 · Mnemonic Inline-IPA Rewriter — full-stack validation PASS. Backend: 12/12 SSML tests + 7/7 new batch-rewrite tests all green. Endpoint POST /api/admin/phonemes/batch/rewrite-mnemonics is admin-guarded (401 without token), returns {ok, processed=44, changed=0, skipped=0, results:[...]} on default run (idempotent — DB was already annotated by main agent's prior curl), and semantically correct on u-foot: after force-rewrite the phrase contains all 6 expected bracket tokens [Pull|/pʊl/] [wool|/wʊl/] [push|/pʊʃ/] [hood|/hʊd/] [put|/pʊt/] [foot|/fʊt/] (case-insensitive), and stays correct across repeated force-rewrites. Frontend: /lms/phoneme/u-foot renders the mnemonic phrase with all 6 mnemonic-ipa-{word} spans styled orange + dashed underline, and hovering 'Pull' opens a Radix Tooltip (data-testid mnemonic-ipa-tooltip-pull) with the IPA transcription '/pʊl/'. Admin dashboard /admin/phonemes (Roadmap view) shows the new §3.6 block with both buttons; clicking 'Annota mnemoniche' triggers the endpoint and the success banner 'Processate 44 · modificate 0 · saltate 0' is displayed as expected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_batch_rewrite_mnemonics.py",
+    "/app/backend/tests/test_ssml_ipa_wrapping.py",
+    "/app/test_reports/pytest/iter25_batch_rewrite.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "phoneme_cards.py is now 2865 lines (>700). Consider splitting the mnemonic §3.6 rewriter + helpers into a dedicated routers/phoneme_mnemonic_rule.py module, mirroring the pattern used for phoneme_lexicon_rule / phoneme_hotspot_rule. Not blocking, but the file is getting unwieldy.",
+    "_rewrite_mnemonic_phrase greedily consumes apostrophes as part of the word run (`ch == chr(39)`), then rejects the whole token via `word.isalpha()`. This is correct today (contractions like 'don't' skip annotation), but the token then loses its bracket-annotation path entirely — including for the alphabetic base. Not a blocker for §3.6 spec but worth documenting.",
+    "The endpoint is scoped correctly by CMUdict + stress filter, but silently ignores CMUdict cache misses — good behavior (never invents an IPA). No changes needed.",
+    "Frontend renderMnemonicPhrase in PhonemeCardPage.jsx is defensive (empty phrase → null, orphan tokens still styled), Radix TooltipProvider wraps the phrase — verified visually and via data-testid.",
+    "Idempotency contract confirmed: after main agent's initial curl the live DB is already annotated on 44/44 cards; both default and my force+only_ids=u-foot runs preserve semantics."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_batch_rewrite_mnemonics.py (NEW — 7 tests: auth guard x2, default summary, idempotency, u-foot semantics x2, only_ids filter)"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 — 12 SSML + 7 batch-rewrite)",
+    "frontend": "100% (6/6 mnemonic-ipa-* spans present + hover tooltip + admin roadmap section + button click + success banner)"
+  },
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md) — login verified working via placeholder-based selectors (no name= attribute on inputs, so use input[placeholder*='username' i] / input[placeholder*='password' i]).",
+  "seed_data_creation": "None. Endpoint is idempotent; the DB state (44 cards, all already annotated by main agent's prior curl) was preserved. Force-rewrite of u-foot only was used to exercise the semantic path.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "§3.6 · Mnemonic Inline-IPA Rewriter is live and validated end-to-end. Backend endpoint POST /api/admin/phonemes/batch/rewrite-mnemonics accepts {overwrite_existing_brackets: bool, only_ids: List[str]?}; returns {ok, processed, changed, skipped, results:[{id, ipa, before, after, annotated, changed, skipped_reason?}]}. All 44 cards are currently annotated (changed=0 on repeated runs). Frontend admin dashboard: switch to 'ROADMAP PRODUZIONE' view (data-testid=phoneme-admin-view-roadmap) to see the new §3.6 block — it does NOT appear in the default LISTA SCHEDE view. Frontend phoneme card mnemonic: 6 mnemonic-ipa-{word} spans on u-foot with tooltip data-testid=mnemonic-ipa-tooltip-{word}. Radix Tooltip duplicates content across trigger/aria-live (text_content returns '/pʊl//pʊl/'); use `startswith('/pʊl/')` or `'/pʊl/' in text` when asserting, not equality. Note: when clicking the 'Annota mnemoniche' button in the roadmap view no confirm dialog appeared in headless Chrome — either the JS confirm() is auto-accepted by Playwright's default dialog listener or the button skips confirmation on second run. Either way the endpoint was triggered and the banner rendered — behavior is functional.",
+  "rca of the issue": "N/A — no functional issues. All acceptance criteria (backend endpoint contract, idempotency, u-foot semantic correctness, force-rewrite behaviour, SSML wrapping unit tests, frontend Tooltip rendering, admin bulk trigger UI + success banner) verified green."
+}

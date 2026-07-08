@@ -325,6 +325,64 @@ def _compute_spelling_distribution(target_ipa: str,
 
 
 # =========================================================================
+# Word → IPA lookup (used by the mnemonic inline-IPA rewriter §3.6)
+# =========================================================================
+
+def word_to_ipa(word: str) -> Optional[str]:
+    """Return the IPA transcription (without slashes) for a single English
+    word, using CMUdict as source of truth. Returns ``None`` when the
+    word is not in the dictionary — the caller MUST fall back gracefully
+    (i.e. leave the word un-annotated) rather than invent a transcription.
+    """
+    if not word:
+        return None
+    key = word.strip().lower()
+    if not _WORD_RE.match(key):
+        # Skip contractions, digits, hyphens — CMUdict entries are
+        # single alphabetic tokens.
+        return None
+    cmu = _get_cmudict()
+    prons = cmu.get(key)
+    if not prons:
+        return None
+    pron = prons[0]  # first (most canonical) variant
+    return _arpabet_pron_to_ipa(pron).strip("/")
+
+
+def word_contains_phoneme(word: str, target_ipa: str) -> bool:
+    """Return True when ``word`` (looked up in CMUdict) contains the
+    target IPA phoneme, honouring the stress filter for schwa/STRUT
+    disambiguation. Words not in CMUdict return False.
+    """
+    if not word or not target_ipa:
+        return False
+    arpa = _IPA_TO_ARPABET.get(target_ipa)
+    if not arpa and len(target_ipa) > 1:
+        arpa = _IPA_TO_ARPABET.get(target_ipa[0])
+    if not arpa:
+        return False
+    key = word.strip().lower()
+    if not _WORD_RE.match(key):
+        return False
+    cmu = _get_cmudict()
+    prons = cmu.get(key)
+    if not prons:
+        return False
+    pron = prons[0]
+    stress_pred = _STRESS_FILTER.get(target_ipa)
+    for p in pron:
+        base = _strip_stress(p)
+        if base != arpa:
+            continue
+        if stress_pred is not None:
+            digit = p[-1] if p and p[-1].isdigit() else ""
+            if not stress_pred(digit):
+                continue
+        return True
+    return False
+
+
+# =========================================================================
 # Public API
 # =========================================================================
 
