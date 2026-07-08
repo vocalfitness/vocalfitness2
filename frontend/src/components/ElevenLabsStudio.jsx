@@ -15,6 +15,7 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
   const [defaultVoiceId, setDefaultVoiceId] = useState('');
   const [voiceId, setVoiceId] = useState('');
   const [text, setText] = useState('');
+  const [ipaPhoneme, setIpaPhoneme] = useState('');   // NEW · isolated-sound SSML forcing
   const [stability, setStability] = useState(0.45);
   const [similarity, setSimilarity] = useState(0.85);
   const [style, setStyle] = useState(0.0);
@@ -35,6 +36,20 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     { id: 'glottal-neutral', label: 'Glottal neutro (schwa)', text: 'uh, uh, uh, uh, uh', hint: 'glottal_neutral' },
   ];
 
+  // Complete IPA phoneme grid (44 English phonemes) — click to load into
+  // the IPA field for SSML-forced pronunciation.  Vowels first, then
+  // consonants — grouped so the Prof can quickly demo any target sound.
+  const IPA_QUICK = {
+    'Monoftongi corti':      ['ɪ', 'ʊ', 'e', 'ə', 'ʌ', 'ɒ', 'æ'],
+    'Monoftongi lunghi':     ['iː', 'uː', 'ɑː', 'ɔː', 'ɜː'],
+    'Dittonghi':             ['eɪ', 'aɪ', 'ɔɪ', 'aʊ', 'əʊ', 'ɪə', 'eə', 'ʊə'],
+    'Consonanti · plosive':  ['p', 'b', 't', 'd', 'k', 'ɡ'],
+    'Consonanti · fricat.':  ['f', 'v', 'θ', 'ð', 's', 'z', 'ʃ', 'ʒ', 'h'],
+    'Consonanti · nasali':   ['m', 'n', 'ŋ'],
+    'Consonanti · approx.':  ['l', 'ɹ', 'j', 'w'],
+    'Consonanti · affric.':  ['tʃ', 'dʒ'],
+  };
+
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -53,15 +68,23 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
 
   const handleGenerate = async () => {
     setError(''); setResult(null); setLoading(true); setPlaying(false);
+    // If IPA is filled but text is empty, use the IPA symbol itself as
+    // the visual fallback (ElevenLabs SDK requires non-empty text).
+    const effectiveText = text.trim() || ipaPhoneme.trim();
+    // Auto-suggest a filename when the user pastes an IPA symbol and
+    // hasn't provided one manually.
+    const effectiveHint = filenameHint
+      || (ipaPhoneme.trim() ? `isolated_${ipaPhoneme.trim().replace(/[^\w]/g, '_')}` : '');
     try {
       const res = await axios.post(`${BACKEND_URL}/api/admin/elevenlabs/tts`, {
-        text,
+        text: effectiveText,
         voice_id: voiceId,
         stability,
         similarity_boost: similarity,
         style,
         output_format: outputFormat,
-        filename_hint: filenameHint || undefined,
+        filename_hint: effectiveHint || undefined,
+        ipa_phoneme: ipaPhoneme.trim() || undefined,
       }, { headers: { Authorization: `Bearer ${token}` } });
       setResult(res.data);
     } catch (e) {
@@ -98,8 +121,8 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
 
   const t = language === 'it'
     ? {
-      title: 'Audio Studio · ElevenLabs',
-      sub: 'Genera audio con la voce clonata e ottieni un URL pronto da incollare nei profili VocalLab o nelle schede fonetiche.',
+      title: 'Voice Lab · ElevenLabs',
+      sub: 'Genera audio custom con la voce clonata: prosa naturale oppure fonemi IPA isolati (SSML). Ogni clip viene salvata su Emergent Storage con URL pubblico pronto da incollare nei profili VocalLab o nel Phoneme CMS.',
       voice: 'Voce', text: 'Testo', presets: 'Preset rapidi', filename: 'Nome file (hint)',
       stab: 'Stabilità', sim: 'Similarity boost', styleL: 'Style', format: 'Formato',
       generate: 'Genera audio', generating: 'Generazione…', play: 'Riproduci', pause: 'Pausa',
@@ -107,8 +130,8 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
       download: 'Scarica', size: 'Dimensione', noKey: 'API ElevenLabs non configurata',
     }
     : {
-      title: 'Audio Studio · ElevenLabs',
-      sub: 'Generate audio with the cloned voice and get a public URL ready to paste into the VocalLab profiles or phonetic cards.',
+      title: 'Voice Lab · ElevenLabs',
+      sub: 'Generate custom audio with the cloned voice: natural prose OR isolated IPA phonemes (SSML). Every clip is saved to Emergent Storage with a public URL ready to paste into the VocalLab profiles or the Phoneme CMS.',
       voice: 'Voice', text: 'Text', presets: 'Quick presets', filename: 'Filename hint',
       stab: 'Stability', sim: 'Similarity boost', styleL: 'Style', format: 'Format',
       generate: 'Generate audio', generating: 'Generating…', play: 'Play', pause: 'Pause',
@@ -183,6 +206,72 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
             <p className="text-xs text-slate-500 mt-1">{text.length}/2000 caratteri</p>
           </div>
 
+          {/* ═══════════════════════════════════════════════════════════
+              Isolated-phoneme IPA field (SSML-forced pronunciation)
+              ═══════════════════════════════════════════════════════════
+              When populated, the text field becomes the visual fallback
+              and the IPA drives ElevenLabs' SSML <phoneme> tag → exact
+              scientific pronunciation of a single sound. Perfect for
+              cutting the 44 phoneme demo clips ("Say /ʊ/", "Say /θ/").
+              Leave empty for natural prose. */}
+          <div className="rounded-xl border-2 border-fuchsia-500/40 bg-gradient-to-br from-fuchsia-500/10 to-purple-500/5 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs uppercase tracking-wider text-fuchsia-300 font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> IPA fonema isolato (opzionale)
+              </label>
+              {ipaPhoneme && (
+                <button
+                  type="button"
+                  onClick={() => setIpaPhoneme('')}
+                  className="text-[10px] px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
+                  data-testid="el-ipa-clear"
+                >
+                  Svuota
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              value={ipaPhoneme}
+              onChange={e => setIpaPhoneme(e.target.value)}
+              placeholder="es. ʊ · kʊk · θ · dʒ …"
+              className="w-full bg-slate-900 border border-fuchsia-500/40 text-fuchsia-100 rounded-lg px-3 py-2 text-lg font-mono text-center tracking-wider"
+              data-testid="el-ipa-input"
+            />
+            <p className="text-[11px] text-fuchsia-300/80 mt-1.5 leading-snug">
+              Se compilato, la voce pronuncia <b>esattamente</b> questo IPA via SSML{' '}
+              <code className="bg-fuchsia-500/20 px-1 rounded">&lt;phoneme&gt;</code>.
+              Audio breve (~0.5–1s) — perfetto per le clip dei 44 fonemi.
+              Lascia vuoto per prosa naturale.
+            </p>
+
+            {/* Quick-pick grid: click to load into the IPA field. */}
+            <div className="mt-3 space-y-1.5" data-testid="el-ipa-grid">
+              {Object.entries(IPA_QUICK).map(([group, syms]) => (
+                <div key={group} className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 w-32 flex-shrink-0">{group}</span>
+                  <div className="flex flex-wrap gap-1">
+                    {syms.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => { setIpaPhoneme(s); if (!filenameHint) setFilenameHint(`isolated_${s.replace(/[^\w]/g, '_')}`); }}
+                        className={`px-2.5 py-0.5 rounded font-mono text-sm border transition ${
+                          ipaPhoneme === s
+                            ? 'bg-fuchsia-500 border-fuchsia-400 text-white'
+                            : 'bg-slate-800 border-slate-600 text-fuchsia-200 hover:bg-fuchsia-500/20 hover:border-fuchsia-400/50'
+                        }`}
+                        data-testid={`el-ipa-chip-${s}`}
+                      >
+                        /{s}/
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs uppercase tracking-wider text-slate-400 mb-1">{t.filename}</label>
             <input
@@ -225,12 +314,12 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
 
           <Button
             onClick={handleGenerate}
-            disabled={loading || !text.trim() || !voiceId}
-            className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40"
+            disabled={loading || (!text.trim() && !ipaPhoneme.trim()) || !voiceId}
+            className="w-full bg-gradient-to-r from-fuchsia-500 to-amber-500 hover:from-fuchsia-600 hover:to-amber-600 disabled:opacity-40 font-bold"
             data-testid="el-generate-btn"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-            {loading ? t.generating : t.generate}
+            {loading ? t.generating : (ipaPhoneme.trim() ? `Genera IPA /${ipaPhoneme.trim()}/` : t.generate)}
           </Button>
         </div>
 

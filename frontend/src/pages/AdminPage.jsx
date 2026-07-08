@@ -127,8 +127,8 @@ const AdminPage = () => {
           <Button onClick={() => { setActiveTab('leads'); fetchLeads(); }} className={activeTab === 'leads' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-leads">
             <Inbox className="w-4 h-4 mr-2" /> {language === 'it' ? 'Lead Inbox' : 'Lead Inbox'}{leads.length ? ` (${leads.length})` : ''}
           </Button>
-          <Button onClick={() => setActiveTab('audio-studio')} className={activeTab === 'audio-studio' ? 'bg-amber-600' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-audio-studio">
-            <AudioLines className="w-4 h-4 mr-2" /> Audio Studio
+          <Button onClick={() => setActiveTab('audio-studio')} className={activeTab === 'audio-studio' ? 'bg-gradient-to-r from-fuchsia-500 to-amber-500' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-audio-studio">
+            <AudioLines className="w-4 h-4 mr-2" /> Voice Lab
           </Button>
           <Button onClick={() => navigate('/admin/phonemes')} className="bg-gradient-to-r from-cyan-600 to-orange-500 hover:from-cyan-500 hover:to-orange-400 text-white font-bold" data-testid="tab-phonemes-cms">
             <Mic className="w-4 h-4 mr-2" /> Phoneme CMS
