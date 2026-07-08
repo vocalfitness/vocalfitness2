@@ -163,9 +163,21 @@ def synthesize_and_store(
             final_text = "".join(parts)
             ssml_used = True
 
-    if ssml_used and model_id.startswith("eleven_multilingual"):
-        # Model auto-switch: SSML <phoneme> works ONLY on v2 English models.
-        model_id = "eleven_turbo_v2"
+    # NOTE (Feb 2026): earlier versions of this file force-switched the
+    # request to ``eleven_turbo_v2`` whenever SSML ``<phoneme>`` tags were
+    # emitted, based on outdated docs. Per ElevenLabs docs 2026,
+    # ``eleven_multilingual_v2`` supports SSML phoneme tags (IPA + Arpabet)
+    # in all 29 of its languages — so the auto-switch is unnecessary and
+    # actively harmful for Professional Voice Clones trained on
+    # multilingual_v2 (they lose their timbre on turbo_v2 and start
+    # sounding like the base voice, which for an Italian-labelled voice
+    # produces an Italian-accented English). We therefore respect
+    # whichever ``model_id`` the caller provided.
+    #
+    # Explicit safety net: only Eleven V3 does NOT support SSML phoneme
+    # tags — in that specific case we fall back to multilingual_v2.
+    if ssml_used and (model_id or "").startswith("eleven_v3"):
+        model_id = "eleven_multilingual_v2"
 
     from elevenlabs import VoiceSettings
     settings = VoiceSettings(

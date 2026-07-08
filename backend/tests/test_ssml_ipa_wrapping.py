@@ -62,8 +62,11 @@ def test_ipa_phoneme_wraps_in_ssml_and_switches_model(fake_client, tmp_path):
     call = fake_client.last_call
     assert '<phoneme alphabet="ipa" ph="ʌ">' in call["text"]
     assert '</phoneme>' in call["text"]
-    # Model must auto-switch to a v2 English SSML-compatible model.
-    assert call["model_id"] == "eleven_turbo_v2"
+    # SSML with multilingual_v2 (default) — per ElevenLabs 2026 docs,
+    # multilingual_v2 supports SSML <phoneme> across all 29 languages,
+    # so we no longer force a model switch (respects the caller's model
+    # so cloned voices trained on multilingual_v2 keep their timbre).
+    assert call["model_id"] == "eleven_multilingual_v2"
 
 
 def test_ipa_phoneme_strips_surrounding_slashes(fake_client, tmp_path):
@@ -131,7 +134,7 @@ def test_inline_ipa_wraps_all_fragments(fake_client, tmp_path):
     assert '<phoneme alphabet="ipa" ph="ʊ">ʊ</phoneme>' in call["text"]
     assert "The word " in call["text"]
     assert " has the vowel " in call["text"]
-    assert call["model_id"] == "eleven_turbo_v2"
+    assert call["model_id"] == "eleven_multilingual_v2"
 
 
 def test_inline_ipa_ignores_slashes_with_whitespace(fake_client, tmp_path):
@@ -199,7 +202,7 @@ def test_bracket_syntax_produces_ssml_with_surface_fallback(fake_client, tmp_pat
     assert "A good " in call["text"]
     assert " should " in call["text"]
     assert " carefully." in call["text"]
-    assert call["model_id"] == "eleven_turbo_v2"
+    assert call["model_id"] == "eleven_multilingual_v2"
 
 
 def test_bracket_and_bare_ipa_mixed(fake_client, tmp_path):
