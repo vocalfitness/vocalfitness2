@@ -12,6 +12,32 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 27 — Common Words audio ×30 AmE + ×30 RP + per-row refresh — DONE ✅
+
+**Contesto**: fino a iter 26 le parole comuni generavano solo 10 audio (default `words_limit=10`). L'utente voleva 30 per dialetto (60 clip totali) + un pulsante refresh diretto sulla singola parola dentro l'editor CMS della card, per non dover ricorrere manualmente al Voice Lab per correggere le parole difficili.
+
+**Backend**:
+- `BatchAudioRequest.words_limit` default alzato da **10 → 30** (`phoneme_cards.py`).
+- `include_words_rp` resta `True` di default → generazione RP inclusa senza flag esplicito.
+
+**Frontend `PhonemeAdminEditorPage.jsx`**:
+- Nuovo state `regenBusy` (set di key attivi).
+- Nuovo helper `regenCommonWordAudio(index, dialect)` → POST `batch-audio` con `only_keys` chirurgici + refresh del card in state.
+- Nuovo banner cyan sopra la lista parole con:
+  - **"Genera solo mancanti"** (`data-testid="editor-cw-bulk-missing"`): scansiona `commonWords`, costruisce array di key mancanti, POST batch-audio.
+  - **"Sovrascrivi tutti"** (`data-testid="editor-cw-bulk-overwrite"`): rigenera tutte le 60 clip con `overwrite=true` (con conferma window.confirm).
+- Nuovo pulsante inline "⟳ Genera" (`data-testid="editor-cw-{i}-regen-both"`) su ogni riga → rigenera AmE+RP di quella singola parola. Icon `Loader2` durante l'attesa.
+- I pulsanti ✕ AmE/RP per svuotare restano invariati.
+
+**Frontend `PhonemeRoadmapDashboard.jsx`**:
+- Cambiato `words_limit: 10 → 30` nel bulk audio (`derived + audio`).
+
+**Testing**:
+- 9/9 pytest verdi (defaults, idempotency, surgical only_keys, auth, 404, PATCH regression).
+- Frontend E2E: 30 pulsanti Genera per-row + 2 bulk verificati; click reale su word #29 (`crook`) genera davvero via ElevenLabs → campi AmE+RP popolati con URL `/api/uploads/elevenlabs/u-foot_word_crook_*.mp3`.
+
+
+
 ### 08/02/2026 · Iteration 26 — 3 issue fixes + Voice Lab evolution — DONE ✅
 
 **Issue #3 · Toggle IPA dialect-sync (P0 · bug fix)**
