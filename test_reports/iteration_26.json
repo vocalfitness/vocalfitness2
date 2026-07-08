@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 26 (Audio Studio manual URL paste + Voice Lab file upload + AudioPlayButton dialect-sync fix) — full-stack validation PASS. Backend: 16/16 pytest cases green covering PATCH /api/admin/phonemes/{card_id}/audio-url (auth guard, 404 on unknown card, 400 on malformed key, and Create→GET persistence across all 7 key shapes: isolated-AmE, isolated-RP, example-AmE-0, example-RP-0, mnemonic, word-3-AmE, word-3-RP) and POST /api/admin/elevenlabs/upload-audio (auth guard 401, tiny valid mp3 → 200 with filename 'manual/…', wav extension accepted, 415 on .txt, 400 on empty, 413 on >5MB). Frontend: /admin/audio-studio renders 1256 green-Wand2 paste buttons with correct data-testid pattern 'audio-studio-paste-{cardId::key}' (verified sample = 'audio-studio-paste-u-foot::isolated-AmE'). /admin Voice Lab tab (data-testid='tab-audio-studio') opens ElevenLabsStudio with (a) emerald-border upload block containing dropzone (data-testid='el-upload-dropzone') + hidden file input (data-testid='el-upload-file') — actual UI upload with a hand-crafted MP3 returned 200 and produced /api/uploads/manual/TEST_upload_<ts>.mp3; (b) 'Repository IPA scientifiche' <details> element with 5 external links, all target=_blank + rel=noreferrer, correct hrefs (internationalphoneticalphabet.org, archive.phonetics.ucla.edu, github/UCLA-IPA-Phonetic-Corpus, Wikimedia Commons, Pronunciation Studio); (c) fuchsia SSML IPA chip regression block still shows all 44 chips (data-testid='el-ipa-chip-{symbol}'). BUG #3 (AudioPlayButton useEffect on [src]) verified via code review — the new useEffect at PhonemeCardPage.jsx:318-327 unconditionally tears down audioRef.current (pause + null out) whenever the src prop changes, so the next play call rebuilds a fresh HTMLAudioElement bound to the new URL; UI runtime probing of a real toggle→play sequence was inconclusive on preview because both published cards (u-foot, i-fleece) currently have IDENTICAL AmE and RP isolated URLs in DB → src prop doesn't change → useEffect doesn't need to fire → cannot exercise the bug scenario in preview.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/lms/phoneme/*", "issues": ["React hydration warning in console: '<button> cannot be a descendant of <button>' — nested-button DOM error emitted from the phoneme card page. Not blocking any functionality but should be fixed to silence hydration errors."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter26_audio_manual.py",
+    "/app/test_reports/pytest/iter26_results.xml"
+  ],
+  "action_items": [
+    "Fix the nested <button> hydration warning on PhonemeCardPage.jsx (a button inside another button in the AudioPlayButton wrapping — likely the tooltip trigger or dialect toggle).",
+    "Optional: seed the preview DB with DISTINCT AmE vs RP isolated audio for u-foot or i-fleece so that BUG #3 can be exercised via automated network probing (currently both dialects point to the same MP3 URL so the useEffect never fires in preview)."
+  ],
+  "critical_code_review_comments": [
+    "PhonemeCardPage.jsx AudioPlayButton fix is correct and minimal — useEffect([src]) resets audioRef + playing/loading state, and the on-unmount cleanup effect is preserved. However both effects duplicate the teardown snippet; extracting a small local helper `resetAudio()` would DRY it.",
+    "backend elevenlabs.py upload-audio endpoint: extension check is done AFTER reading the entire body (`raw = await file.read()`) but the 5MB size check is inside FastAPI, so an attacker can still force the server to hold up to 5MB in memory per request even for invalid extensions. Consider streaming-check the size OR checking the extension BEFORE reading the body (via file.filename inspection).",
+    "phoneme_cards.py PatchAudioUrlRequest: `key` and `url` are both plain str with no length limit / URL sanity check. A caller could inject unlimited-length strings into the doc. Add pydantic `max_length=2048` and optionally a regex for `key`.",
+    "phoneme_cards.py line 1902-1913 (word-{i}-{d}): the endpoint auto-grows the commonWords array to reach index `i` by appending empty dicts. If the target card only has 3 common words and someone patches 'word-99-AmE', they get 96 empty {} entries — leaking storage and rendering blank rows on the phoneme card page. Consider bounding to len(commonWords) or the words_limit constant.",
+    "phoneme_cards.py is now ~2951 lines — well over the 700-line guideline. The audio-manual patcher + batch audio runner + AI drafting + readiness + autofill blocks would each be reasonable candidates for module extraction (mirroring routers/phoneme_lexicon_rule.py, phoneme_hotspot_rule.py). Not blocking but the file is unwieldy."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter26_audio_manual.py (NEW — 16 tests: 3 error paths + 7 key-shape persistence tests + 6 upload tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16)",
+    "frontend": "100% for the parts that could be exercised (Audio Studio 1256 paste buttons present, Voice Lab dropzone + repository panel + 44 SSML chips + real file upload 200 OK). BUG #3 code-verified, runtime-probing not possible in preview due to identical AmE/RP URLs in the seeded data."
+  },
+  "test_credentials": "admin / VocalFitness2026! (works via placeholder-based selectors + Enter key submit; response.access_token JWT)",
+  "seed_data_creation": "None. Backend tests patched marker URLs (https://example.com/TEST_*.mp3) onto card 'e-dress' — but e-dress is NOT published so it's not user-visible. Uploaded a hand-crafted 528-byte MP3 to /api/uploads/manual/TEST_upload_<ts>.mp3.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 26 backend + frontend verified. Key testids that work: audio-studio-paste-{cardId::key}, tab-audio-studio, el-upload-dropzone, el-upload-file, el-ipa-chip-{sym}. Backend regressions test file: /app/backend/tests/test_iter26_audio_manual.py (pytest, 16 tests, 4.17s runtime). Login flow: placeholder-based selectors (input[placeholder*='username' i]) + press Enter on password field to submit — the login button doesn't respond to text-based search. BUG #3 dialect-toggle audio-sync fix at PhonemeCardPage.jsx:318-327 is code-verified but cannot be runtime-probed in preview because both published cards (u-foot, i-fleece) currently have IDENTICAL AmE/RP isolated URLs in DB (audio.AmE.isolated === audio.RP.isolated). If main agent wants a live E2E validation, seed one card with distinct AmE/RP URLs first. The frontend still emits a nested-button hydration warning on phoneme card pages — not a functional bug but visible in console.",
+  "rca of the issue": "N/A — all iteration-26 acceptance criteria verified. Only observations: (1) DB currently has identical AmE/RP URLs on both published cards, which masks any runtime distinguishing of BUG #3, and (2) a pre-existing nested-<button> hydration warning is emitted from the phoneme card page — unrelated to iter-26 but visible in console."
+}

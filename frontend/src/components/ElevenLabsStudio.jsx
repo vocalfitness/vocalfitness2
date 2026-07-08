@@ -26,7 +26,9 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
   const [error, setError] = useState('');
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);   // NEW · file upload
   const audioRef = useRef(null);
+  const uploadInputRef = useRef(null);
 
   // Pre-baked text presets useful for the Phonetics Lab workflow
   const PRESETS = [
@@ -117,6 +119,36 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     navigator.clipboard?.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
+  };
+
+  // ─── Manual file upload (drag & drop or file picker) ────────────────
+  // For fonemi where ElevenLabs quality is insufficient the Prof uploads
+  // a pre-recorded MP3/WAV from PC (or a clip downloaded from a
+  // scientific IPA repository — see the "Repository IPA scientifiche"
+  // panel below for CC-BY-SA sources).
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    setError(''); setResult(null); setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (filenameHint) fd.append('filename_hint', filenameHint);
+      const res = await axios.post(`${BACKEND_URL}/api/admin/elevenlabs/upload-audio`, fd, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResult({ ...res.data, __manual: true });
+    } catch (e) {
+      setError(e.response?.data?.detail || `Errore upload: ${e.message}`);
+    } finally {
+      setUploading(false);
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFileUpload(f);
   };
 
   const t = language === 'it'
@@ -272,8 +304,65 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
             </div>
           </div>
 
+          {/* ═══════════════════════════════════════════════════════════
+              Upload manuale + Repository IPA scientifiche
+              ═══════════════════════════════════════════════════════════
+              Per fonemi dove ElevenLabs SSML dà qualità scarsa: carica
+              un MP3/WAV registrato dal Prof o scaricato da repository
+              scientifiche (Wikimedia Commons, IPA.org, UCLA archive).
+          */}
+          <div className="rounded-xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 p-3">
+            <label className="text-xs uppercase tracking-wider text-emerald-300 font-bold flex items-center gap-1.5 mb-2">
+              <AudioLines className="w-3.5 h-3.5" /> Upload da PC · fonema pre-registrato
+            </label>
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              className="border-2 border-dashed border-emerald-500/40 rounded-lg p-4 text-center hover:border-emerald-400 hover:bg-emerald-500/5 transition cursor-pointer"
+              onClick={() => uploadInputRef.current?.click()}
+              data-testid="el-upload-dropzone"
+            >
+              {uploading
+                ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span className="text-sm text-emerald-200">Caricamento…</span>
+                  </div>
+                )
+                : (
+                  <>
+                    <p className="text-sm text-emerald-100 font-semibold">Trascina qui un file audio · o clicca per selezionare</p>
+                    <p className="text-[10px] text-emerald-300/70 mt-1">MP3 · WAV · OGG · M4A · FLAC · max 5 MB</p>
+                  </>
+                )}
+              <input
+                type="file"
+                ref={uploadInputRef}
+                accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac"
+                onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                className="hidden"
+                data-testid="el-upload-file"
+              />
+            </div>
+
+            {/* Scientific IPA repositories · CC-BY-SA sources for isolated
+                phoneme audio. Prof clicks link → downloads → uploads. */}
+            <details className="mt-3 group">
+              <summary className="text-[11px] text-emerald-300/90 cursor-pointer hover:text-emerald-200 select-none">
+                📚 Repository IPA scientifiche (aprire per elenco fonti CC-BY-SA)
+              </summary>
+              <div className="mt-2 space-y-1.5 text-[11px] text-slate-300 pl-3 border-l border-emerald-500/30">
+                <p><a href="https://www.internationalphoneticalphabet.org/ipa-sounds/ipa-chart-with-sounds/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">IPA.org · Chart with sounds</a> — click sul simbolo per audio streaming. CC-BY-SA 3.0.</p>
+                <p><a href="https://archive.phonetics.ucla.edu" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA Phonetics Lab Archive</a> (Ladefoged) — recordings di 200+ lingue con IPA. CC free noncommercial.</p>
+                <p><a href="https://github.com/michaelbennieUFL/UCLA-IPA-Phonetic-Corpus" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA-IPA-Phonetic-Corpus (GitHub)</a> — versione ripulita, dir <code>eng/audio</code>. CC.</p>
+                <p><a href="https://commons.wikimedia.org/wiki/Category:IPA_sound_files" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Wikimedia Commons · IPA sound files</a> — file OGG per ogni simbolo IPA. CC-BY-SA.</p>
+                <p><a href="https://pronunciationstudio.com/english-ipa-chart-4/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Pronunciation Studio · English IPA Chart</a> — 44 suoni inglese streaming (non open-source).</p>
+                <p className="text-slate-500 pt-1">💡 Workflow: apri repository → scarica MP3/OGG del fonema → trascina qui sopra → ottieni URL → incolla nel Phoneme CMS.</p>
+              </div>
+            </details>
+          </div>
+
           <div>
-            <label className="block text-xs uppercase tracking-wider text-slate-400 mb-1">{t.filename}</label>
             <input
               type="text" value={filenameHint}
               onChange={e => setFilenameHint(e.target.value)}

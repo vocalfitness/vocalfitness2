@@ -299,6 +299,33 @@ const AudioPlayButton = ({ src, size = 'md', label, onPlayingChange }) => {
     }
   }, []);
 
+  // ═════════════════════════════════════════════════════════════════
+  // BUG FIX (08/02/2026) · Dialect-toggle audio sync
+  // ─────────────────────────────────────────────────────────────────
+  // User report: switching the AmE/RP toggle at the top of a phoneme
+  // card kept playing the OLD dialect's audio — only after a second
+  // toggle did the new dialect play. Root cause: ``getAudio()`` lazily
+  // instantiates a ``new Audio(src)`` and caches it in ``audioRef``,
+  // then never re-instantiates when ``src`` changes. Result: once the
+  // user clicked play once (or the preloader wired an element), the
+  // ref pointed at the AmE URL forever, ignoring the RP switch.
+  //
+  // Fix: whenever ``src`` changes, tear down the previous audio
+  // element so the NEXT click recreates it with the fresh URL.
+  // Also reset the playing/loading state so the button UI stops
+  // showing the "playing" ring if the user switches mid-playback.
+  // ═════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+      setPlaying(false);
+      setLoading(false);
+      onPlayingChange?.(false);
+    }
+  }, [src]);
+
   const toggle = (e) => {
     e.stopPropagation();
     const a = getAudio();

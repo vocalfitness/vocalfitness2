@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 
@@ -341,5 +341,67 @@ def build_elevenlabs_router(
         except Exception as e:
             logging.exception("ElevenLabs TTS failed")
             raise HTTPException(status_code=502, detail=f"ElevenLabs error: {e}")
+
+    # ------------------------------------------------------------------ #
+    # Manual audio upload — accepts a file from the Voice Lab (drag & drop
+    # or file picker) or a URL fetched from a scientific IPA repository
+    # (Wikimedia Commons, IPA.org, UCLA archive) and persists it under
+    # ``/api/uploads/manual/`` returning a URL usable as ``audio`` field
+    # on Phoneme Cards. Accepts mp3/wav/ogg/m4a — the extension is
+    # preserved so the browser plays it natively.
+    # ------------------------------------------------------------------ #
+    @router.post("/admin/elevenlabs/upload-audio")
+    async def elevenlabs_upload_audio(
+        file: UploadFile = File(...),
+        filename_hint: Optional[str] = Form(None),
+        _admin: dict = Depends(get_admin_user),
+    ):
+        """Persist an uploaded audio file to Emergent storage (with local
+        fallback) and return the public URL.
+
+        Accepted extensions: mp3, wav, ogg, m4a, flac. Max ~5 MB (typical
+        single-phoneme clip is <100 KB).
+        """
+        raw = await file.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="File vuoto")
+        if len(raw) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File troppo grande (max 5 MB)")
+
+        # Determine extension + content type from the original filename.
+        orig_name = file.filename or "audio.mp3"
+        ext = orig_name.rsplit(".", 1)[-1].lower() if "." in orig_name else "mp3"
+        if ext not in {"mp3", "wav", "ogg", "m4a", "flac", "aac"}:
+            raise HTTPException(status_code=415,
+                                 detail=f"Estensione non supportata: .{ext}")
+        content_type = {
+            "mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
+            "m4a": "audio/mp4", "flac": "audio/flac", "aac": "audio/aac",
+        }.get(ext, "audio/mpeg")
+
+        # Build filename: manual/<hint>_<timestamp>.<ext> — the ``manual``
+        # subdir keeps hand-uploaded clips visually distinct from
+        # ElevenLabs-generated ones (see /api/uploads/elevenlabs/…).
+        safe_hint = re.sub(r"[^a-zA-Z0-9_-]+", "_",
+                             (filename_hint or orig_name.rsplit(".", 1)[0]))[:48].strip("_") or "clip"
+        ts = int(datetime.now(timezone.utc).timestamp())
+        filename = f"manual/{safe_hint}_{ts}.{ext}"
+
+        ok = emergent_put(filename, raw, content_type)
+        if not ok:
+            local_path = uploads_dir / filename
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.write_bytes(raw)
+
+        base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+        public_url   = f"{base}/api/uploads/{filename}" if base else f"/api/uploads/{filename}"
+        relative_url = f"/api/uploads/{filename}"
+        return {
+            "url":          public_url,
+            "relative_url": relative_url,
+            "filename":     filename,
+            "content_type": content_type,
+            "size_bytes":   len(raw),
+        }
 
     return router
