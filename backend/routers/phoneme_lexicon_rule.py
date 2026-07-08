@@ -29,9 +29,12 @@ import re
 # =========================================================================
 # ARPAbet → IPA mapping (GenAm baseline).
 # =========================================================================
-# The stress digit (0/1/2) is stripped before lookup; we match on the base phone.
+# The stress digit (0/1/2) is stripped before lookup; we match on the base
+# phone. For phones where the base is ambiguous across IPA symbols (AH,
+# ER) use ``_arpabet_phone_to_ipa`` below which honours the stress digit.
 _ARPABET_TO_IPA: Dict[str, str] = {
-    # Vowels
+    # Vowels — base mapping (fallback when stress digit is unavailable /
+    # for phones that don't split by stress).
     "AA": "ɑ",  "AE": "æ", "AH": "ʌ",  "AO": "ɔ",  "AW": "aʊ",
     "AY": "aɪ", "EH": "ɛ", "ER": "ɝ",  "EY": "eɪ", "IH": "ɪ",
     "IY": "iː", "OW": "oʊ", "OY": "ɔɪ", "UH": "ʊ",  "UW": "uː",
@@ -42,6 +45,64 @@ _ARPABET_TO_IPA: Dict[str, str] = {
     "S":  "s",  "SH": "ʃ",  "T":  "t", "TH": "θ",  "V":  "v",
     "W":  "w",  "Y":  "j",  "Z":  "z", "ZH": "ʒ",
 }
+
+
+# =========================================================================
+# CANONICAL · Stress-aware ARPAbet → IPA (Ladefoged / CMUdict standard)
+# =========================================================================
+# CMUdict encodes English lexical stress as a digit suffix on vowel phones:
+#   • 0 = unstressed / reduced
+#   • 1 = primary stress
+#   • 2 = secondary stress
+#
+# For two vowel bases, the IPA symbol legitimately depends on that digit:
+#
+#   AH0  →  /ə/  (schwa — reduced vowel)
+#   AH1  →  /ʌ/  (STRUT — stressed open-mid back)
+#   AH2  →  /ʌ/  (secondary-stressed STRUT)
+#
+#   ER0  →  /ɚ/  (r-colored schwa — unstressed)
+#   ER1  →  /ɝ/  (NURSE — stressed r-colored)
+#   ER2  →  /ɝ/
+#
+# This is the ONLY correct rendering: e.g. "about" = AH0 B AW1 T = /əbaʊt/,
+# never /ʌbaʊt/. Historically we stripped the stress digit BEFORE lookup,
+# which mapped every AH → ʌ and every ER → ɝ regardless of stress. That
+# bug corrupted the schwa card (/ə/) and the r-colored schwa card (/ɚ/),
+# plus every multisyllabic transcription elsewhere (e.g. "another",
+# "president", "government" showed /ʌ/ in unstressed syllables).
+#
+# ``_arpabet_phone_to_ipa`` is the canonical converter — it takes the FULL
+# phone (with stress digit) and returns the correct IPA symbol. All new
+# code MUST use this function rather than ``_ARPABET_TO_IPA`` +
+# ``_strip_stress``. See tests/test_arpabet_stress_ipa_canonical.py.
+# =========================================================================
+_STRESS_AWARE_IPA: Dict[Tuple[str, str], str] = {
+    ("AH", "0"): "ə",
+    ("AH", "1"): "ʌ",
+    ("AH", "2"): "ʌ",
+    ("ER", "0"): "ɚ",
+    ("ER", "1"): "ɝ",
+    ("ER", "2"): "ɝ",
+}
+
+
+def _arpabet_phone_to_ipa(phone: str) -> str:
+    """Convert one CMUdict phone (e.g. ``AH0``, ``ER1``, ``K``) to its
+    correct IPA symbol, honouring the stress digit for phones whose
+    IPA rendering depends on it.
+
+    See the CANONICAL comment block above for the rationale.
+    """
+    if not phone:
+        return ""
+    if phone[-1].isdigit():
+        base, digit = phone[:-1], phone[-1]
+        aware = _STRESS_AWARE_IPA.get((base, digit))
+        if aware is not None:
+            return aware
+        return _ARPABET_TO_IPA.get(base, base)
+    return _ARPABET_TO_IPA.get(phone, phone)
 
 
 # Reverse map: for a target IPA, which ARPAbet base phones match?
@@ -125,12 +186,11 @@ def _strip_stress(phone: str) -> str:
 
 
 def _arpabet_pron_to_ipa(phones: List[str]) -> str:
-    """Render an ARPAbet pronunciation list as IPA — best-effort for display."""
-    out = []
-    for p in phones:
-        base = _strip_stress(p)
-        out.append(_ARPABET_TO_IPA.get(base, base))
-    return "/" + "".join(out) + "/"
+    """Render an ARPAbet pronunciation list as IPA. Stress-aware —
+    uses ``_arpabet_phone_to_ipa`` on every phone so schwa/STRUT and
+    ɚ/ɝ are disambiguated per CMUdict stress digit.
+    """
+    return "/" + "".join(_arpabet_phone_to_ipa(p) for p in phones) + "/"
 
 
 # =========================================================================
