@@ -11,6 +11,40 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 
 ## Core Requirements
 
+
+### 08/02/2026 — §3.6 · Mnemonic Inline-IPA Rewriter (bracket syntax + Tooltip UI) — DONE ✅
+
+**Feature completa full-stack**. Le frasi mnemoniche vengono automaticamente annotate con la sintassi `[word|/ipa/]` derivata **deterministicamente** da CMUdict (mai LLM). Al passaggio del mouse, il frontend mostra un tooltip Radix con la trascrizione IPA; l'audio ElevenLabs riceve SSML `<phoneme>` per ogni parola annotata.
+
+**Sintassi scelta (dopo domanda esplicita all'utente)**: opzione **(a)** — stringa singola con sintassi markdown-like `[word|/ipa/]` (retrocompatibile, nessuna migrazione DB).
+
+**Backend**:
+- Nuovo endpoint admin `POST /api/admin/phonemes/batch/rewrite-mnemonics` body: `{overwrite_existing_brackets: bool, only_ids?: [str]}`.
+- Idempotente: re-run → `changed=0`.
+- Solo parole che contengono realmente il fonema target (con filtro stress corretto) vengono annotate.
+- Skip: `mnemonic_locked=true`, frase vuota, IPA target mancante.
+- Al rewrite, il campo `mnemonic.audio` viene azzerato → forza rigenerazione SSML.
+- Nuovi helper in `phoneme_lexicon_rule.py`: `word_to_ipa(word)` e `word_contains_phoneme(word, target_ipa)`.
+- Nuovo flag su `PhonemeCard`: `mnemonic_locked: bool = False`.
+
+**ElevenLabs (`synthesize_and_store`)**:
+- Pre-processore combinato in un unico passaggio: matcha `[word|/ipa/]` **e** `/ipa/` bare in un solo scan (evita doppia XML-escape delle tag SSML).
+- `[cook|/kʊk/]` → `<phoneme alphabet="ipa" ph="kʊk">cook</phoneme>` (surface word come fallback naturale).
+- Auto-switch a `eleven_turbo_v2` quando compare qualsiasi wrap.
+
+**Frontend**:
+- `renderMnemonicPhrase()` in `PhonemeCardPage.jsx`: parser che estrae `[w|/ipa/]` e wrappa in Radix `Tooltip`. Testid: `mnemonic-ipa-{word}` / `mnemonic-ipa-tooltip-{word}`.
+- Stile: parola arancione + underline tratteggiato + `cursor-help` + keyboard-accessible (`tabIndex=0` + focus-ring).
+- Admin `PhonemeRoadmapDashboard`: nuovo blocco §3.6 con pulsanti "Annota mnemoniche" (`roadmap-bulk-mnemonic-button`) e "Re-annota da zero" (`roadmap-bulk-mnemonic-force-button`), risultato in banner (`roadmap-bulk-mnemonic-result`).
+
+**Test creati / passati (100%)**:
+- `test_ssml_ipa_wrapping.py`: 12/12 verdi (3 nuovi test bracket-syntax).
+- `test_batch_rewrite_mnemonics.py` (creato dal testing agent): 7/7 verdi.
+- Frontend E2E: 6 spans `mnemonic-ipa-*` renderizzati su `u-foot`, tooltip `/pʊl/` visibile su hover, admin bulk trigger operativo con banner "Processate 44 · modificate 0 · saltate 0".
+
+**Esempio semantica u-foot**: `"Pull the wool, push the hood, put the foot."` → `"[Pull|/pʊl/] the [wool|/wʊl/], [push|/pʊʃ/] the [hood|/hʊd/], [put|/pʊt/] the [foot|/fʊt/]."` — 6/6 parole target correttamente annotate.
+
+
 ### 07/07/2026 — SSML IPA inline auto-wrap per frasi ibride prose+IPA — DONE ✅
 
 **Estensione del suggerimento**: il motore SSML IPA ora funziona anche INLINE dentro qualsiasi frase. Esempio d'uso pedagogico:
