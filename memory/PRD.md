@@ -12,6 +12,29 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 28 — Common Words UI Redesign — DONE ✅
+
+**Contesto**: la riga a 12 colonne era sovrastata, il pulsante "Rigenera" si sovrapponeva agli input URL. Ridisegno completo con:
+- **Riga 1** (dati testuali): `word · ipa · note · [URL▸]` (chevron per espandere URL)
+- **Riga 2** (tracce audio): due card affiancate 🇺🇸 AmE / 🇬🇧 RP, ognuna con [☐ select] + [▶ play] + [⟳ regen] + [✕ clear]
+- **Pannello URL** collassabile on-demand per editing manuale
+- **MiniAudioButton** custom con re-mount su cambio `src` (no cache di clip vecchie)
+
+**Frontend `PhonemeAdminEditorPage.jsx`**:
+- Nuovo componente `MiniAudioButton` (24×24 play/pause con re-mount su src change).
+- Nuovo state `selectedTracks` (Set di `word-{i}-{dialect}` selezionate).
+- Nuovo state `expandedRows` (Set di indici con pannello URL aperto).
+- Helper `toggleSelected(key)` / `toggleExpanded(i)`.
+- Nuovo helper `regenSelectedTracks({overwrite})` → bulk batch delle tracce selezionate.
+- Rifattorizzato completamente il `renderItem` del Repeater `commonWords`.
+- Nuovo pulsante fucsia **"Genera N selezionate"** (`data-testid="editor-cw-bulk-selected"`) — appare solo se ≥1 selezione.
+- Badge dinamico "N selezionate" nel banner.
+- Rimosso il vecchio `editor-cw-{i}-regen-both` (che si sovrapponeva agli URL) — sostituito da 2 rigenera indipendenti per traccia.
+
+**Testing**: iteration_28.json — 330 testid nuovi verificati (30 righe × 11 testid), batch selection chirurgica (POST batch-audio con `only_keys:['word-0-AmE','word-1-RP','word-2-AmE']` esattamente), per-track regen surgical (solo AmE ricreato, RP invariato), MiniAudioButton play/pause CSS transition confermato, URL expander toggle verificato.
+
+
+
 ### 08/02/2026 · Iteration 27 — Common Words audio ×30 AmE + ×30 RP + per-row refresh — DONE ✅
 
 **Contesto**: fino a iter 26 le parole comuni generavano solo 10 audio (default `words_limit=10`). L'utente voleva 30 per dialetto (60 clip totali) + un pulsante refresh diretto sulla singola parola dentro l'editor CMS della card, per non dover ricorrere manualmente al Voice Lab per correggere le parole difficili.
