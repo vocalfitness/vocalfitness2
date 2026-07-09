@@ -70,9 +70,10 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
   // RP → AmE IPA equivalence for the associate-panel dropdown, so a
   // card indexed by its RP symbol (e.g. /ɒ/ o-lot) also shows the AmE
   // variant (/ɑ/) inline. Only pairs where the two dialects diverge
-  // are listed — cards with a shared symbol just show the single IPA.
+  // AND share a single card are listed. Cards that have a dedicated
+  // AmE-only counterpart (e.g. DRESS /e/ RP + /ɛ/ AmE now split into
+  // two separate cards) are NOT listed here to avoid duplicate labels.
   const RP_TO_AME_IPA = {
-    'e':  'ɛ',
     'ɒ':  'ɑ',
     'ɑː': 'ɑ',
     'ɔː': 'ɔ',
