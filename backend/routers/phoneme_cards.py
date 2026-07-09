@@ -341,6 +341,14 @@ _IPA_EQUIVALENTS: Dict[str, List[str]] = {
     # uses /ɛ/ (open-mid). Same for FACE /eɪ/ vs /ɛɪ/ etc.
     "e":  ["e",  "ɛ"],
     "ɛ":  ["ɛ",  "e"],
+    # LOT-PALM merger — /ɒ/ is RP-only; in GenAm it merges into the
+    # long back vowel written /ɑː/ (or /ɑ/ without the length mark in
+    # some transcription systems). Add both forms so AI drafting on a
+    # /ɒ/ card for the GenAm dialect can fall back to either of the
+    # canonical rows and never abort with "non presente nell'inventario".
+    "ɒ":  ["ɒ",  "ɑ",  "ɑː"],
+    "ɑ":  ["ɑ",  "ɑː", "ɒ"],
+    "ɑː": ["ɑː", "ɑ",  "ɒ"],
 }
 
 

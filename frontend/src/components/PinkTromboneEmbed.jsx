@@ -68,12 +68,18 @@ const VOWEL_TARGETS = [
   { sym: 'i', x: 0.08, y: 0.08, label: '/iː/ FLEECE',  freq: 138, tense: 0.85, intensity: 0.85, tongueIndex: 29.0, tongueDiameter: 2.15 },
   { sym: 'ɪ', x: 0.22, y: 0.20, label: '/ɪ/ KIT',      freq: 130, tense: 0.55, intensity: 0.80, tongueIndex: 27.5, tongueDiameter: 2.50 },
   { sym: 'e', x: 0.18, y: 0.45, label: '/e/ DRESS',    freq: 128, tense: 0.65, intensity: 0.80, tongueIndex: 26.0, tongueDiameter: 2.85 },
+  { sym: 'ɛ', x: 0.20, y: 0.55, label: '/ɛ/ DRESS AmE',freq: 128, tense: 0.60, intensity: 0.80, tongueIndex: 25.5, tongueDiameter: 2.95 },
   { sym: 'æ', x: 0.30, y: 0.85, label: '/æ/ TRAP',     freq: 132, tense: 0.55, intensity: 0.85, tongueIndex: 24.0, tongueDiameter: 3.20 },
+  { sym: 'ʌ', x: 0.55, y: 0.75, label: '/ʌ/ STRUT',    freq: 122, tense: 0.55, intensity: 0.85, tongueIndex: 19.0, tongueDiameter: 3.10 },
   { sym: 'ɑ', x: 0.78, y: 0.92, label: '/ɑː/ FATHER',  freq: 125, tense: 0.70, intensity: 0.90, tongueIndex: 14.0, tongueDiameter: 3.35 },
+  { sym: 'ɒ', x: 0.82, y: 0.90, label: '/ɒ/ LOT',      freq: 124, tense: 0.65, intensity: 0.88, tongueIndex: 13.5, tongueDiameter: 3.30 },
   { sym: 'ɔ', x: 0.86, y: 0.55, label: '/ɔː/ THOUGHT', freq: 122, tense: 0.70, intensity: 0.85, tongueIndex: 13.0, tongueDiameter: 2.95 },
   { sym: 'ʊ', x: 0.78, y: 0.20, label: '/ʊ/ FOOT',     freq: 120, tense: 0.55, intensity: 0.85, tongueIndex: 13.0, tongueDiameter: 2.50 },
   { sym: 'u', x: 0.92, y: 0.08, label: '/uː/ GOOSE',   freq: 130, tense: 0.85, intensity: 0.85, tongueIndex: 12.5, tongueDiameter: 2.15 },
+  { sym: 'ɜ', x: 0.50, y: 0.45, label: '/ɜː/ NURSE',   freq: 122, tense: 0.60, intensity: 0.80, tongueIndex: 20.0, tongueDiameter: 2.90 },
+  { sym: 'ɝ', x: 0.50, y: 0.48, label: '/ɝ/ NURSE AmE',freq: 122, tense: 0.60, intensity: 0.80, tongueIndex: 20.0, tongueDiameter: 2.90 },
   { sym: 'ə', x: 0.52, y: 0.50, label: '/ə/ schwa',    freq: 120, tense: 0.45, intensity: 0.75, tongueIndex: 20.5, tongueDiameter: 2.85 },
+  { sym: 'ɚ', x: 0.55, y: 0.52, label: '/ɚ/ letter',   freq: 120, tense: 0.45, intensity: 0.75, tongueIndex: 20.5, tongueDiameter: 2.85 },
 ];
 
 // Map phoneme card IDs to (a) the matching vowel-chart symbol used as

@@ -237,6 +237,27 @@ export default function PhonemeAdminEditorPage() {
   // currently expanded — collapsed by default to keep the list clean.
   const [expandedRows, setExpandedRows] = useState(new Set());
 
+  // ─── Voice pickers for common-word audio (Iter 37) ─────────────────
+  // The batch endpoint accepts ``voice_ame``/``voice_rp``/``voice_default``
+  // per request. Historically the frontend never passed them, so every
+  // clip was synthesised with the default cloned voice (Steve Dapper).
+  // Prof now wants per-dialect voice selection — e.g. a native RP female
+  // voice for the UK track. Selection is persisted in localStorage so
+  // it survives editor navigation & page reloads.
+  const [voices, setVoices] = useState([]);   // full list from ElevenLabs
+  const [voiceAme, setVoiceAme] = useState(() => {
+    try { return localStorage.getItem('vf_editor_voice_ame') || ''; } catch { return ''; }
+  });
+  const [voiceRp, setVoiceRp] = useState(() => {
+    try { return localStorage.getItem('vf_editor_voice_rp') || ''; } catch { return ''; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('vf_editor_voice_ame', voiceAme || ''); } catch { /* ignore */ }
+  }, [voiceAme]);
+  useEffect(() => {
+    try { localStorage.setItem('vf_editor_voice_rp', voiceRp || ''); } catch { /* ignore */ }
+  }, [voiceRp]);
+
   const toggleSelected = (key) => {
     setSelectedTracks((prev) => {
       const next = new Set(prev);
@@ -300,6 +321,23 @@ export default function PhonemeAdminEditorPage() {
     })();
     return () => { cancelled = true; };
   }, [routeId, isNew]);
+
+  // ---- Load ElevenLabs voices (once) for the RP/AmE picker in
+  // the "Parole comuni" bulk audio bar. Silent-fail: if the fetch
+  // errors out we just show a single "Default (Steve Dapper)" option.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/admin/elevenlabs/voices`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setVoices(data.voices || []);
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // ---- Prefill from PHONEME_CATALOGUE when creating a new card via ?prefill=xxx ----
   useEffect(() => {
@@ -452,6 +490,8 @@ export default function PhonemeAdminEditorPage() {
           overwrite:        true,
           words_limit:      Math.max(30, (card.commonWords || []).length),
           include_words_rp: true,
+          voice_ame:        voiceAme || undefined,
+          voice_rp:         voiceRp  || undefined,
         }),
       });
       const data = await res.json();
@@ -491,6 +531,8 @@ export default function PhonemeAdminEditorPage() {
           overwrite,
           words_limit: Math.max(30, (card.commonWords || []).length),
           include_words_rp: true,
+          voice_ame: voiceAme || undefined,
+          voice_rp:  voiceRp  || undefined,
         }),
       });
       const data = await res.json();
@@ -1562,27 +1604,82 @@ export default function PhonemeAdminEditorPage() {
 
           {/* Bulk regen: fill missing audios OR force-overwrite all 30 * 2. */}
           {!isNew && (card.commonWords || []).length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-3 p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-              <span className="text-[11px] text-cyan-200 font-semibold mr-auto">
-                🎙️ Bulk audio ElevenLabs — {(card.commonWords || []).length} parole ×2 dialetti = {(card.commonWords || []).length * 2} clip
-                {selectedTracks.size > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full bg-fuchsia-500/30 border border-fuchsia-400/50 text-fuchsia-100">
-                    {selectedTracks.size} selezionate
-                  </span>
+            <div className="mb-3 p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20 space-y-2">
+              {/* Voice pickers — Iter 37: per-dialect voice selection so the
+                  RP track can use a native British voice instead of the
+                  default cloned Steve Dapper. Selection persists via
+                  localStorage across editor navigations. */}
+              <div className="flex flex-wrap items-center gap-2" data-testid="editor-cw-voice-pickers">
+                <span className="text-[11px] uppercase tracking-widest text-cyan-300 font-bold">
+                  🎙️ Voci ElevenLabs
+                </span>
+                <label className="text-[10px] text-slate-300 flex items-center gap-1">
+                  🇺🇸 AmE:
+                  <select
+                    value={voiceAme}
+                    onChange={(e) => setVoiceAme(e.target.value)}
+                    disabled={regenBusy.size > 0}
+                    className="bg-slate-900 border border-cyan-500/40 text-cyan-100 rounded px-1.5 py-0.5 text-[11px] max-w-[180px]"
+                    data-testid="editor-cw-voice-ame"
+                  >
+                    <option value="">— Default (Steve Dapper) —</option>
+                    {voices.map((v) => (
+                      <option key={v.voice_id} value={v.voice_id}>
+                        {v.name}{v.labels?.accent ? ` · ${v.labels.accent}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-[10px] text-slate-300 flex items-center gap-1">
+                  🇬🇧 RP:
+                  <select
+                    value={voiceRp}
+                    onChange={(e) => setVoiceRp(e.target.value)}
+                    disabled={regenBusy.size > 0}
+                    className="bg-slate-900 border border-cyan-500/40 text-cyan-100 rounded px-1.5 py-0.5 text-[11px] max-w-[180px]"
+                    data-testid="editor-cw-voice-rp"
+                  >
+                    <option value="">— Default (Steve Dapper) —</option>
+                    {voices.map((v) => (
+                      <option key={v.voice_id} value={v.voice_id}>
+                        {v.name}{v.labels?.accent ? ` · ${v.labels.accent}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {(voiceAme || voiceRp) && (
+                  <button
+                    type="button"
+                    onClick={() => { setVoiceAme(''); setVoiceRp(''); }}
+                    className="text-[10px] text-slate-400 hover:text-white underline"
+                    data-testid="editor-cw-voice-reset"
+                  >
+                    reset
+                  </button>
                 )}
-              </span>
-              {selectedTracks.size > 0 && (
-                <button
-                  type="button"
-                  onClick={() => regenSelectedTracks({ overwrite: true })}
-                  disabled={regenBusy.size > 0}
-                  className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40"
-                  data-testid="editor-cw-bulk-selected"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 inline mr-1" />
-                  Genera {selectedTracks.size} selezionate
-                </button>
-              )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-cyan-200 font-semibold mr-auto">
+                  {(card.commonWords || []).length} parole ×2 dialetti = {(card.commonWords || []).length * 2} clip
+                  {selectedTracks.size > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded-full bg-fuchsia-500/30 border border-fuchsia-400/50 text-fuchsia-100">
+                      {selectedTracks.size} selezionate
+                    </span>
+                  )}
+                </span>
+                {selectedTracks.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => regenSelectedTracks({ overwrite: true })}
+                    disabled={regenBusy.size > 0}
+                    className="text-[11px] px-3 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white font-bold hover:scale-[1.02] transition disabled:opacity-40"
+                    data-testid="editor-cw-bulk-selected"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 inline mr-1" />
+                    Genera {selectedTracks.size} selezionate
+                  </button>
+                )}
               <button
                 type="button"
                 onClick={async () => {
@@ -1602,7 +1699,7 @@ export default function PhonemeAdminEditorPage() {
                   try {
                     const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
                       method: 'POST', headers: authHeaders(),
-                      body: JSON.stringify({ only_keys: missing, overwrite: false, words_limit: Math.max(30, words.length), include_words_rp: true }),
+                      body: JSON.stringify({ only_keys: missing, overwrite: false, words_limit: Math.max(30, words.length), include_words_rp: true, voice_ame: voiceAme || undefined, voice_rp: voiceRp || undefined }),
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
@@ -1633,7 +1730,7 @@ export default function PhonemeAdminEditorPage() {
                   try {
                     const res = await fetch(`${API}/api/admin/phonemes/${routeId}/batch-audio`, {
                       method: 'POST', headers: authHeaders(),
-                      body: JSON.stringify({ only_keys: allKeys, overwrite: true, words_limit: Math.max(30, words.length), include_words_rp: true }),
+                      body: JSON.stringify({ only_keys: allKeys, overwrite: true, words_limit: Math.max(30, words.length), include_words_rp: true, voice_ame: voiceAme || undefined, voice_rp: voiceRp || undefined }),
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
@@ -1653,6 +1750,7 @@ export default function PhonemeAdminEditorPage() {
               >
                 <RefreshCw className="w-3.5 h-3.5 inline mr-1" /> Sovrascrivi tutti
               </button>
+              </div>
             </div>
           )}
 

@@ -12,6 +12,39 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 37 — Voice picker RP + canonical fallback /ɒ/ + trapezoide vowels — DONE ✅
+
+**Contesto**: dopo il deploy in produzione l'utente ha segnalato 4 issue distinte sul Phoneme CMS.
+
+**Issue 1 · 30 parole ma solo 10 audio RP (P0, risolvibile con redeploy)**:
+Il codice preview genera già 30 parole × 2 dialetti (verificato via `_compute_card_audio_items`). In produzione le prime 10 hanno audio RP (batch vecchio con `words_limit=10`); le altre 20 aggiunte dopo. Al prossimo redeploy + click su "Genera audio su tutte" (idempotente) le 20 mancanti verranno completate. Corretti anche i testi UI stantii "Top 10 parole comuni" → "Top 30" in `PhonemeRoadmapDashboard.jsx` (dialog conferma + descrizione bottone).
+
+**Issue 2 · Voice picker RP per parole comuni (feature nuova)**:
+- `PhonemeAdminEditorPage.jsx`: aggiunti 2 dropdown 🇺🇸 AmE + 🇬🇧 RP nella barra "Bulk audio ElevenLabs" della sezione Parole comuni
+- Fetch voci da `/api/admin/elevenlabs/voices` una tantum a load-time
+- Selezione persistita in `localStorage` (`vf_editor_voice_ame` / `vf_editor_voice_rp`)
+- 4 chiamate al `batch-audio` (regen singola, regen selezionate, bulk mancanti, bulk sovrascrivi tutti) ora passano `voice_ame` e `voice_rp`
+- Bottone "reset" per tornare al default Steve Dapper
+- `data-testid`: `editor-cw-voice-pickers`, `editor-cw-voice-ame`, `editor-cw-voice-rp`, `editor-cw-voice-reset`
+
+**Issue 3 · `/ɒ/` AI drafting GenAm errore "canonical inventory missing" (P0)**:
+- `_IPA_EQUIVALENTS` in `phoneme_cards.py`: aggiunta equivalenza LOT-PALM merger `/ɒ/ ↔ /ɑ/ ↔ /ɑː/` (Wells 1982)
+- Ora quando si drafta AI per dialect=GenAm su una card `/ɒ/`, il lookup canonical cade su `/ɑː/` GenAm invece di erroreggiare
+- Verificato: `POST /api/admin/phonemes/o-lot/ai-draft?dialect=GenAm` restituisce ora `drafts` (LLM risponde)
+
+**Issue 4 · Trapezoide vocalica: fonema mancante graficamente (P0)**:
+- `VOWEL_TARGETS` in `PinkTromboneEmbed.jsx`: aggiunte 6 vocali mancanti (`/ɒ/ LOT`, `/ʌ/ STRUT`, `/ɜ/ NURSE RP`, `/ɝ/ NURSE AmE`, `/ɛ/ DRESS AmE`, `/ɚ/ letter r-schwa`)
+- Ora ogni card ha il proprio dot posizionato correttamente sul trapezoide IPA, incluso i fonemi AmE splittati (iter 35) e /ɒ/ RP
+
+**Verifiche**:
+- Lint JS + Python: OK
+- Backend restart: OK
+- `/api/admin/phonemes/o-lot/ai-draft?dialect=GenAm` → SUCCESS
+- Batch endpoint accetta `voice_rp` senza errori (verificato con voice_id valido)
+- Frontend editor renderizza (screenshot smoke test u-foot)
+
+---
+
 ### 09/02/2026 · Iteration 36 — Auto-seed AmE cards on backend startup — DONE ✅
 
 **Contesto**: dopo split delle 8 card AmE (iter 35), il DB di produzione (`vocalfitness.org`) risultava sprovvisto delle nuove card perché la migrazione era stata eseguita solo su preview. L'utente ha richiesto: *"execute it on the next backend startup, don't make me do it please!"*.
