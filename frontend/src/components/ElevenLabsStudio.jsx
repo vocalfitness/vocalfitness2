@@ -67,20 +67,15 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     'Consonanti · affric.':          ['tʃ', 'dʒ'],
   };
 
-  // RP → AmE IPA equivalence for the associate-panel dropdown, so a
-  // card indexed by its RP symbol (e.g. /ɒ/ o-lot) also shows the AmE
-  // variant (/ɑ/) inline. Only pairs where the two dialects diverge
-  // AND share a single card are listed. Cards that have a dedicated
-  // AmE-only counterpart (e.g. DRESS /e/ RP + /ɛ/ AmE now split into
-  // two separate cards) are NOT listed here to avoid duplicate labels.
+  // RP → AmE IPA equivalence for the associate-panel dropdown.
+  // NOTE (08/02/2026): the migration create_ame_variant_cards.py split
+  // every RP↔AmE divergent card into two independent DB entries
+  // (DRESS /e/+/ɛ/, LOT /ɒ/, PALM /ɑː/+/ɑ/, THOUGHT /ɔː/+/ɔ/,
+  // NURSE /ɜː/+/ɝ/, letter /ə/+/ɚ/, GOAT /əʊ/+/oʊ/, FLEECE /iː/+/i/,
+  // GOOSE /uː/+/u/). This mapping is now empty — dropdown shows each
+  // card with its single IPA. Kept as a hook for future centering
+  // diphthongs (NEAR/SQUARE/CURE) if the Prof decides not to split them.
   const RP_TO_AME_IPA = {
-    'ɒ':  'ɑ',
-    'ɑː': 'ɑ',
-    'ɔː': 'ɔ',
-    'əʊ': 'oʊ',
-    'ɜː': 'ɝ',
-    'iː': 'i',
-    'uː': 'u',
     'ɪə': 'ɪr',
     'eə': 'ɛr',
     'ʊə': 'ʊr',

@@ -12,6 +12,39 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 35 — 8 card AmE-specific indipendenti — DONE ✅
+
+**Contesto**: l'utente vuole poter selezionare ogni fonema IPA (UK + US) individualmente. Estensione dell'iter 34 (`/ɛ/` DRESS) al set completo di divergenze RP↔AmE.
+
+**Script migration**: `backend/scripts/create_ame_variant_cards.py`
+- Duplica RP source → patch id/ipa/displayName/title
+- **`strip_audio()`**: azzera tutti gli slot audio (isolated, examples, mnemonic, common words × 2 dialetti) → il batch runner rigenera con la nuova IPA
+- **`reset_locks()`**: azzera hotspots/lexicon/pronunciation/mnemonic_locked → il Prof può rigenerare hotspot articolatori
+- Draft di default (`published: false`) → richiede review manuale
+- Idempotente: skip se target id già presente
+
+**Card create (8 totali, DB preview)**:
+| IPA | ID | Source RP | Lexical Set |
+|-----|-----|-----|-----|
+| `/ɛ/` | epsilon-dress-ame | e-dress | DRESS |
+| `/ɑ/` | ah-palm-ame | a-palm | PALM/LOT |
+| `/ɔ/` | oh-thought-ame | o-thought | THOUGHT/CLOTH |
+| `/ɝ/` | er-nurse-ame | er-nurse | NURSE |
+| `/ɚ/` | schwar-letter-ame | schwa | letter/r-schwa |
+| `/oʊ/` | ou-goat-ame | ou-goat | GOAT |
+| `/i/` | i-fleece-ame | i-fleece | FLEECE |
+| `/u/` | u-goose-ame | u-goose | GOOSE |
+
+Totale: **52 card** (44 originali + 8 AmE).
+
+**Frontend `ElevenLabsStudio.jsx`**: aggiornato `RP_TO_AME_IPA` — svuotato per LOT/PALM/THOUGHT/NURSE/letter/GOAT/FLEECE/GOOSE/DRESS (ora card indipendenti). Rimangono i mapping per NEAR/SQUARE/CURE (centering diphthongs) se un giorno il Prof decidesse di splittarli.
+
+**Migration produzione**: in produzione va rieseguito `python3 scripts/create_ame_variant_cards.py` una tantum dopo il deploy. Idempotente e sicuro.
+
+**Prossimi step utente**: personalizzare le 8 card nuove dall'admin editor (hotspot articolatori corretti per la nuova IPA, rigenerare audio, pubblicare).
+
+
+
 ### 08/02/2026 · Iteration 31 — Voice Lab · Tabella equivalenze RP↔AmE — DONE ✅
 
 **Contesto**: enhancement veloce all'iter 30. Sotto la griglia chip IPA aggiunta una tabella collassabile con 15 lexical sets (Wells 1982) che mostra la corrispondenza tra fonemi RP e AmE.
