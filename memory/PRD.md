@@ -12,6 +12,21 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 31 — Voice Lab · Tabella equivalenze RP↔AmE — DONE ✅
+
+**Contesto**: enhancement veloce all'iter 30. Sotto la griglia chip IPA aggiunta una tabella collassabile con 15 lexical sets (Wells 1982) che mostra la corrispondenza tra fonemi RP e AmE.
+
+**Frontend `ElevenLabsStudio.jsx`**:
+- Nuovo `<details data-testid="el-ipa-equivalence-table">` con summary "🔀 Tabella equivalenze RP ↔ AmE (Wells 1982 lexical sets)".
+- Tabella 15 righe con colonne: Lexical set · 🇬🇧 RP · ≡ · 🇺🇸 AmE · Esempio.
+- Distinzione `=` (mapping 1:1 stabile) vs `≈` (variazione regionale — rhoticity, cot-caught merger).
+- Coverage: LOT, CLOTH, PALM, THOUGHT, GOAT, NURSE, letter, FLEECE, GOOSE, happY, NEAR, SQUARE, CURE, START, NORTH.
+- Footnote scientifico: Wells (1982) "Accents of English".
+
+Verificato via Playwright: 15 righe renderizzate, tabella espandibile, tutti i simboli IPA leggibili.
+
+
+
 ### 08/02/2026 · Iteration 30 — Voice Lab · Fonemi AmE + Repository per dialetto — DONE ✅
 
 **Contesto**: griglia chip IPA e sezione Repository nel Voice Lab avevano solo fonemi RP. Aggiunta esplicita del set AmE.

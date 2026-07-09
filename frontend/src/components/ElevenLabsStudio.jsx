@@ -383,6 +383,60 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
                 </div>
               ))}
             </div>
+
+            {/* RP ↔ AmE equivalence table — quick reference so the Prof
+                can pick the right dialect variant of a phoneme without
+                consulting an external guide. Ordered by lexical set
+                (Wells 1982). ≈ = approximation with regional variation;
+                = = exact 1:1 mapping. */}
+            <details className="mt-3 group" data-testid="el-ipa-equivalence-table">
+              <summary className="text-[10px] uppercase tracking-widest text-fuchsia-300/80 cursor-pointer hover:text-fuchsia-200 select-none font-bold">
+                🔀 Tabella equivalenze RP ↔ AmE (Wells 1982 lexical sets)
+              </summary>
+              <div className="mt-2 rounded-lg bg-slate-950/60 border border-fuchsia-500/20 p-2 overflow-x-auto">
+                <table className="w-full text-[11px] font-mono">
+                  <thead className="text-fuchsia-300/80 uppercase tracking-wider text-[9px]">
+                    <tr className="border-b border-fuchsia-500/20">
+                      <th className="text-left py-1 pl-1 pr-3">Lexical set</th>
+                      <th className="text-center px-2">🇬🇧 RP</th>
+                      <th className="text-center px-2">≡</th>
+                      <th className="text-center px-2">🇺🇸 AmE</th>
+                      <th className="text-left px-2 hidden sm:table-cell">Esempio</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-200">
+                    {[
+                      ['LOT',    'ɒ',   '≈', 'ɑ',   'lot, box, hot'],
+                      ['CLOTH',  'ɒ',   '≈', 'ɔ',   'cloth, off, gone'],
+                      ['PALM',   'ɑː',  '=', 'ɑ',   'palm, father, bra'],
+                      ['THOUGHT','ɔː',  '=', 'ɔ',   'thought, law, saw'],
+                      ['GOAT',   'əʊ',  '=', 'oʊ',  'goat, no, boat'],
+                      ['NURSE',  'ɜː',  '=', 'ɝ',   'nurse, bird, term'],
+                      ['letter', 'ə',   '=', 'ɚ',   'letter, doctor (r-colored)'],
+                      ['FLEECE', 'iː',  '≈', 'i',   'fleece, tree, see'],
+                      ['GOOSE',  'uː',  '≈', 'u',   'goose, moon, food'],
+                      ['happY',  'ɪ/i', '=', 'i',   'happy, city, easy'],
+                      ['NEAR',   'ɪə',  '≈', 'ɪr',  'near, here, deer'],
+                      ['SQUARE', 'eə',  '≈', 'ɛr',  'square, hair, care'],
+                      ['CURE',   'ʊə',  '≈', 'ʊr',  'cure, tour, poor'],
+                      ['START',  'ɑː',  '≈', 'ɑr',  'start, car, hard'],
+                      ['NORTH',  'ɔː',  '≈', 'ɔr',  'north, horse, door'],
+                    ].map(([name, rp, eq, ame, ex]) => (
+                      <tr key={name} className="border-b border-slate-800/60 hover:bg-fuchsia-500/5">
+                        <td className="py-0.5 pl-1 pr-3 text-fuchsia-200 font-bold">{name}</td>
+                        <td className="text-center px-2 text-cyan-300">/{rp}/</td>
+                        <td className="text-center px-2 text-slate-500">{eq}</td>
+                        <td className="text-center px-2 text-amber-300">/{ame}/</td>
+                        <td className="px-2 text-slate-400 italic hidden sm:table-cell">{ex}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-[10px] text-slate-500 mt-2 leading-snug px-1">
+                  <b className="text-slate-400">=</b> mapping 1:1 stabile · <b className="text-slate-400">≈</b> approssimazione con variazione regionale (rhoticity, cot-caught merger, ecc.). Base: Wells (1982) &ldquo;Accents of English&rdquo;.
+                </p>
+              </div>
+            </details>
           </div>
 
           {/* ═══════════════════════════════════════════════════════════
