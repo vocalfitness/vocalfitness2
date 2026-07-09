@@ -48,18 +48,23 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     { id: 'glottal-neutral', label: 'Glottal neutro (schwa)', text: 'uh, uh, uh, uh, uh', hint: 'glottal_neutral' },
   ];
 
-  // Complete IPA phoneme grid (44 English phonemes) — click to load into
-  // the IPA field for SSML-forced pronunciation.  Vowels first, then
-  // consonants — grouped so the Prof can quickly demo any target sound.
+  // Complete IPA phoneme grid — RP (British) + AmE (General American)
+  // variants. The two dialects share most consonants and 3 diphthongs;
+  // the vowel inventory diverges (RP has centering diphthongs and
+  // length distinctions AmE lacks, AmE has /ɑ/, /ɔ/, /ɝ/, /ɚ/, /oʊ/).
+  // Click a chip → loads that IPA into the SSML field.
   const IPA_QUICK = {
-    'Monoftongi corti':      ['ɪ', 'ʊ', 'e', 'ə', 'ʌ', 'ɒ', 'æ'],
-    'Monoftongi lunghi':     ['iː', 'uː', 'ɑː', 'ɔː', 'ɜː'],
-    'Dittonghi':             ['eɪ', 'aɪ', 'ɔɪ', 'aʊ', 'əʊ', 'ɪə', 'eə', 'ʊə'],
-    'Consonanti · plosive':  ['p', 'b', 't', 'd', 'k', 'ɡ'],
-    'Consonanti · fricat.':  ['f', 'v', 'θ', 'ð', 's', 'z', 'ʃ', 'ʒ', 'h'],
-    'Consonanti · nasali':   ['m', 'n', 'ŋ'],
-    'Consonanti · approx.':  ['l', 'ɹ', 'j', 'w'],
-    'Consonanti · affric.':  ['tʃ', 'dʒ'],
+    'Vocali condivise':            ['ɪ', 'ʊ', 'ɛ', 'e', 'æ', 'ʌ', 'ə'],
+    'Monoftongi RP (lunghi)':       ['iː', 'uː', 'ɑː', 'ɔː', 'ɜː', 'ɒ'],
+    'Vocali AmE (r-colorate + no length)': ['i', 'u', 'ɑ', 'ɔ', 'ɝ', 'ɚ'],
+    'Dittonghi condivisi':          ['eɪ', 'aɪ', 'ɔɪ', 'aʊ'],
+    'Dittonghi RP (centering)':     ['əʊ', 'ɪə', 'eə', 'ʊə'],
+    'Dittonghi AmE':                ['oʊ'],
+    'Consonanti · plosive':          ['p', 'b', 't', 'd', 'k', 'ɡ'],
+    'Consonanti · fricat.':          ['f', 'v', 'θ', 'ð', 's', 'z', 'ʃ', 'ʒ', 'h'],
+    'Consonanti · nasali':           ['m', 'n', 'ŋ'],
+    'Consonanti · approx.':          ['l', 'ɹ', 'j', 'w'],
+    'Consonanti · affric.':          ['tʃ', 'dʒ'],
   };
 
   useEffect(() => {
@@ -456,15 +461,35 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
                 phoneme audio. Prof clicks link → downloads → uploads. */}
             <details className="mt-3 group">
               <summary className="text-[11px] text-emerald-300/90 cursor-pointer hover:text-emerald-200 select-none">
-                📚 Repository IPA scientifiche (aprire per elenco fonti CC-BY-SA)
+                📚 Repository IPA scientifiche (RP + AmE · CC-BY-SA)
               </summary>
-              <div className="mt-2 space-y-1.5 text-[11px] text-slate-300 pl-3 border-l border-emerald-500/30">
-                <p><a href="https://www.internationalphoneticalphabet.org/ipa-sounds/ipa-chart-with-sounds/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">IPA.org · Chart with sounds</a> — click sul simbolo per audio streaming. CC-BY-SA 3.0.</p>
-                <p><a href="https://archive.phonetics.ucla.edu" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA Phonetics Lab Archive</a> (Ladefoged) — recordings di 200+ lingue con IPA. CC free noncommercial.</p>
-                <p><a href="https://github.com/michaelbennieUFL/UCLA-IPA-Phonetic-Corpus" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA-IPA-Phonetic-Corpus (GitHub)</a> — versione ripulita, dir <code>eng/audio</code>. CC.</p>
-                <p><a href="https://commons.wikimedia.org/wiki/Category:IPA_sound_files" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Wikimedia Commons · IPA sound files</a> — file OGG per ogni simbolo IPA. CC-BY-SA.</p>
-                <p><a href="https://pronunciationstudio.com/english-ipa-chart-4/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Pronunciation Studio · English IPA Chart</a> — 44 suoni inglese streaming (non open-source).</p>
-                <p className="text-slate-500 pt-1">💡 Workflow: apri repository → scarica MP3/OGG del fonema → trascina qui sopra → ottieni URL → incolla nel Phoneme CMS.</p>
+              <div className="mt-2 space-y-2 text-[11px] text-slate-300 pl-3 border-l border-emerald-500/30">
+
+                {/* RP · British English sources */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-cyan-300/90 font-bold mb-1">🇬🇧 RP · British English</p>
+                  <p><a href="https://www.pronunciationstudio.com/english-ipa-chart-4/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Pronunciation Studio · English IPA Chart</a> — 44 fonemi RP streaming (non open-source).</p>
+                  <p><a href="https://en.wikipedia.org/wiki/Received_Pronunciation" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Wikipedia · Received Pronunciation</a> — tabella IPA RP con file audio embedded.</p>
+                </div>
+
+                {/* AmE · General American sources */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-amber-300/90 font-bold mb-1">🇺🇸 AmE · General American</p>
+                  <p><a href="https://pronuncian.com/intro-to-american-english-pronunciation" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Pronuncian · American English Pronunciation</a> — IPA AmE con audio per ogni fonema.</p>
+                  <p><a href="https://en.wikipedia.org/wiki/General_American_English" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Wikipedia · General American English</a> — inventario fonetico AmE con audio embedded.</p>
+                  <p><a href="https://soundsofspeech.uiowa.edu/english/english.html" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">University of Iowa · Sounds of Speech (AmE)</a> — animazioni articolatorie + audio per ogni fonema AmE. Riferimento accademico.</p>
+                </div>
+
+                {/* Universal / scientific archives */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-fuchsia-300/90 font-bold mb-1">🌐 Universali / Scientifiche</p>
+                  <p><a href="https://www.internationalphoneticalphabet.org/ipa-sounds/ipa-chart-with-sounds/" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">IPA.org · Chart with sounds</a> — 107 simboli IPA (streaming). CC-BY-SA 3.0.</p>
+                  <p><a href="https://archive.phonetics.ucla.edu" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA Phonetics Lab Archive</a> (Ladefoged) — 200+ lingue. CC free noncommercial.</p>
+                  <p><a href="https://github.com/michaelbennieUFL/UCLA-IPA-Phonetic-Corpus" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">UCLA-IPA-Phonetic-Corpus (GitHub)</a> — versione ripulita, dir <code>eng/audio</code>. CC.</p>
+                  <p><a href="https://commons.wikimedia.org/wiki/Category:IPA_sound_files" target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-100">Wikimedia Commons · IPA sound files</a> — OGG per ogni simbolo IPA. CC-BY-SA. <b>Compatibile con &laquo;Da URL esterno&raquo; ↑</b> — copia il link diretto del file.</p>
+                </div>
+
+                <p className="text-slate-500 pt-1">💡 <b>Workflow rapido</b>: Wikimedia Commons → apri file IPA → tasto destro sul player audio → &laquo;Copia indirizzo audio&raquo; → incolla in <b>&laquo;Da URL esterno&raquo;</b> ↑ → Scarica → Associa a fonema.</p>
               </div>
             </details>
           </div>
