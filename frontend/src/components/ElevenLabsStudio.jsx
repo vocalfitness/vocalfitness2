@@ -72,6 +72,7 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
   // variant (/ɑ/) inline. Only pairs where the two dialects diverge
   // are listed — cards with a shared symbol just show the single IPA.
   const RP_TO_AME_IPA = {
+    'e':  'ɛ',
     'ɒ':  'ɑ',
     'ɑː': 'ɑ',
     'ɔː': 'ɔ',
@@ -423,6 +424,7 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
                   </thead>
                   <tbody className="text-slate-200">
                     {[
+                      ['DRESS',  'e',   '=', 'ɛ',   'dress, bed, said'],
                       ['LOT',    'ɒ',   '≈', 'ɑ',   'lot, box, hot'],
                       ['CLOTH',  'ɒ',   '≈', 'ɔ',   'cloth, off, gone'],
                       ['PALM',   'ɑː',  '=', 'ɑ',   'palm, father, bra'],
