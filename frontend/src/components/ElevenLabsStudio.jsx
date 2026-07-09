@@ -67,6 +67,23 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
     'Consonanti · affric.':          ['tʃ', 'dʒ'],
   };
 
+  // RP → AmE IPA equivalence for the associate-panel dropdown, so a
+  // card indexed by its RP symbol (e.g. /ɒ/ o-lot) also shows the AmE
+  // variant (/ɑ/) inline. Only pairs where the two dialects diverge
+  // are listed — cards with a shared symbol just show the single IPA.
+  const RP_TO_AME_IPA = {
+    'ɒ':  'ɑ',
+    'ɑː': 'ɑ',
+    'ɔː': 'ɔ',
+    'əʊ': 'oʊ',
+    'ɜː': 'ɝ',
+    'iː': 'i',
+    'uː': 'u',
+    'ɪə': 'ɪr',
+    'eə': 'ɛr',
+    'ʊə': 'ʊr',
+  };
+
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -679,11 +696,16 @@ export const ElevenLabsStudio = ({ token, language = 'it' }) => {
                       data-testid="el-assoc-card"
                     >
                       <option value="">— seleziona —</option>
-                      {(phonemeCards || []).map((c) => (
-                        <option key={c.id} value={c.id}>
-                          /{c.ipa || '?'}/ · {c.displayName || c.title || c.id}
-                        </option>
-                      ))}
+                      {(phonemeCards || []).map((c) => {
+                        const rp = c.ipa || '?';
+                        const ame = RP_TO_AME_IPA[rp];
+                        const label = ame
+                          ? `🇬🇧 /${rp}/ · 🇺🇸 /${ame}/ · ${c.displayName || c.title || c.id}`
+                          : `/${rp}/ · ${c.displayName || c.title || c.id}`;
+                        return (
+                          <option key={c.id} value={c.id}>{label}</option>
+                        );
+                      })}
                     </select>
                   </div>
                   <div>
