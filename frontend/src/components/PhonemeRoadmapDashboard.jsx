@@ -247,7 +247,7 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
       '  • Fonema isolato × AmE + RP\n' +
       '  • Frasi di esempio × AmE + RP\n' +
       '  • Frase mnemonica\n' +
-      '  • Top 10 parole comuni × AmE + RP\n\n' +
+      '  • Top 30 parole comuni × AmE + RP\n\n' +
       'Clip già generate (URL popolato) verranno saltate — puoi rilanciare quante volte vuoi.\n' +
       'Errori sui singoli clip NON interrompono il run: vedrai la lista completa alla fine.\n\n' +
       'Procedere?'
@@ -580,7 +580,7 @@ export default function PhonemeRoadmapDashboard({ existingCards = [], onRefresh 
                 Genera audio ElevenLabs (bulk)
               </p>
               <p className="text-sm text-white mt-1 max-w-2xl leading-relaxed">
-                Per ogni card: <b>fonema isolato</b> + <b>frasi esempio</b> + <b>mnemonica</b> + <b>top 10 parole</b>, ciascuno in <b>AmE + RP</b>.
+                Per ogni card: <b>fonema isolato</b> + <b>frasi esempio</b> + <b>mnemonica</b> + <b>top 30 parole</b>, ciascuno in <b>AmE + RP</b>.
                 Clip già presenti vengono saltate (idempotente, sicuro da rilanciare). Errori sui singoli clip non interrompono il run.
               </p>
             </div>
