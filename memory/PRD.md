@@ -12,6 +12,30 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 08/02/2026 · Iteration 30 — Voice Lab · Fonemi AmE + Repository per dialetto — DONE ✅
+
+**Contesto**: griglia chip IPA e sezione Repository nel Voice Lab avevano solo fonemi RP. Aggiunta esplicita del set AmE.
+
+**Frontend `ElevenLabsStudio.jsx`**:
+- `IPA_QUICK` esteso da 8 → 11 gruppi:
+  - Vocali condivise (7): ɪ ʊ ɛ e æ ʌ ə
+  - Monoftongi RP (6): iː uː ɑː ɔː ɜː ɒ
+  - **Vocali AmE** (6): i u ɑ ɔ ɝ ɚ [r-colorate + no length]
+  - Dittonghi condivisi (4): eɪ aɪ ɔɪ aʊ
+  - Dittonghi RP centering (4): əʊ ɪə eə ʊə
+  - **Dittonghi AmE** (1): oʊ
+  - 5 gruppi consonanti invariati (24 chip)
+  - **Totale 52 chip** cliccabili, ognuno con `data-testid="el-ipa-chip-{sym}"`
+- Sezione "📚 Repository IPA scientifiche (RP + AmE · CC-BY-SA)" riorganizzata in 3 sottosezioni:
+  - **🇬🇧 RP**: Pronunciation Studio · Wikipedia RP
+  - **🇺🇸 AmE**: Pronuncian · Wikipedia GA · **University of Iowa Sounds of Speech** (animazioni articolatorie + audio, riferimento accademico)
+  - **🌐 Universali**: IPA.org · UCLA Ladefoged · GitHub UCLA-IPA-Corpus · Wikimedia Commons
+- Workflow rapido documentato inline: Wikimedia → tasto destro → "Copia indirizzo audio" → "Da URL esterno" → Scarica → Associa.
+
+**Testing**: iteration_30.json — Playwright verifica 11 gruppi, 52 chip totali, 7/7 chip AmE funzionanti (click → input popolato), 3 sezioni repository con 9 link tutti conformi (`target=_blank`, `rel=noreferrer`), zero regressioni, zero errori console.
+
+
+
 ### 08/02/2026 · Iteration 29 — Voice Lab external URL fetcher + "Associa a fonema" (one-click) — DONE ✅
 
 **Contesto**: l'utente ha chiesto come associare i suoni delle repository IPA scientifiche (Wikimedia, UCLA, IPA.org, GitHub raw) ai fonemi come file URL. Il workflow manuale precedente aveva 5-6 step (scarica → salva su PC → trascina in Voice Lab → copia URL → vai in Phoneme CMS → incolla in slot audio). Ora è **un solo click**.
