@@ -1,0 +1,35 @@
+{
+  "summary": "Iter-30 UI enhancement to Voice Lab (AmE IPA phonemes + reorganized scientific repositories) — FRONTEND ONLY, all acceptance criteria PASS via Playwright on preview URL. Verified on /admin → [data-testid=tab-audio-studio]. (1) IPA chip grid ([data-testid=el-ipa-grid]) now renders exactly 11 groups with the exact chip counts specified in the review: Vocali condivise=7, Monoftongi RP (lunghi)=6, Vocali AmE (r-colorate + no length)=6, Dittonghi condivisi=4, Dittonghi RP (centering)=4, Dittonghi AmE=1, Consonanti · plosive=6, Consonanti · fricat.=9, Consonanti · nasali=3, Consonanti · approx.=4, Consonanti · affric.=2 (total 52 buttons). All 7 required AmE chip testids present: el-ipa-chip-ɑ, el-ipa-chip-ɔ, el-ipa-chip-ɝ, el-ipa-chip-ɚ, el-ipa-chip-oʊ, el-ipa-chip-i, el-ipa-chip-u. Clicking each AmE chip correctly populates el-ipa-input with the exact IPA glyph (ɝ→'ɝ', ɚ→'ɚ', oʊ→'oʊ', ɑ→'ɑ', i→'i'). (2) Repository <details> panel reorganized correctly: 3 dialect-grouped subsections (🇬🇧 RP · British English → 2 links [Pronunciation Studio, Wikipedia RP]; 🇺🇸 AmE · General American → 3 links [Pronuncian, Wikipedia General American, University of Iowa Sounds of Speech]; 🌐 Universali / Scientifiche → 4 links [IPA.org, UCLA archive, GitHub UCLA-IPA-Corpus, Wikimedia Commons]). All 9 <a> elements have target='_blank' and rel='noreferrer', and hrefs match the expected domains. (3) Regression clean: el-external-url, el-external-fetch-btn, el-upload-dropzone, el-upload-file, el-generate-btn, el-ipa-clear, el-associate-panel, el-assoc-card, el-assoc-slot, el-assoc-btn, el-voice-select, el-text, el-filename all still present and visually intact. No console errors on the page.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Voice Lab · IPA chip grid — filename hint auto-population",
+        "issues": [
+          "Cosmetic: clicking any AmE chip whose glyph is non-ASCII (ɝ, ɚ, ɑ, ɔ, oʊ) auto-populates el-filename as 'isolated__' (double underscore) instead of the review-brief-suggested 'isolated_ɝ'. Root cause: ElevenLabsStudio.jsx line 371 sanitizes with s.replace(/[^\\w]/g, '_') which strips every non-word char and re-emits a bare underscore. The sanitization is intentional (avoids OS-unsafe chars in filenames) and the backend accepts the resulting hint fine — clip still generates and persists — but the review checkpoint that says 'Filename hint auto-populates as isolated_ɝ' is not literally satisfied. Suggested fix: use a symbol→ASCII-code map (e.g. {'ɝ':'er_rhot','ɚ':'schwar','oʊ':'ou','ɑ':'ah','ɔ':'oh','i':'i','u':'u'}) so hints stay human-readable. Non-blocking."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL (cosmetic): Improve filename-hint auto-population for AmE-only IPA glyphs so it emits readable slugs like 'isolated_er_rhot' / 'isolated_schwar' / 'isolated_ou' instead of collapsing to 'isolated__'. Backend impact: zero. UX impact: filenames become self-describing on Emergent Storage."
+  ],
+  "critical_code_review_comments": [
+    "ElevenLabsStudio.jsx is now 716 lines — over the 700-line guideline. Natural extraction candidates: <IpaQuickGrid />, <IpaRepoLinks />, <AssociatePanel />, <ExternalUrlFetcher />, <ManualUploadDropzone />. Not blocking iter-30 but flagged again after iter-29 already noted 692 lines.",
+    "IPA_QUICK object is inline-declared inside the component body (line 56-68) → recreated on every render (52 chip buttons re-keyed). Zero perf impact for admin panel but move to module-scope const for cleanliness.",
+    "Line 371 filename slug regex /[^\\w]/g strips ALL non-ASCII chars including every IPA glyph — mentioned above; the same regex is also used at line 111 (handleGenerate). A symbol-name map would improve both call sites simultaneously.",
+    "Repository <details> currently has hardcoded flag emojis in JSX text nodes; if the app ever needs to be i18n-switched to another language, these labels will need to move into the t={} translation table (lines 235-253). Not iter-30 scope.",
+    "Line 490 fragment '<b>Compatibile con «Da URL esterno» ↑</b>' uses «» quotes; if the JSX file is ever saved as anything other than UTF-8 this could break. Preview shows correctly."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only iteration per review brief)", "frontend": "100% — 4/4 acceptance blocks pass: IPA chip grid taxonomy (11 groups, 52 buttons, all testids), AmE chip click→input value + hint populate, Repository panel reorganization (3 sections, 9 links, correct target/rel/href), regression testids intact"},
+  "test_credentials": "admin / VocalFitness2026! — login via placeholder-based inputs, Enter submits password, popup dismissed via OK button on /login and /admin.",
+  "seed_data_creation": "None. This was a pure UI verification — no POST/PATCH/DELETE calls issued to backend, no files uploaded, no phoneme cards modified. iter-29 seed data on /u-foot remains untouched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter-30 is a purely additive UI change (7 new AmE IPA chips + 3-section rearrangement of the <details> repository panel). No backend touched. All existing Voice Lab flows (external URL fetch + one-click associate from iter-29, manual upload dropzone, TTS generation, filename hint, IPA SSML input, phoneme card associate PATCH) remain wired to their original testids and still work. Only cosmetic follow-up is the double-underscore filename hint for AmE-only glyphs — see action_items. Playwright note: inner_text() returns CSS-uppercase-transformed text for the group labels — assert case-insensitively OR use textContent via evaluate() to get raw source-case strings (the Repository panel labels 🇬🇧/🇺🇸/🌐 headers only match via textContent because their parent <p> has 'uppercase' class).",
+  "rca of the issue": "N/A — no bugs blocking the acceptance criteria. One cosmetic sanitization quirk in filename-hint auto-population documented under design_issues."
+}
