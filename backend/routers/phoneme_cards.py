@@ -2947,4 +2947,21 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
     if pron_fixed:
         patched.append(f"pronunciation.§3.5×{pron_fixed}")
 
+    # 11) AmE-variant migration — clone 8 dialect-divergent RP cards into
+    #     their own independent AmE-specific entries (e.g. /ɛ/ epsilon-dress-ame,
+    #     /ɚ/ schwar-letter-ame, /ɑ/ ah-palm-ame …). Idempotent: cards that
+    #     already exist are left untouched, no audio is ever overwritten.
+    #     This runs on every backend startup so a fresh production DB gets
+    #     populated automatically without any manual script execution.
+    try:
+        from scripts.create_ame_variant_cards import ensure_ame_variant_cards
+        ame_result = await ensure_ame_variant_cards(db)
+        if ame_result["created"]:
+            patched.append(f"ame-variants.created×{len(ame_result['created'])}")
+        if ame_result["missing_src"]:
+            patched.append(f"ame-variants.missing-src×{len(ame_result['missing_src'])}")
+    except Exception as e:  # noqa: BLE001
+        # Never fail the whole seed for the AmE migration — log and continue.
+        patched.append(f"ame-variants.error:{type(e).__name__}")
+
     return {"inserted": inserted, "skipped": skipped, "patched": patched}

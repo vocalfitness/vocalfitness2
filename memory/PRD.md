@@ -12,6 +12,40 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 36 — Auto-seed AmE cards on backend startup — DONE ✅
+
+**Contesto**: dopo split delle 8 card AmE (iter 35), il DB di produzione (`vocalfitness.org`) risultava sprovvisto delle nuove card perché la migrazione era stata eseguita solo su preview. L'utente ha richiesto: *"execute it on the next backend startup, don't make me do it please!"*.
+
+**Nessun cambio di logica al Voice Lab richiesto** — il dropdown "Associa direttamente a fonema" già renderizza qualunque card trovi in `/api/admin/phonemes`. Il fix consisteva unicamente nel garantire che il DB di produzione contenga le 8 card.
+
+**Refactor idempotente** — `backend/scripts/create_ame_variant_cards.py`:
+- Estratta la logica in funzione async `ensure_ame_variant_cards(db)` → riusabile in startup + CLI
+- Aggiunta l'8ª variante mancante nello script: `epsilon-dress-ame` (`/ɛ/` DRESS clone di `e-dress`)
+- Ritorna `{"created", "skipped", "missing_src"}` per structured logging
+- Mantiene `if __name__ == "__main__"` per esecuzione manuale (CLI)
+
+**Wire-up allo startup** — `backend/routers/phoneme_cards.py::ensure_phoneme_seed()`:
+- Aggiunto step 11) chiamata a `ensure_ame_variant_cards(db)` come ultimo passo del seed
+- Try/except non-fatal: log dell'errore ma non blocca il boot
+- Segna `ame-variants.created×N` nel campo `patched` del log di startup per visibilità operativa
+
+**Regression tests** — `backend/tests/test_ame_variant_seed.py` (6 test, tutti PASS):
+1. Crea tutte 8 le card su DB vuoto
+2. Idempotente su seconda esecuzione (0 create, 8 skipped)
+3. Clone azzera tutti gli slot audio (isolated/examples/mnemonic/commonWords)
+4. Clone resetta tutti i lock flags (hotspots/lexicon/pronunciation/mnemonic)
+5. Source RP mancante → riportata in `missing_src` senza throw
+6. IPA/displayName/title patchati correttamente sul clone
+
+**Verifica end-to-end preview**:
+- DB pulito delle 8 AmE cards → restart backend → log: `patched=['ame-variants.created×8']` ✅
+- API `/api/admin/phonemes` restituisce di nuovo 52 card ✅
+- Dropdown Voice Lab mostra ogni card AmE indipendentemente (`/ɛ/ · epsilon-dress-ame`, `/ɚ/ · schwar-letter-ame`, ecc.)
+
+**Prossimo deploy in produzione**: al primo boot dopo deploy, il seed migration popolerà automaticamente il DB prod con le 8 card AmE senza alcun intervento manuale.
+
+---
+
 ### 08/02/2026 · Iteration 35 — 8 card AmE-specific indipendenti — DONE ✅
 
 **Contesto**: l'utente vuole poter selezionare ogni fonema IPA (UK + US) individualmente. Estensione dell'iter 34 (`/ɛ/` DRESS) al set completo di divergenze RP↔AmE.
