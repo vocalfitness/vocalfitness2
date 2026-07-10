@@ -2403,14 +2403,32 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 errors.append(f"CREATIVE draft: {creative['error']}")
                 creative = {}
 
-            # Apply CREATIVE fields with grounding contract (empty beats invented)
+            # Apply CREATIVE fields with grounding contract (empty beats invented).
+            # Determines whether a field needs drafting: True if missing, empty,
+            # or a dict-skeleton whose payload key ("phrase"/"body"/"script") is
+            # blank. Handles List-shaped fields (exampleSentences) — a common
+            # source of 500 Internal Server Error before iter 38 (`.get('body')`
+            # on a list raised AttributeError → batch-fill-v2 aborted for every
+            # card that already had ≥1 example sentence).
+            def _needs_draft(card_key: str, cur: Any) -> bool:
+                if _is_empty_or_default(cur):
+                    return True
+                if not isinstance(cur, dict):
+                    # Non-empty list/tuple/str → considered filled.
+                    return False
+                if card_key == "mnemonic":
+                    return _is_empty_or_default(cur.get("phrase"))
+                if card_key == "videoLesson":
+                    return _is_empty_or_default(cur.get("script"))
+                # funFact + pronunciationGuide (deep-dive) use "body"
+                return _is_empty_or_default(cur.get("body"))
+
             def _apply_field(card_key: str, spec_key: str, apply_fn):
                 blob = creative.get(spec_key)
                 if not isinstance(blob, dict):
                     return
                 cur = doc.get(card_key)
-                if payload.overwrite or _is_empty_or_default(cur) or _is_empty_or_default(
-                        (cur or {}).get("phrase") if card_key == "mnemonic" else (cur or {}).get("body")):
+                if payload.overwrite or _needs_draft(card_key, cur):
                     new_val = apply_fn(blob, cur or {})
                     if new_val is not None:
                         update_fields[card_key] = new_val

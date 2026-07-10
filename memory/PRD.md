@@ -12,6 +12,43 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 38 — Fix `batch-fill-v2` 500 crash su `exampleSentences` — DONE ✅
+
+**Contesto**: utente segnala "Le frasi di esempio nelle card fonetiche non vengono più generate" — su produzione né testo né audio delle example sentences venivano più creati dopo "Batch bozze AI".
+
+**Root cause identificato** (`phoneme_cards.py::admin_batch_fill_v2` → `_apply_field`):
+```python
+if payload.overwrite or _is_empty_or_default(cur) or _is_empty_or_default(
+        (cur or {}).get("phrase") if card_key == "mnemonic" else (cur or {}).get("body")):
+```
+Quando `card_key == "exampleSentences"` e la card ha già ≥1 frase, `cur` è una **lista** non un dict. Il fallback `(cur or {}).get("body")` chiamava `.get()` su `list` → **AttributeError: 'list' object has no attribute 'get'** → **HTTP 500 Internal Server Error** → l'intero endpoint abortiva → NESSUN campo veniva generato (né exampleSentences, né mnemonic, né funFact, né altri).
+
+**Fix**: estratta la logica in un helper type-safe `_needs_draft(card_key, cur)`:
+- lista/tupla/stringa/None vuoto → True
+- non-dict non-vuoto → False (già filled, non chiamare `.get()`)
+- dict skeleton → controlla la chiave giusta per tipo (`phrase` per mnemonic, `script` per videoLesson, `body` per funFact + pronunciationGuide)
+
+**Regression tests** — `backend/tests/test_batch_fill_v2_creative_guard.py` (9 test, tutti PASS):
+1. `_is_empty_or_default` gestisce list/tuple/dict/str/None
+2. **`exampleSentences` = `[{"text": "..."}]` NON crasha più** (era esattamente l'input che innescava il bug)
+3. `exampleSentences` = `[]` o `None` → needs draft
+4. `mnemonic` skeleton con phrase vuota → needs draft
+5. `mnemonic` con contenuto → skip
+6. `funFact` skeleton con body vuoto → needs draft
+7. `funFact` con contenuto → skip
+8. `videoLesson` skeleton con script vuoto → needs draft
+9. `videoLesson` con script → skip
+
+**Verifica E2E**:
+- Pre-fix: `POST /admin/phonemes/i-kit/batch-fill-v2` → **HTTP 500**
+- Post-fix: **HTTP 200** con `applied.creative: [mnemonic, funFact, deepDive, exampleSentences, videoScript]` → tutte 5 le creative fields rigenerate
+
+**Nota per l'utente**: dopo redeploy in produzione, cliccando "Batch bozze AI" con `overwrite=false` (default) le card che già hanno frasi vedranno solo le fields davvero mancanti rigenerate. Per forzare rigenerazione completa usare `overwrite=true` dall'editor.
+
+**Impatto**: questo bug bloccava **tutto** il flusso AI drafting su card con contenuto esistente. Risolto per tutte le 52 card.
+
+---
+
 ### 09/02/2026 · Iteration 37 — Voice picker RP + canonical fallback /ɒ/ + trapezoide vowels — DONE ✅
 
 **Contesto**: dopo il deploy in produzione l'utente ha segnalato 4 issue distinte sul Phoneme CMS.
