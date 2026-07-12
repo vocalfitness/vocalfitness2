@@ -89,10 +89,15 @@ export default function PhonemeAdminPage() {
       const id = ids[i];
       setBatchProgress({ current: i + 1, total: ids.length, currentId: id });
       try {
-        const res = await fetch(`${API}/api/admin/phonemes/${id}/batch-fill`, {
+        // Use the v2 endpoint (full-taxonomy: creative + derived) so the batch
+        // also generates exampleSentences, deepDive/pronunciationGuide and
+        // videoScript — not only mnemonic + funFact like the legacy /batch-fill.
+        // This matches Prof's expectation that "Batch bozze AI" fills ALL the
+        // drafts that a human editor would otherwise fill by hand.
+        const res = await fetch(`${API}/api/admin/phonemes/${id}/batch-fill-v2`, {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ include_ai: batchIncludeAi }),
+          body: JSON.stringify({ include_creative: batchIncludeAi, overwrite: false }),
         });
         if (!res.ok) {
           const text = await res.text();

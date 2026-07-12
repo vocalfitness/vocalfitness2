@@ -12,6 +12,36 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 39 — Homepage "Batch bozze AI" ora chiama v2 endpoint — DONE ✅
+
+**Root cause SCOPERTO (era il vero problema)**: il tasto "Batch bozze AI" nella homepage CMS (`PhonemeAdminPage.jsx` linea 97) chiamava l'endpoint LEGACY `/batch-fill` che gestisce SOLO `mnemonic` + `funFact` — NON toccava `exampleSentences`, `deepDive`, `videoScript`. Le mie fix iter 38 (helper `_needs_draft` type-safe) erano nel `batch-fill-v2` che **non era mai raggiunto dal frontend**. Ecco perché Prof continuava a vedere "nulla è cambiato" dopo il deploy — la fix era corretta ma nel posto sbagliato dell'API.
+
+**Fix**: aggiornato `PhonemeAdminPage.jsx` per chiamare `POST /api/admin/phonemes/{id}/batch-fill-v2` con payload `{include_creative: batchIncludeAi, overwrite: false}` invece del legacy `/batch-fill` con `{include_ai}`. Ora il click "Batch bozze AI" attiva la piena taxonomy §1 dello spec Phase-2:
+- **DERIVED** (§3.1-§3.5): features, knobs, classification, vowelChartPosition, facialMuscles, hotspots, commonWords, spellings, pronunciationProtocol
+- **CREATIVE**: mnemonic, funFact, deepDive, **exampleSentences**, videoScript
+
+**Regression tests** — `backend/tests/test_batch_fill_v2_frontend_wiring.py` (2 test, PASS):
+1. Homepage calls `/batch-fill-v2` (not legacy `/batch-fill`)
+2. Request body uses `include_creative` flag
+
+**Verifica E2E preview**:
+```
+POST /api/admin/phonemes/i-kit/batch-fill-v2 → HTTP 200
+applied.creative: [mnemonic, funFact, deepDive, exampleSentences, videoScript]
+applied.derived:  [features, knobs, classification, vowelChartPosition, facialMuscles, hotspots, commonWords, spellings]
+readinessScore: 93 (era 83)
+DB: 3 exampleSentences correttamente popolate con testo grounded
+```
+
+**Test totali finora**: 17 pytest PASS (2 wiring + 8 needs_draft + 6 AmE seed + 1 helper)
+
+**Impatto**: dopo il redeploy, il click "Batch bozze AI" da homepage genererà TUTTE le fields creative (incluse le frasi di esempio) invece di solo 2. Il flusso end-to-end funzionerà:
+1. Click "Batch bozze AI" → text di 5 creative fields generato
+2. Click "Genera audio su tutte" → tutti gli audio generati
+3. Frasi esempio ora hanno testo + audio ElevenLabs
+
+---
+
 ### 09/02/2026 · Iteration 38 — Fix `batch-fill-v2` 500 crash su `exampleSentences` — DONE ✅
 
 **Contesto**: utente segnala "Le frasi di esempio nelle card fonetiche non vengono più generate" — su produzione né testo né audio delle example sentences venivano più creati dopo "Batch bozze AI".
