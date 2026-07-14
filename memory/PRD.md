@@ -12,6 +12,59 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 40 — Fix guardia "published card" invertita (root cause definitivo) — DONE ✅
+
+**Contesto**: dopo iter 39 (frontend passato a `batch-fill-v2`), Prof continuava a segnalare "le frasi di esempio non vengono create" su `schwa` in produzione. Screenshot allegato mostrava `vocalfitness.org/lms/phoneme/schwa` con anatomia perfetta ma sezione example sentences vuota.
+
+**Root cause definitivo** — verificato via curl diretto sulla API pubblica prod:
+```
+GET https://vocalfitness.org/api/phonemes/schwa
+→ pub=True · exampleSentences=[]
+```
+La card `schwa` in produzione è **pubblicata**. La guardia in `admin_batch_fill_v2` (line 2306 pre-fix) diceva:
+```python
+if doc.get("published") and not payload.overwrite:
+    raise HTTPException(409, "usa overwrite=true per forzare")
+```
+Il frontend passa sempre `overwrite=false`. Quindi: **ogni click "Batch bozze AI" su card pubblicata → 409 → NULLA veniva generato**. L'errore veniva pushato nel results panel come stringa truncata, silenzioso per l'utente.
+
+**Fix (inversione semantica)**:
+```python
+# ANTE:
+if doc.get("published") and not payload.overwrite: → 409
+# POST:
+if doc.get("published") and payload.overwrite: → 409
+```
+Nuova semantica **corretta e sicura**:
+- `overwrite=false` (additive: `_needs_draft` scrive solo su campi vuoti) → **ALLOW su qualunque card**, anche pubblicata. Non c'è mai distruzione.
+- `overwrite=true` (destructive: sovrascrive esistente) → **ALLOW solo su card unpublished**. Su card pubblicata restituisce 409 con messaggio chiaro: "Depubblica prima o usa overwrite=false".
+
+**Verifica E2E preview**:
+```
+POST /admin/phonemes/i-fleece/batch-fill-v2 (published, overwrite=false)
+→ HTTP 200 · applied.creative: [deepDive, videoScript]  (fills empties only)
+
+POST /admin/phonemes/i-fleece/batch-fill-v2 (published, overwrite=true)
+→ HTTP 409 · "La scheda è pubblicata — non posso sovrascrivere. Depubblica..."
+```
+
+**Regression tests** — `backend/tests/test_batch_fill_v2_published_guard.py` (4 test PASS):
+1. Published + overwrite=false → allow ✅
+2. Published + overwrite=true → 409 ✅
+3. Unpublished + overwrite=false → allow ✅
+4. Unpublished + overwrite=true → allow ✅
+
+**Test totale**: **21/21 PASS** (4 published-guard + 2 wiring + 8 needs_draft + 6 AmE + 1 helper).
+
+**Impatto**: dopo il redeploy, il click "Batch bozze AI" da homepage genererà **finalmente** le example sentences (e tutti gli altri creative fields vuoti) sulle 11 card pubblicate in produzione. Il ciclo completo funzionerà:
+1. "Batch bozze AI" → text creative popolato (incluse frasi esempio)
+2. "Genera audio su tutte" → audio ElevenLabs per tutti i clip
+3. Card pubblicata su vocalfitness.org mostra frasi + audio
+
+**Errore diagnostico corretto**: nei precedenti iter 38-39 avevo trovato bug reali (crash 500, endpoint sbagliato) ma nessuno era LA root cause del problema di Prof. La combinazione dei 3 fix (iter 38 type-safe + iter 39 endpoint corretto + iter 40 guard invertita) risolve il flusso end-to-end.
+
+---
+
 ### 09/02/2026 · Iteration 39 — Homepage "Batch bozze AI" ora chiama v2 endpoint — DONE ✅
 
 **Root cause SCOPERTO (era il vero problema)**: il tasto "Batch bozze AI" nella homepage CMS (`PhonemeAdminPage.jsx` linea 97) chiamava l'endpoint LEGACY `/batch-fill` che gestisce SOLO `mnemonic` + `funFact` — NON toccava `exampleSentences`, `deepDive`, `videoScript`. Le mie fix iter 38 (helper `_needs_draft` type-safe) erano nel `batch-fill-v2` che **non era mai raggiunto dal frontend**. Ecco perché Prof continuava a vedere "nulla è cambiato" dopo il deploy — la fix era corretta ma nel posto sbagliato dell'API.

@@ -2303,9 +2303,14 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
         doc = await coll.find_one({"id": card_id}, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fonema non trovato")
-        if doc.get("published") and not payload.overwrite:
+        # Published-card guard: only refuse when the caller explicitly asks
+        # for `overwrite=true` (destructive semantic). With `overwrite=false`
+        # the `_needs_draft` helper only fills *empty* fields, so a
+        # published card is safe to "top up" — Prof relies on this to fill
+        # exampleSentences on schwa etc. without re-editing every card.
+        if doc.get("published") and payload.overwrite:
             raise HTTPException(status_code=409,
-                                detail="La scheda è pubblicata — usa overwrite=true per forzare.")
+                                detail="La scheda è pubblicata — non posso sovrascrivere. Depubblica prima o usa overwrite=false per riempire solo i campi vuoti.")
         ipa = (doc.get("ipa") or "").strip()
         if not ipa:
             raise HTTPException(status_code=400, detail="La card non ha un simbolo IPA valido.")
