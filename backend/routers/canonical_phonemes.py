@@ -71,11 +71,16 @@ _VOWEL_ROWS = [
     {"ipa": "ɑː", "lexical_set": "PALM/LOT (merged)", "height": "Open", "backness": "Back", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "frequency_rank": 10, "notes": "GenAm merges historical LOT into PALM (cot-caught merger affects THOUGHT further)."},
     {"ipa": "ɔː", "lexical_set": "THOUGHT (dialect-variable)", "height": "Open-mid", "backness": "Back", "rounding": "Rounded", "tenseness": "Tense", "duration": "Long", "frequency_rank": None, "notes": "Many GenAm speakers merge with /ɑː/ (cot-caught merger)."},
     # ---- GenAm diphthongs ----
-    {"ipa": "eɪ", "lexical_set": "FACE",   "kind_hint": "diphthong", "frequency_rank": 11, "notes": "Mid front → near-close front (glide toward /ɪ/)."},
-    {"ipa": "aɪ", "lexical_set": "PRICE",  "kind_hint": "diphthong", "frequency_rank": 12, "notes": "Open central → near-close front."},
-    {"ipa": "ɔɪ", "lexical_set": "CHOICE", "kind_hint": "diphthong", "frequency_rank": 15, "notes": "Open-mid back rounded → near-close front (rarest diphthong)."},
-    {"ipa": "aʊ", "lexical_set": "MOUTH",  "kind_hint": "diphthong", "frequency_rank": 14, "notes": "Open central → near-close back rounded."},
-    {"ipa": "oʊ", "lexical_set": "GOAT",   "kind_hint": "diphthong", "frequency_rank": 13, "notes": "GenAm /oʊ/ starts back-rounded, glide to /ʊ/. RP cognate /əʊ/ starts central."},
+    # Height/backness reflect the START (nucleus) position — Wells 1982.
+    # Populating these lets `_compose_autofill_for_vowel` derive the
+    # vowelChartPosition (x/y) automatically, so the trapezoid dot on
+    # the card lands at the correct nucleus instead of falling back to
+    # {x: undefined} which SVG-renders in the top-left corner.
+    {"ipa": "eɪ", "lexical_set": "FACE",   "height": "Close-mid",  "backness": "Front",   "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 11, "notes": "Mid front → near-close front (glide toward /ɪ/)."},
+    {"ipa": "aɪ", "lexical_set": "PRICE",  "height": "Open",       "backness": "Central", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 12, "notes": "Open central → near-close front."},
+    {"ipa": "ɔɪ", "lexical_set": "CHOICE", "height": "Open-mid",   "backness": "Back",    "rounding": "Rounded",   "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 15, "notes": "Open-mid back rounded → near-close front (rarest diphthong)."},
+    {"ipa": "aʊ", "lexical_set": "MOUTH",  "height": "Open",       "backness": "Central", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 14, "notes": "Open central → near-close back rounded."},
+    {"ipa": "oʊ", "lexical_set": "GOAT",   "height": "Close-mid",  "backness": "Back",    "rounding": "Rounded",   "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 13, "notes": "GenAm /oʊ/ starts back-rounded, glide to /ʊ/. RP cognate /əʊ/ starts central."},
 ]
 
 # RP monophthongs — where they differ meaningfully from GenAm they get their own row.
@@ -93,15 +98,16 @@ _VOWEL_ROWS_RP = [
     {"ipa": "ɒ",  "lexical_set": "LOT",     "height": "Open",      "backness": "Back",          "rounding": "Rounded",   "tenseness": "Lax",   "duration": "Short", "frequency_rank": 8, "notes": "Distinct from GenAm — RP keeps LOT/PALM split; GenAm merges them into /ɑː/."},
     {"ipa": "ɔː", "lexical_set": "THOUGHT/NORTH/FORCE", "height": "Open-mid", "backness": "Back", "rounding": "Rounded", "tenseness": "Tense", "duration": "Long", "frequency_rank": 10},
     # ---- RP diphthongs (closing) ----
-    {"ipa": "eɪ", "lexical_set": "FACE",   "kind_hint": "diphthong", "frequency_rank": 11},
-    {"ipa": "aɪ", "lexical_set": "PRICE",  "kind_hint": "diphthong", "frequency_rank": 12},
-    {"ipa": "ɔɪ", "lexical_set": "CHOICE", "kind_hint": "diphthong", "frequency_rank": 15, "notes": "Rarest diphthong."},
-    {"ipa": "aʊ", "lexical_set": "MOUTH",  "kind_hint": "diphthong", "frequency_rank": 14},
-    {"ipa": "əʊ", "lexical_set": "GOAT",   "kind_hint": "diphthong", "frequency_rank": 13, "notes": "RP GOAT starts central (unlike GenAm /oʊ/ which starts back-rounded)."},
+    # Nucleus positions per Wells 1982 §2.2 for the vowel-chart dot.
+    {"ipa": "eɪ", "lexical_set": "FACE",   "height": "Close-mid",  "backness": "Front",   "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 11},
+    {"ipa": "aɪ", "lexical_set": "PRICE",  "height": "Open",       "backness": "Central", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 12},
+    {"ipa": "ɔɪ", "lexical_set": "CHOICE", "height": "Open-mid",   "backness": "Back",    "rounding": "Rounded",   "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 15, "notes": "Rarest diphthong."},
+    {"ipa": "aʊ", "lexical_set": "MOUTH",  "height": "Open",       "backness": "Central", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 14},
+    {"ipa": "əʊ", "lexical_set": "GOAT",   "height": "Mid",        "backness": "Central", "rounding": "Unrounded", "tenseness": "Tense", "duration": "Long", "kind_hint": "diphthong", "frequency_rank": 13, "notes": "RP GOAT starts central (unlike GenAm /oʊ/ which starts back-rounded)."},
     # ---- RP centring diphthongs (no GenAm equivalent — GenAm uses rhotic sequences) ----
-    {"ipa": "ɪə", "lexical_set": "NEAR",   "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: near-close front → schwa. GenAm equivalent is rhotic /ɪr/ (not a diphthong at all)."},
-    {"ipa": "eə", "lexical_set": "SQUARE", "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: open-mid front → schwa. GenAm equivalent is rhotic /ɛr/."},
-    {"ipa": "ʊə", "lexical_set": "CURE",   "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: near-close back → schwa. Increasingly merges with /ɔː/ in modern RP; GenAm equivalent is rhotic /ʊr/."},
+    {"ipa": "ɪə", "lexical_set": "NEAR",   "height": "Near-close", "backness": "Front",   "rounding": "Unrounded", "tenseness": "Lax",   "duration": "Long", "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: near-close front → schwa. GenAm equivalent is rhotic /ɪr/ (not a diphthong at all)."},
+    {"ipa": "eə", "lexical_set": "SQUARE", "height": "Open-mid",   "backness": "Front",   "rounding": "Unrounded", "tenseness": "Lax",   "duration": "Long", "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: open-mid front → schwa. GenAm equivalent is rhotic /ɛr/."},
+    {"ipa": "ʊə", "lexical_set": "CURE",   "height": "Near-close", "backness": "Back",    "rounding": "Moderate",  "tenseness": "Lax",   "duration": "Long", "kind_hint": "diphthong", "frequency_rank": None, "notes": "RP-only: near-close back → schwa. Increasingly merges with /ɔː/ in modern RP; GenAm equivalent is rhotic /ʊr/."},
 ]
 
 # --------------------------------------------------------------------------- #

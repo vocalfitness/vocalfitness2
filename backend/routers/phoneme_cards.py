@@ -349,6 +349,32 @@ _IPA_EQUIVALENTS: Dict[str, List[str]] = {
     "ɒ":  ["ɒ",  "ɑ",  "ɑː"],
     "ɑ":  ["ɑ",  "ɑː", "ɒ"],
     "ɑː": ["ɑː", "ɑ",  "ɒ"],
+    # NURSE vowel — RP writes /ɜː/, GenAm writes /ɚ/ (unstressed r-schwa)
+    # or /ɝ/ (stressed r-colored). All three are the same LEXICAL SET
+    # (NURSE) — Wells 1982 §2.1.9. The canonical inventory uses /ɚ/ for
+    # GenAm (see canonical_phonemes.js); adding equivalences lets AI
+    # drafting on a /ɜː/ card for the GenAm dialect resolve to /ɚ/ /ɝ/
+    # instead of aborting with "non presente nell'inventario canonical".
+    "ɜː": ["ɜː", "ɜ",  "ɝ",  "ɚ"],
+    "ɜ":  ["ɜ",  "ɜː", "ɝ",  "ɚ"],
+    "ɝ":  ["ɝ",  "ɚ",  "ɜː", "ɜ"],
+    "ɚ":  ["ɚ",  "ɝ",  "ɜː", "ɜ",  "ə"],
+    # SCHWA — GenAm and RP both use /ə/, but some transcription systems
+    # merge /ɐ/ (near-open central) into /ə/. Add fallback.
+    "ə":  ["ə",  "ɐ", "ɚ"],
+    # GOAT — RP /əʊ/ (diphthong) vs GenAm /oʊ/. Same LEXSET (GOAT).
+    "əʊ": ["əʊ", "oʊ"],
+    "oʊ": ["oʊ", "əʊ"],
+    # Length-mark alternates for AmE short-notation cards (iter 42):
+    # the AmE-splitted cards created by iter 36 store the IPA without
+    # the length triangle (/i/, /u/) while the canonical inventory uses
+    # the long form (/iː/, /uː/) for RP. THOUGHT is analogous — /ɔ/
+    # (GenAm short notation) vs /ɔː/ (RP long). Adding these fallbacks
+    # unblocks AI drafting on `i-fleece-ame`, `u-goose-ame`,
+    # `oh-thought-ame`.
+    "i":  ["i",  "iː"],
+    "u":  ["u",  "uː"],
+    "ɔ":  ["ɔ",  "ɔː"],
 }
 
 
@@ -2477,11 +2503,42 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 items = blob.get("items") or []
                 if not items:
                     return None
-                # exampleSentences on the card is List[Dict] — wrap strings if needed
-                return [
-                    it if isinstance(it, dict) else {"text": it}
-                    for it in items
+                # Deterministic highlight computation (iter 41): the LLM
+                # prompt only asks for sentence text, so `highlights` was
+                # never populated → the card page rendered all example
+                # sentences as flat white text with no orange emphasis on
+                # the phoneme-carrying words. We compute highlights here
+                # from the card's commonWords list (already grounded in
+                # cmudict + the target phoneme) — any commonWord that
+                # appears verbatim (case-insensitive, punctuation-stripped)
+                # in the sentence gets orange-highlighted on the public card.
+                common_words = [
+                    (w or {}).get("w", "").lower().strip()
+                    for w in (doc.get("commonWords") or [])
+                    if isinstance(w, dict) and (w or {}).get("w")
                 ]
+                def _compute_highlights(text: str) -> list[str]:
+                    if not text or not common_words:
+                        return []
+                    # Tokenise the sentence: split on whitespace, strip
+                    # trailing punctuation (,.!?;:), lowercase.
+                    tokens = [
+                        re.sub(r"[^\w']+$", "", t.lower())
+                        for t in text.split()
+                    ]
+                    return [t for t in tokens if t in common_words]
+
+                # exampleSentences on the card is List[Dict] — wrap strings if needed
+                out = []
+                for it in items:
+                    if isinstance(it, dict):
+                        text = it.get("text", "")
+                        hl = it.get("highlights") or _compute_highlights(text)
+                        out.append({**it, "text": text, "highlights": hl})
+                    else:
+                        text = str(it)
+                        out.append({"text": text, "highlights": _compute_highlights(text)})
+                return out
             def _vs(blob, cur):
                 body = blob.get("body")
                 if not body:

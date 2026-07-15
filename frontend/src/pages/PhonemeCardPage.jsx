@@ -236,7 +236,15 @@ const SpellingBar = ({ s, index, animate }) => (
 // ============================================================
 // VowelChart — interactive trapezoid (bottom-left of the card)
 // ============================================================
-const VowelChart = ({ position }) => (
+const VowelChart = ({ position }) => {
+  // Guard: when the card has no vowelChartPosition (e.g. legacy diphthongs
+  // seeded before the canonical inventory had height/backness), rendering
+  // the dot at `undefined * 0.85 + 12` produces NaN → the SVG collapses
+  // the coord to 0 and the marker ends up glued to the top-left corner
+  // (near /iː/), completely misleading. Hide the dot instead until the
+  // Prof re-runs autofill on the card.
+  const hasPos = position && typeof position.x === 'number' && typeof position.y === 'number';
+  return (
   <div className="relative w-full aspect-[4/3] bg-slate-900/40 border border-cyan-500/20 rounded-xl p-3" data-testid="phoneme-vowel-chart">
     <svg viewBox="0 0 100 75" className="w-full h-full">
       {/* Trapezoid */}
@@ -253,14 +261,22 @@ const VowelChart = ({ position }) => (
       {/* Other vowel placeholder dots */}
       <circle cx="50" cy="46" r="0.7" fill="rgba(186, 230, 253, 0.3)" />
       <circle cx="80" cy="42" r="0.7" fill="rgba(186, 230, 253, 0.3)" />
-      {/* Active /ʊ/ position with glow */}
-      <circle cx={position.x * 0.85 + 12} cy={position.y * 0.65 + 8} r="2" fill="#22d3ee" style={{ filter: 'drop-shadow(0 0 4px rgba(34, 211, 238, 1))' }}>
-        <animate attributeName="r" values="2;2.6;2" dur="2.2s" repeatCount="indefinite" />
-      </circle>
+      {/* Active phoneme position with glow — only if we have real coords */}
+      {hasPos && (
+        <circle cx={position.x * 0.85 + 12} cy={position.y * 0.65 + 8} r="2" fill="#22d3ee" style={{ filter: 'drop-shadow(0 0 4px rgba(34, 211, 238, 1))' }}>
+          <animate attributeName="r" values="2;2.6;2" dur="2.2s" repeatCount="indefinite" />
+        </circle>
+      )}
     </svg>
     <p className="absolute bottom-1 left-2 text-[9px] text-cyan-300/50 uppercase tracking-wider">Vowel chart</p>
+    {!hasPos && (
+      <p className="absolute bottom-1 right-2 text-[9px] text-amber-300/70 tracking-wide" data-testid="phoneme-vowel-chart-nopos">
+        posizione non ancora definita
+      </p>
+    )}
   </div>
-);
+  );
+};
 
 // ============================================================
 // AudioPlayButton — real HTML5 Audio playback with state

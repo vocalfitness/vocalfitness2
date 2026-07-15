@@ -25,6 +25,7 @@ export default function PhonemeAdminPage() {
   const [fetching, setFetching] = useState(true);
   const [query, setQuery]     = useState('');
   const [filter, setFilter]   = useState('all');   // all | published | draft
+  const [dialectTab, setDialectTab] = useState('all'); // all | RP | AmE — iter 41
   const [error, setError]     = useState('');
   const [busy, setBusy]       = useState(null);    // per-row loading indicator
   const [view, setView]       = useState('list');  // list | roadmap
@@ -130,11 +131,34 @@ export default function PhonemeAdminPage() {
   };
 
   // ---- Filters ----
+  // Classify each card by dialect scope. Rule (Wells 1982 §2):
+  //   AmE-only  → id suffix "-ame" (created by the iter 36 auto-seed) OR
+  //               dialects contains "AmE" and NOT "RP"
+  //   RP-only   → dialects contains "RP" and NOT "AmE" (rare — most cards share both)
+  //   Both      → dialects has both, or missing dialects field (default)
+  // The Prof asked for a clear separation so students never see a
+  // duplicated /ɛ/ next to a "shared" /e/ etc.
+  const classifyDialect = (c) => {
+    const id = (c.id || '').toLowerCase();
+    if (id.endsWith('-ame')) return 'AmE';
+    const d = Array.isArray(c.dialects) ? c.dialects : ['AmE', 'RP'];
+    const hasAme = d.includes('AmE');
+    const hasRp  = d.includes('RP');
+    if (hasAme && !hasRp) return 'AmE';
+    if (hasRp  && !hasAme) return 'RP';
+    return 'both';
+  };
   const visibleCards = useMemo(() => {
     const q = query.trim().toLowerCase();
     return cards.filter((c) => {
       if (filter === 'published' && !c.published) return false;
       if (filter === 'draft'     &&  c.published) return false;
+      if (dialectTab !== 'all') {
+        const scope = classifyDialect(c);
+        // "both"-scoped cards appear under BOTH tabs (RP + AmE) so the
+        // shared inventory stays visible without being duplicated on disk.
+        if (scope !== dialectTab && scope !== 'both') return false;
+      }
       if (!q) return true;
       return (
         c.id.toLowerCase().includes(q) ||
@@ -143,12 +167,18 @@ export default function PhonemeAdminPage() {
         (c.examples || []).some((e) => e.toLowerCase().includes(q))
       );
     });
-  }, [cards, query, filter]);
+  }, [cards, query, filter, dialectTab]);
 
   const stats = useMemo(() => ({
     total:     cards.length,
     published: cards.filter((c) => c.published).length,
     draft:     cards.filter((c) => !c.published).length,
+    rp:        cards.filter((c) => {
+      const s = classifyDialect(c); return s === 'RP' || s === 'both';
+    }).length,
+    ame:       cards.filter((c) => {
+      const s = classifyDialect(c); return s === 'AmE' || s === 'both';
+    }).length,
   }), [cards]);
 
   // ---- Actions ----
@@ -347,6 +377,32 @@ export default function PhonemeAdminPage() {
                 }`}
               >
                 {f === 'all' ? 'Tutte' : f === 'published' ? 'Pubblicate' : 'Bozze'}
+              </button>
+            ))}
+          </div>
+
+          {/* Dialect segmentation — iter 41. Prof asked to stop mixing RP and
+              AmE cards in a single list ("let's not confuse our students").
+              "Tutti" shows the union; "RP" and "GenAm" filter to their scope.
+              Cards labeled dialects=['AmE','RP'] (shared inventory) appear in
+              BOTH RP and GenAm tabs without duplication on disk. */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1" data-testid="phoneme-admin-dialect-tabs">
+            {[
+              { id: 'all', label: 'Tutti', flag: '🌐',  count: stats.total },
+              { id: 'RP',  label: 'RP',    flag: '🇬🇧', count: stats.rp },
+              { id: 'AmE', label: 'GenAm', flag: '🇺🇸', count: stats.ame },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setDialectTab(t.id)}
+                data-testid={`phoneme-admin-dialect-${t.id}`}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition flex items-center gap-1.5 ${
+                  dialectTab === t.id ? 'bg-fuchsia-500/20 text-fuchsia-200' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>{t.flag}</span>{t.label}
+                <span className="opacity-60">({t.count})</span>
               </button>
             ))}
           </div>
