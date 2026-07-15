@@ -299,8 +299,8 @@ const LMSPremiumPaywall = ({
                 </button>
               )}
               <div className="flex items-center gap-4 text-slate-500">
-                <a href="mailto:steve@vocalfitness.org" className="inline-flex items-center gap-1.5 hover:text-cyan-300 transition-colors">
-                  <Mail className="w-3.5 h-3.5" /> steve@vocalfitness.org
+                <a href="mailto:admissions@vocalfitness.org" className="inline-flex items-center gap-1.5 hover:text-cyan-300 transition-colors">
+                  <Mail className="w-3.5 h-3.5" /> admissions@vocalfitness.org
                 </a>
                 <a href="https://wa.me/393515765749" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-emerald-300 transition-colors">
                   <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
