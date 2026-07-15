@@ -145,6 +145,8 @@ class PhonemeCardSummary(BaseModel):
     commonWordCount: int = 0
     updatedAt: Optional[str] = None
     createdAt: Optional[str] = None
+    # iter 42: dialect scope so the admin list can filter RP vs GenAm.
+    dialects: List[str] = Field(default_factory=lambda: ["AmE", "RP"])
     # Phase E badge — populated only by admin_list, omitted elsewhere
     readinessScore: Optional[int] = None
     readinessReady: Optional[bool] = None
@@ -198,6 +200,7 @@ def _summarise(doc: dict) -> PhonemeCardSummary:
         commonWordCount=len(doc.get("commonWords", []) or []),
         updatedAt=doc.get("updatedAt"),
         createdAt=doc.get("createdAt"),
+        dialects=doc.get("dialects") or ["AmE", "RP"],
     )
 
 
@@ -2445,6 +2448,16 @@ def build_phoneme_cards_router(db, get_admin_user, get_optional_admin_user=None)
                 if _is_empty_or_default(cur):
                     return True
                 if not isinstance(cur, dict):
+                    # exampleSentences special-case (iter 42): if the list
+                    # exists but any sentence is missing a non-empty
+                    # ``highlights`` array, trigger a redraft so the
+                    # deterministic highlighter runs. Cards seeded before
+                    # the iter 41 fix still have {"text": "..."} without
+                    # highlights, and the backfill script may miss cards
+                    # that mutate at runtime.
+                    if card_key == "exampleSentences" and isinstance(cur, list):
+                        if any(not (isinstance(s, dict) and s.get("highlights")) for s in cur):
+                            return True
                     # Non-empty list/tuple/str → considered filled.
                     return False
                 if card_key == "mnemonic":
