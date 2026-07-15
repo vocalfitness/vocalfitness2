@@ -46,16 +46,23 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
 
   const [recording, setRecording] = useState(false);
   const [recordedUrl, setRecordedUrl] = useState('');
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [history, setHistory] = useState([]);
 
+  const MAX_SECONDS = 10;
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const blobRef = useRef(null);
   const mimeRef = useRef('');
+  const timerRef = useRef(null);
+  const startTsRef = useRef(0);
+  const studentSpecRef = useRef(null);
+
+  const fmtTime = (s) => `0:${String(Math.min(MAX_SECONDS, Math.floor(s))).padStart(2, '0')}`;
 
   const resolveReferenceSrc = useCallback(() => {
     if (targetIdx < 0) {
@@ -108,12 +115,22 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
       mediaRecorderRef.current = mr;
       mr.start();
       setRecording(true);
+      // Visible timer + hard auto-stop at MAX_SECONDS.
+      startTsRef.current = Date.now();
+      setElapsed(0);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        const s = (Date.now() - startTsRef.current) / 1000;
+        setElapsed(s);
+        if (s >= MAX_SECONDS) stopRecording();
+      }, 200);
     } catch (e) {
       setError('Permesso microfono negato o non disponibile.');
     }
   };
 
   const stopRecording = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     try { mediaRecorderRef.current?.stop(); } catch (_) { /* ignore */ }
     setRecording(false);
   };
@@ -164,6 +181,21 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
   };
 
   useEffect(() => () => { if (recordedUrl) URL.revokeObjectURL(recordedUrl); }, [recordedUrl]);
+
+  // Cleanup timer on unmount.
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  // Auto-start the spectrogram analysis of the student's recording once it's
+  // ready — no extra click. The freshly mounted SpectrogramView (key=url)
+  // exposes its play control via data-testid; we trigger it programmatically.
+  useEffect(() => {
+    if (!recordedUrl) return undefined;
+    const t = setTimeout(() => {
+      const btn = studentSpecRef.current?.querySelector('[data-testid="spectrogram-play"]');
+      if (btn) btn.click();
+    }, 450);
+    return () => clearTimeout(t);
+  }, [recordedUrl]);
 
   const dialectBtn = (d, label, enabled) => (
     <button
@@ -243,9 +275,12 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
                 type="button"
                 onClick={stopRecording}
                 data-testid="rec-stop-btn"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-slate-200 text-slate-900 animate-pulse"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-black bg-rose-600 text-white shadow-[0_0_22px_rgba(244,63,94,0.55)] hover:bg-rose-500 transition-all"
               >
-                <Square className="w-3.5 h-3.5" /> Ferma
+                <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                <Square className="w-4 h-4" /> Ferma
+                <span className="ml-1 font-mono tabular-nums" data-testid="rec-timer">{fmtTime(elapsed)}</span>
+                <span className="text-[10px] font-semibold text-rose-200/80">/ 0:{MAX_SECONDS}</span>
               </button>
             )}
             {recordedUrl && !recording && (
@@ -287,7 +322,9 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
             🎙️ La tua registrazione
           </p>
           {recordedUrl ? (
-            <SpectrogramView key={recordedUrl} src={recordedUrl} label={`Tu · ${targetLabel}`} height={150} testId="rec-spectrogram-student" />
+            <div ref={studentSpecRef}>
+              <SpectrogramView key={recordedUrl} src={recordedUrl} label={`Tu · ${targetLabel}`} height={150} testId="rec-spectrogram-student" />
+            </div>
           ) : (
             <p className="text-xs text-slate-500 italic py-10 text-center" data-testid="rec-student-empty">
               Premi <span className="text-orange-300 font-bold">Registra</span> per catturare la tua pronuncia.
