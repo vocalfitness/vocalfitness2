@@ -35,5 +35,5 @@
   "seed_data_creation": "None",
   "retest_needed": false,
   "should_main_agent_self_test": true,
-  "context_for_next_testing_agent": "Iteration 10 verified end-to-end on https://vocal-members-pro.preview.emergentagent.com/. Key takeaways for next agent: (1) Modals don't have role='dialog' root attribute — use inner-text or testids instead. (2) Language toggle button label = current language (click may show dropdown). (3) VideoWithLoader uses IntersectionObserver with rootMargin=200px — videos render lazily; expect 1-2 <video> tags on initial load and up to 4 after scrolling through all sections. (4) Default language is IT, but EN copy is fully wired in COPY.en object inside HomePage.jsx."
+  "context_for_next_testing_agent": "Iteration 10 verified end-to-end on https://canonical-voice-lab.preview.emergentagent.com/. Key takeaways for next agent: (1) Modals don't have role='dialog' root attribute — use inner-text or testids instead. (2) Language toggle button label = current language (click may show dropdown). (3) VideoWithLoader uses IntersectionObserver with rootMargin=200px — videos render lazily; expect 1-2 <video> tags on initial load and up to 4 after scrolling through all sections. (4) Default language is IT, but EN copy is fully wired in COPY.en object inside HomePage.jsx."
 }

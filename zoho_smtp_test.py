@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://vocal-members-pro.preview.emergentagent.com/api"
+BACKEND_URL = "https://canonical-voice-lab.preview.emergentagent.com/api"
 
 def test_zoho_smtp_email_sending():
     """Test POST /api/contact with Zoho SMTP configuration"""

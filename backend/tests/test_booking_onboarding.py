@@ -2,7 +2,7 @@
 import os
 import requests
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vocal-members-pro.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://canonical-voice-lab.preview.emergentagent.com').rstrip('/')
 
 
 def test_booking_onboarding_wizard_payload():

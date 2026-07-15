@@ -20,7 +20,7 @@ import requests
 
 BASE_URL = os.environ.get(
     "REACT_APP_BACKEND_URL",
-    "https://vocal-members-pro.preview.emergentagent.com",
+    "https://canonical-voice-lab.preview.emergentagent.com",
 ).rstrip("/")
 
 ADMIN_USER = "admin"

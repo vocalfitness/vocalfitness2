@@ -13,7 +13,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vocal-members-pro.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://canonical-voice-lab.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "VocalFitness2026!"}

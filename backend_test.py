@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://vocal-members-pro.preview.emergentagent.com/api"
+BACKEND_URL = "https://canonical-voice-lab.preview.emergentagent.com/api"
 
 def test_testimonials_get_all():
     """Test GET /api/testimonials - Get all testimonials"""

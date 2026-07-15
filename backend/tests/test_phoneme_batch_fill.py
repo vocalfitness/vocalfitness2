@@ -17,7 +17,7 @@ import requests
 
 BASE_URL = (
     os.environ.get("REACT_APP_BACKEND_URL")
-    or "https://vocal-members-pro.preview.emergentagent.com"
+    or "https://canonical-voice-lab.preview.emergentagent.com"
 ).rstrip("/")
 ADMIN_USER = "admin"
 ADMIN_PASS = "VocalFitness2026!"

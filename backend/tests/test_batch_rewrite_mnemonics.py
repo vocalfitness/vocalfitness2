@@ -18,10 +18,10 @@ import re
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vocal-members-pro.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://canonical-voice-lab.preview.emergentagent.com").rstrip("/")
 # Fallback for backend-side .env when frontend env is unavailable in this shell
 if not BASE_URL:
-    BASE_URL = "https://vocal-members-pro.preview.emergentagent.com"
+    BASE_URL = "https://canonical-voice-lab.preview.emergentagent.com"
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "VocalFitness2026!"

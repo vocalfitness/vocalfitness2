@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv("/app/backend/.env")
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vocal-members-pro.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://canonical-voice-lab.preview.emergentagent.com").rstrip("/")
 JWT_SECRET = os.environ.get("JWT_SECRET_KEY", "vocalfitness-secret-key-change-in-production-2024")
 ALGO = "HS256"
 

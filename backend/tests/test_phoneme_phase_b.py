@@ -15,7 +15,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vocal-members-pro.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://canonical-voice-lab.preview.emergentagent.com").rstrip("/")
 CANON = f"{BASE_URL}/api/canonical/phonemes"
 
 HEIGHT_TERMS = ["Close", "Near-close", "Close-mid", "Mid", "Open-mid", "Near-open", "Open"]
