@@ -278,6 +278,9 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
               Audio di riferimento non disponibile per questo bersaglio/dialetto.
             </p>
           )}
+          <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-widest text-cyan-300" data-testid="rec-caption-reference">
+            Pronuncia di riferimento
+          </p>
         </div>
         <div className="rounded-2xl border border-orange-500/25 bg-slate-950/50 p-4">
           <p className="text-[10px] uppercase tracking-widest text-orange-400/80 font-bold mb-3">
@@ -290,8 +293,16 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
               Premi <span className="text-orange-300 font-bold">Registra</span> per catturare la tua pronuncia.
             </p>
           )}
+          <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-widest text-orange-300" data-testid="rec-caption-student">
+            La tua pronuncia
+          </p>
         </div>
       </div>
+
+      <p className="mt-5 text-center text-sm text-slate-400 leading-relaxed" data-testid="rec-compare-hint">
+        Confronta la forma della tua onda sonora con quella di riferimento: più si assomigliano,
+        più la tua pronuncia è accurata.
+      </p>
 
       {/* Save action */}
       {recordedUrl && !recording && (
