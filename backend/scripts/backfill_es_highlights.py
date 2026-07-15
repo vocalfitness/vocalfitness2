@@ -1,29 +1,16 @@
 """
-One-time backfill (iter 42) — populate ``highlights`` on existing
-exampleSentences without regenerating the sentences themselves.
+exampleSentences highlights backfill (iter 42) — safe to run on every boot.
 
-Rationale
----------
-The iter 41 fix to ``_es()`` computes highlights deterministically from
-``commonWords`` at draft time, but every card whose sentences were already
-in the DB before that fix landed still carries plain ``{"text": "..."}``
-dicts without a ``highlights`` field → the public card page renders them
-as flat white text.
+Both a callable ``ensure_es_highlights_backfill(db)`` for backend startup
+and a CLI entry point for manual runs.
 
-This script backfills those existing rows in-place, using the exact
-tokenisation from ``_es()`` (see phoneme_cards.py lines 2492-2531):
+The function walks every phoneme card, and for any card whose
+``exampleSentences`` contain a sentence lacking a non-empty ``highlights``
+list, recomputes the highlights deterministically from ``commonWords``
+(same tokeniser used by the live ``_es()`` drafter).
 
-    tokens = re.sub(r"[^\w']+$", "", t.lower()) for t in text.split()
-    highlights = [t for t in tokens if t in commonWords]
-
-Idempotent: cards whose sentences ALL already have a non-empty
-``highlights`` list are skipped completely (no DB write). No LLM calls.
-Original ``text`` is preserved verbatim.
-
-Usage
------
-    cd /app/backend
-    python3 scripts/backfill_es_highlights.py
+Idempotent: cards where every sentence already has non-empty highlights
+are skipped without any DB write. No LLM calls.
 """
 import asyncio
 import os
@@ -43,19 +30,16 @@ def _compute_highlights(text: str, common_words: List[str]) -> List[str]:
     return [t for t in tokens if t in common_words]
 
 
-def _sentence_needs_highlights(s: Dict) -> bool:
-    """A sentence needs backfill if it lacks a non-empty highlights list."""
+def _sentence_needs_highlights(s) -> bool:
     return not (isinstance(s, dict) and s.get("highlights"))
 
 
-async def _run() -> None:
-    from dotenv import load_dotenv  # noqa: WPS433
-    from motor.motor_asyncio import AsyncIOMotorClient  # noqa: WPS433
+async def ensure_es_highlights_backfill(db) -> Dict[str, int]:
+    """Idempotent backfill of exampleSentences.highlights on every card.
 
-    load_dotenv(Path(__file__).parent.parent / ".env")
-    client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-    db = client[os.environ["DB_NAME"]]
-
+    Returns {"touched": N, "skipped": N, "empty": N} so the caller can
+    log the delta on each boot. On a fully-backfilled DB touched=0.
+    """
     touched = 0
     skipped = 0
     empty = 0
@@ -69,54 +53,72 @@ async def _run() -> None:
             empty += 1
             continue
 
-        # If every sentence already has non-empty highlights, skip entirely.
-        needs_any = any(_sentence_needs_highlights(s) for s in es_raw)
-        if not needs_any:
-            skipped += 1
-            continue
-
         common_words = [
             (w or {}).get("w", "").lower().strip()
             for w in (doc.get("commonWords") or [])
             if isinstance(w, dict) and (w or {}).get("w")
         ]
 
-        new_es: List[Dict] = []
+        # Compute the target shape once, then diff. This lets us skip
+        # writes when either (a) every sentence already carries the
+        # correct highlights list, or (b) the recomputed highlights
+        # happen to match the existing (possibly empty) value — which is
+        # legitimate when the LLM sentence text simply doesn't overlap
+        # with the top-N commonWords for that phoneme.
+        target: List[Dict] = []
+        changed = False
         for s in es_raw:
-            # Support both plain-string legacy shape and dict shape.
             if isinstance(s, str):
-                text = s
-                hl_existing = None
+                text, hl_existing = s, None
+                base: Dict = {}
             elif isinstance(s, dict):
                 text = s.get("text", "")
                 hl_existing = s.get("highlights")
+                base = dict(s)
             else:
                 continue
 
-            if hl_existing:
-                # Sentence already has highlights → preserve as-is.
-                new_es.append({**(s if isinstance(s, dict) else {"text": text}),
-                               "text": text,
-                               "highlights": hl_existing})
+            # If highlights key already present (even if empty), we don't
+            # overwrite — the drafter is the source of truth once it has
+            # run for that sentence. Only backfill sentences with a
+            # completely missing highlights key.
+            if hl_existing is None:
+                computed = _compute_highlights(text, common_words)
+                target.append({**base, "text": text, "highlights": computed})
+                changed = True
             else:
-                new_es.append({
-                    **(s if isinstance(s, dict) else {}),
-                    "text": text,
-                    "highlights": _compute_highlights(text, common_words),
-                })
+                target.append({**base, "text": text, "highlights": hl_existing})
+
+        if not changed:
+            skipped += 1
+            continue
 
         await db.phoneme_cards.update_one(
             {"id": doc["id"]},
-            {"$set": {"exampleSentences": new_es}},
+            {"$set": {"exampleSentences": target}},
         )
         touched += 1
-        added = sum(len(s.get("highlights") or []) for s in new_es)
-        print(f"  ✅ {doc['id']:<24} · {len(new_es)} sentences · {added} highlights computed")
 
-    print()
-    print(f"Backfill complete. touched={touched} · already-ok={skipped} · empty-es={empty}")
+    return {"touched": touched, "skipped": skipped, "empty": empty}
+
+
+async def _main_cli() -> None:
+    from dotenv import load_dotenv  # noqa: WPS433
+    from motor.motor_asyncio import AsyncIOMotorClient  # noqa: WPS433
+
+    load_dotenv(Path(__file__).parent.parent / ".env")
+    client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+    db = client[os.environ["DB_NAME"]]
+
+    result = await ensure_es_highlights_backfill(db)
+    print(
+        f"Backfill complete. "
+        f"touched={result['touched']} · "
+        f"already-ok={result['skipped']} · "
+        f"empty-es={result['empty']}"
+    )
     client.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(_run())
+    asyncio.run(_main_cli())

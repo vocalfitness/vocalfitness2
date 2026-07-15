@@ -12,6 +12,47 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 09/02/2026 · Iteration 42 — 4-bug bundle + auto-migrations al startup — DONE ✅
+
+**Contesto**: Prof segnala 4 bug su produzione con screenshot bundle:
+1. AmE card /i/ /u/ /ɔ/ non fanno autofill → "Fonema non presente nell'inventario canonical"
+2. Lista admin mostra card AmE mescolate con RP (studenti confusi)
+3. Example sentences perdono l'highlight arancione sulle parole-target
+4. Trapezoide top-of-card piazza il dot in alto-sinistra invece che sulla posizione corretta
+
+**Fix (4 step ordinati)**:
+
+**Step 1** — 3 equivalenze IPA short↔long in `_IPA_EQUIVALENTS`:
+```python
+"i":  ["i",  "iː"],   # AmE i-fleece-ame ↔ RP FLEECE
+"u":  ["u",  "uː"],   # AmE u-goose-ame ↔ RP GOOSE
+"ɔ":  ["ɔ",  "ɔː"],   # AmE oh-thought-ame ↔ RP THOUGHT
+```
+
+**Step 2** — `create_ame_variant_cards.py` ora stampa `clone["dialects"] = ["AmE"]` sui cloni futuri.
+
+**Step 3** — Migration `fix_dialect_tags.py`: 8 card `-ame` → `dialects=["AmE"]`, 6 card RP source (e-dress, er-nurse, o-lot, ou-goat, a-palm, o-thought) → `dialects=["RP"]`. **14 righe DB aggiornate**.
+
+**Step 4a** — Migration `backfill_es_highlights.py`: 50/52 card ricevono `highlights` deterministici calcolati da `commonWords`, stesso tokeniser di `_es()`. No LLM.
+
+**Step 4b** — Patch `_needs_draft`: qualsiasi `exampleSentence` senza `highlights` triggera redraft.
+
+**Auto-migrations al startup** (idempotenti): step 12 (dialect-tags) + step 13 (es-highlights) in `ensure_phoneme_seed()`. Al secondo restart consecutivo log mostra `patched=[]` — zero write inutili.
+
+**Extra**: aggiunto campo `dialects` a `PhonemeCardSummary` per frontend filter RP/GenAm.
+
+**Verifica E2E**:
+- ✅ VERIFICA 1: `/i/ /u/ /ɔ/ + dialect=GenAm` → autofill success con vowelChartPosition corretto
+- ✅ VERIFICA 2: 6 RP-only + 8 AmE-only + 38 shared = 52 totali · overlap RP∩AmE = **0**
+- ✅ VERIFICA 3: 52 card con exampleSentences hanno tutte `highlights` popolate
+- ✅ Idempotenza: 2 restart consecutivi → `patched=[]`
+
+**Test totale iter 36-42**: **34/34 PASS**.
+
+Il Prof al prossimo deploy NON deve eseguire nessuno script manuale — il backend è self-migrating.
+
+---
+
 ### 09/02/2026 · Iteration 40 — Fix guardia "published card" invertita (root cause definitivo) — DONE ✅
 
 **Contesto**: dopo iter 39 (frontend passato a `batch-fill-v2`), Prof continuava a segnalare "le frasi di esempio non vengono create" su `schwa` in produzione. Screenshot allegato mostrava `vocalfitness.org/lms/phoneme/schwa` con anatomia perfetta ma sezione example sentences vuota.

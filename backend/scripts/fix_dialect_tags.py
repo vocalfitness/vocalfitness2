@@ -1,40 +1,57 @@
 """
-One-time migration script (iter 42) — repair dialect tags on existing DB rows.
+Dialect-tag repair migration (iter 42) — safe to run on every backend boot.
 
-Rationale
----------
-The AmE variant seeder (iter 36) originally cloned RP source cards without
-overriding the ``dialects`` field, so both the RP source and the AmE
-variant carried ``dialects: ["AmE", "RP"]``. Combined with the admin
-dialect tabs added in iter 41, this made every phoneme appear **twice**
-(once under 🇬🇧 RP, once under 🇺🇸 GenAm) — even though the AmE variant is
-the correct instance for the GenAm student and the RP source is the
-correct instance for the British student.
+Both a callable ``ensure_dialect_tags(db)`` (invoked from
+``ensure_phoneme_seed`` at startup) and a CLI entry point
+(``python3 scripts/fix_dialect_tags.py``) for manual runs.
 
-Fix
----
-  • Every card whose ``id`` ends in ``-ame`` is AmE-only.
-  • The 6 RP source cards that got split off (e-dress, er-nurse, o-lot,
-    ou-goat, a-palm, o-thought) are RP-only.
-  • Everything else keeps its existing scope.
-
-Usage
------
-    cd /app/backend
-    python3 scripts/fix_dialect_tags.py
-
-Idempotent: safe to re-run — the ``$set`` operator overwrites the field
-with the same value if it's already correct.
+See the top-of-file docstring in the original one-shot for the rationale.
+Idempotent: ``$set`` overwrites with the same value if already correct;
+we still return a structured summary so the caller can log the delta.
 """
 import asyncio
 import os
 import sys
 from pathlib import Path
+from typing import Dict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-async def _run() -> None:
+# RP-only cards: the source cards that got split into an AmE variant.
+# Keeping the list here (not in phoneme_cards.py) so the migration can be
+# read/updated without touching the main router file.
+_RP_ONLY_IDS = [
+    "e-dress",     # → epsilon-dress-ame /ɛ/
+    "er-nurse",    # → er-nurse-ame /ɝ/
+    "o-lot",       # → ah-palm-ame /ɑ/ (LOT-PALM merger)
+    "ou-goat",     # → ou-goat-ame /oʊ/
+    "a-palm",      # → ah-palm-ame /ɑ/
+    "o-thought",   # → oh-thought-ame /ɔ/
+]
+
+
+async def ensure_dialect_tags(db) -> Dict[str, int]:
+    """Idempotent tag repair — call from backend startup.
+
+    Returns {"ame_modified": N, "rp_modified": N} so the caller can log
+    the delta on each boot. On a fully-migrated DB both values are 0.
+    """
+    r_ame = await db.phoneme_cards.update_many(
+        {"id": {"$regex": "-ame$"}, "dialects": {"$ne": ["AmE"]}},
+        {"$set": {"dialects": ["AmE"]}},
+    )
+    r_rp = await db.phoneme_cards.update_many(
+        {"id": {"$in": _RP_ONLY_IDS}, "dialects": {"$ne": ["RP"]}},
+        {"$set": {"dialects": ["RP"]}},
+    )
+    return {
+        "ame_modified": r_ame.modified_count,
+        "rp_modified":  r_rp.modified_count,
+    }
+
+
+async def _main_cli() -> None:
     from dotenv import load_dotenv  # noqa: WPS433
     from motor.motor_asyncio import AsyncIOMotorClient  # noqa: WPS433
 
@@ -42,39 +59,14 @@ async def _run() -> None:
     client = AsyncIOMotorClient(os.environ["MONGO_URL"])
     db = client[os.environ["DB_NAME"]]
 
-    # AmE-only cards: id suffix "-ame"
-    r_ame = await db.phoneme_cards.update_many(
-        {"id": {"$regex": "-ame$"}},
-        {"$set": {"dialects": ["AmE"]}},
-    )
-    print(
-        f"  ✅ AmE cards tagged: matched={r_ame.matched_count} "
-        f"modified={r_ame.modified_count}"
-    )
-
-    # RP-only cards: the 6 source cards that got split into an AmE variant.
-    rp_only_ids = [
-        "e-dress",     # → epsilon-dress-ame /ɛ/
-        "er-nurse",    # → er-nurse-ame /ɝ/
-        "o-lot",       # → ah-palm-ame /ɑ/ (LOT-PALM merger)
-        "ou-goat",     # → ou-goat-ame /oʊ/
-        "a-palm",      # → ah-palm-ame /ɑ/ (already covered by GenAm PALM)
-        "o-thought",   # → oh-thought-ame /ɔ/
-    ]
-    r_rp = await db.phoneme_cards.update_many(
-        {"id": {"$in": rp_only_ids}},
-        {"$set": {"dialects": ["RP"]}},
-    )
-    print(
-        f"  ✅ RP-only cards tagged: matched={r_rp.matched_count} "
-        f"modified={r_rp.modified_count}"
-    )
-
+    result = await ensure_dialect_tags(db)
+    print(f"  ✅ AmE cards tagged: modified={result['ame_modified']}")
+    print(f"  ✅ RP-only cards tagged: modified={result['rp_modified']}")
     print()
     print(f"Migration complete. Total rows touched: "
-          f"{r_ame.modified_count + r_rp.modified_count}")
+          f"{result['ame_modified'] + result['rp_modified']}")
     client.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(_run())
+    asyncio.run(_main_cli())

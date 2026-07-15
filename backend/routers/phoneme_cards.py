@@ -3065,4 +3065,31 @@ async def ensure_phoneme_seed(db) -> Dict[str, Any]:
         # Never fail the whole seed for the AmE migration — log and continue.
         patched.append(f"ame-variants.error:{type(e).__name__}")
 
+    # 12) Dialect-tag repair (iter 42) — ensure `-ame` cards carry
+    #     ``dialects: ["AmE"]`` and the 6 split RP source cards carry
+    #     ``dialects: ["RP"]`` so the admin dialect tabs stay clean.
+    #     Idempotent — noop when DB is already correct.
+    try:
+        from scripts.fix_dialect_tags import ensure_dialect_tags
+        tag_result = await ensure_dialect_tags(db)
+        if tag_result["ame_modified"] or tag_result["rp_modified"]:
+            patched.append(
+                f"dialect-tags.ame×{tag_result['ame_modified']}·"
+                f"rp×{tag_result['rp_modified']}"
+            )
+    except Exception as e:  # noqa: BLE001
+        patched.append(f"dialect-tags.error:{type(e).__name__}")
+
+    # 13) exampleSentences highlights backfill (iter 42) — recompute
+    #     highlights on any card whose sentences are missing them.
+    #     Uses the same tokeniser as the live drafter. No LLM calls.
+    #     Idempotent — noop when every sentence already has highlights.
+    try:
+        from scripts.backfill_es_highlights import ensure_es_highlights_backfill
+        hl_result = await ensure_es_highlights_backfill(db)
+        if hl_result["touched"]:
+            patched.append(f"es-highlights.touched×{hl_result['touched']}")
+    except Exception as e:  # noqa: BLE001
+        patched.append(f"es-highlights.error:{type(e).__name__}")
+
     return {"inserted": inserted, "skipped": skipped, "patched": patched}
