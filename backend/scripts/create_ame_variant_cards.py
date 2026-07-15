@@ -117,6 +117,7 @@ async def ensure_ame_variant_cards(db) -> Dict[str, List[str]]:
             continue
         clone = _strip_audio(_reset_locks(src))
         clone["id"]          = new_id
+        clone["dialects"]    = ["AmE"]     # tag AmE-only so admin dialect tab (iter 41) filters correctly
         clone["ipa"]         = new_ipa
         clone["displayName"] = new_disp
         clone["title"]       = new_title
