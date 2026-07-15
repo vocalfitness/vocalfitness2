@@ -1888,7 +1888,9 @@ from routers.leads_forms import build_leads_forms_router
 from routers.chat_alice import build_chat_alice_router
 from routers.auth import build_auth_router
 from routers.canonical_phonemes import build_canonical_phonemes_router
+from routers.phoneme_recordings import build_phoneme_recordings_router
 api_router.include_router(build_phoneme_cards_router(db, get_admin_user, build_user_deps.optional_admin))
+api_router.include_router(build_phoneme_recordings_router(db, get_current_user, emergent_put, UPLOADS_DIR))
 api_router.include_router(build_elevenlabs_router(get_admin_user, emergent_put, UPLOADS_DIR))
 api_router.include_router(build_admin_leads_router(db, get_admin_user))
 api_router.include_router(build_proposals_router(db, get_admin_user))

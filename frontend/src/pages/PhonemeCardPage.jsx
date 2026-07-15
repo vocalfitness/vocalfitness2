@@ -12,6 +12,7 @@ import {
 import { VocalLabEmbed } from '../components/VocalLabEmbed';
 import { PinkTromboneEmbed } from '../components/PinkTromboneEmbed';
 import SpectrogramView from '../components/SpectrogramView';
+import StudentRecordingStudio from '../components/StudentRecordingStudio';
 import PhonemeAuralQuiz from '../components/PhonemeAuralQuiz';
 import PhonemeVideoLesson from '../components/PhonemeVideoLesson';
 import useDialect from '../hooks/useDialect';
@@ -1277,6 +1278,16 @@ const PhonemeCardPage = () => {
             testId="phoneme-aural-quiz"
           />
         </div>
+
+        {/* ============== Student self-assessment · record & compare ============== */}
+        <StudentRecordingStudio
+          phoneme={phoneme}
+          dialect={dialect}
+          supportsAmE={supportsAmE}
+          supportsRP={supportsRP}
+          user={user}
+          token={token}
+        />
 
         {/* Bottom note — either the human-written dialectNote OR the dialects tag list, never both */}
         {((phoneme.dialectNote && phoneme.dialectNote.trim()) || (phoneme.dialects && phoneme.dialects.length > 0)) && (

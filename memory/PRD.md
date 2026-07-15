@@ -12,6 +12,28 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 15/07/2026 · Modulo Auto-valutazione · Registrazione audio + spettrogramma affiancato (Fase 1) — DONE ✅
+
+**Richiesta**: aggiungere alla phoneme card un modulo di auto-valutazione con registrazione audio (solo audio, niente webcam/video/scoring/LPC in questa fase). Lo studente registra la propria pronuncia, vede il proprio spettrogramma affiancato a quello di riferimento del Prof. Dapper, e (se loggato) salva la registrazione collegata a studente/card/fonema/dialetto/timestamp.
+
+**Scelte utente**: registrazione aperta anche agli anonimi (salvataggio solo per loggati) · cronologia registrazioni con play+elimina · selettore bersaglio (fonema isolato + parole di esempio).
+
+**Backend** — nuovo `backend/routers/phoneme_recordings.py` (`build_phoneme_recordings_router`, registrato in `server.py`):
+- `POST /api/phonemes/{card_id}/recordings` (auth) — multipart: file + phoneme_ipa + dialect(AmE|RP) + target_kind + target_label. Persist su Emergent object storage (`recordings/{student}/…`), doc in collezione `phoneme_recordings`. Max 15 MB, ext webm/ogg/m4a/mp4/wav/mp3.
+- `GET /api/phonemes/{card_id}/recordings` (auth) — cronologia dello studente, newest first.
+- `DELETE /api/phonemes/recordings/{id}` (auth) — elimina la propria registrazione.
+
+**Frontend** — nuovo `frontend/src/components/StudentRecordingStudio.jsx`, integrato in `PhonemeCardPage.jsx` (nuova sezione sotto "Lo spettrogramma del Prof. Dapper", nessun modulo esistente toccato):
+- `MediaRecorder` browser → blob → **riusa `SpectrogramView`** (stesso renderer del riferimento) per lo spettrogramma dello studente.
+- Due spettrogrammi affiancati: sinistra riferimento, destra studente. Selettore bersaglio + toggle dialetto GenAm/RP.
+- Salva (solo loggati; anonimi vedono invito al login) + cronologia con play + elimina.
+
+**Verifica**: backend E2E via curl (create→storage fetch 200→list→delete OK). Frontend smoke test: modulo renderizzato, tutti i data-testid presenti, spettrogrammi affiancati corretti. NOTA: il flusso microfono live non è testabile in automazione headless.
+
+**Deploy**: cambiamenti in Preview — richiede Deploy per la Produzione.
+
+
+
 ### 09/02/2026 · Iteration 42 — 4-bug bundle + auto-migrations al startup — DONE ✅
 
 **Contesto**: Prof segnala 4 bug su produzione con screenshot bundle:
