@@ -12,6 +12,14 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix 2 bug pre-deploy (formanti + riferimento parola) — DONE ✅ (testing agent 5/5)
+
+- **BUG 1** (estrazione formanti da microfono reale errata: /iː/ dava F1=834 Hz): `_extract_formants` ora localizza il **nucleo vocalico** (istante di massima intensità via `to_intensity`) e prende la **mediana** delle formanti in una finestra ±60ms, invece della media su una finestra fissa 20-80% che includeva silenzio/rumore/plosive. Fix aggiuntivo: `snd.subtract_mean()` (metodo in-place, non riassegnato). Verificato: F1=333 Hz (range corretto).
+- **BUG 2** (riferimento docente su parola 'look' falliva): gli URL audio delle parole sono **relativi** (`/api/uploads/...`) e `httpx` non li scaricava. `_fetch_and_extract` ora risolve gli URL relativi contro `http://localhost:8001` (funziona in Preview e Prod indipendentemente da FRONTEND_URL) e converte MP3→WAV via `parselmouth.Sound.save` prima dell'analisi. Verificato: `reference_source=teacher_sample`, 3 formanti.
+- Testing agent (backend): 5/5 PASS, nessuna regressione (consent gate 403→200, path dataset vocale OK).
+
+
+
 ### 16/07/2026 · FASE 2 · Scoring automatico formanti + GDPR — DONE ✅ (backend testato; flusso microfono live da verificare manualmente)
 
 **Richiesta**: potenziare l'auto-valutazione (Fase 1) con pipeline di scoring formanti end-to-end (7 step) + requisiti GDPR.
