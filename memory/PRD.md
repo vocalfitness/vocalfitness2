@@ -12,6 +12,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix critico F0 instabile (gruppo speaker che oscilla male/female) — DONE ✅ (testing agent 29/29)
+
+- **Problema**: F0 stimato solo sul nucleo (~20ms) → sensibile al rumore → stessa voce classificata 'male' in una registrazione e 'female' nella successiva.
+- **Fix**: `_extract_formants` calcola ora F0 come **media su TUTTI i frame voiced dell'intera registrazione** (min 100ms di audio voiced, altrimenti F0=None). Selezione gruppo con **threshold fissi**: F0<165 → men, 165-255 → women, >255 → children (RP: women/children → female). `group_method='f0_threshold'` (F0 presente) o `'formant_distance'` (fallback).
+- **Frontend** (`FormantScorePanel`): riga gruppo speaker ora mostra "Confrontato con riferimento madrelingua <gruppo> · voce rilevata F0 medio ~<F0> Hz" (diagnostica).
+- Verificato: F0=120→men, 200→women, 281→children; 3 POST identici → stesso gruppo (deterministico). Testing agent 29/29 PASS, nessuna regressione.
+
+
+
 ### 16/07/2026 · FASE 2 · Fix architetturale scoring parole (dataset come riferimento numerico) — DONE ✅ (testing agent 23/23)
 
 - **Problema**: i formanti estratti dai campioni MP3 del Prof. Dapper variano troppo tra parole (/iː/ 'feel' F3=2967 vs 'season' F3=2554) → scoring instabile.
