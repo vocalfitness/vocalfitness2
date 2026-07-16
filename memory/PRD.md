@@ -12,6 +12,14 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix fallback silenzioso su misure implausibili — DONE ✅ (testing agent 35/35)
+
+- **Problema**: quando nessuna finestra passava il controllo F1≤900Hz, il codice ripiegava silenziosamente sulla finestra a minima varianza (F1 implausibile) e la punteggiava come valida — nessun flag. Riprodotto: stesso /iː/, 343Hz (73/B1) vs 933Hz (16/A1).
+- **Fix** (`phoneme_formants.py`): (a) `_extract_formants` **ritenta** con tetti LPC alternativi 5500→5000→4500 Hz; restituisce il primo risultato plausibile con `reliable=True`; (b) se tutti i retry restano >900Hz → `reliable=False` e l'endpoint solleva **HTTP 422** esplicito ("Misura non affidabile…") invece di un punteggio fuorviante; (c) **WARNING log** con il valore F1 implausibile ad ogni fallback/rifiuto.
+- Verificato: WAV F1~1250 → 422 + WARNING (F1=1229); vocale normale → 200 reliable; **riproducibilità 5x**: stessi byte → 5x identico (200) oppure 5x 422 coerente. Testing agent 35/35 PASS, nessuna regressione.
+
+
+
 ### 16/07/2026 · FASE 2 · Fix critico F0 instabile (gruppo speaker che oscilla male/female) — DONE ✅ (testing agent 29/29)
 
 - **Problema**: F0 stimato solo sul nucleo (~20ms) → sensibile al rumore → stessa voce classificata 'male' in una registrazione e 'female' nella successiva.
