@@ -180,6 +180,16 @@ def _extract_formants(path: str) -> Optional[dict]:
 
     if not chosen or (not chosen.get("F1") and not chosen.get("F2")):
         return None
+
+    # F0 for speaker-group detection is the MEAN over ALL voiced frames of the
+    # whole take (not just the vowel nucleus) — a nucleus-only estimate is too
+    # noise-sensitive and flips men/women between consecutive recordings.
+    # Require at least 100 ms of voiced audio; otherwise leave F0 undefined.
+    voiced_f0 = [F0[j] for j in range(len(F0)) if F0[j]]
+    if len(voiced_f0) * step >= 0.100:
+        chosen["F0"] = round(sum(voiced_f0) / len(voiced_f0))
+    else:
+        chosen["F0"] = None
     return chosen
 
 
@@ -353,12 +363,10 @@ def build_phoneme_formants_router(
         refs = await _find_reference(phoneme_ipa, dialect)
 
         if refs:
-            # Speaker group selected from the VOWEL-ZONE F0 (men/women/children
-            # have distinct mean F0). This is far more reliable than matching the
-            # student's — possibly distorted — formants against each group.
-            # Typical mean F0 (Hz): Hillenbrand 1995 men=130, women=220,
-            # children=236 (RP/Deterding: men=~120, women=~210).
-            _TYP_F0 = {"men": 130.0, "women": 220.0, "children": 236.0, "male": 120.0, "female": 210.0}
+            # Speaker group selected from the whole-take mean F0 with FIXED
+            # thresholds (stable across recordings, unlike a noisy nucleus-only
+            # estimate): <165 Hz → men, 165-255 Hz → women, >255 Hz → children.
+            # RP references only have male/female, so women/children map to female.
             f0 = student.get("F0")
 
             def group_distance(r):
@@ -372,8 +380,22 @@ def build_phoneme_formants_router(
                 return d / n if n else 9e9
 
             if f0:
-                best = min(refs, key=lambda r: abs(f0 - _TYP_F0.get(r["speaker_group"], 200.0)))
-                group_method = "f0"
+                if f0 < 165:
+                    label = "men"
+                elif f0 <= 255:
+                    label = "women"
+                else:
+                    label = "children"
+                avail = {r["speaker_group"]: r for r in refs}
+                prefs = {
+                    "men": ["men", "male"],
+                    "women": ["women", "female"],
+                    "children": ["children", "female", "women"],
+                }[label]
+                best = next((avail[g] for g in prefs if g in avail), None)
+                if best is None:
+                    best = min(refs, key=group_distance)
+                group_method = "f0_threshold"
             else:
                 best = min(refs, key=group_distance)
                 group_method = "formant_distance"

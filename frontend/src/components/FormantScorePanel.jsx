@@ -20,7 +20,9 @@ const scoreBar = (score) => {
 
 export const FormantScorePanel = ({ result }) => {
   if (!result) return null;
-  const { per_formant = [], composite_score, cefr, citation, reference_source, reference_group, high_impact } = result;
+  const { per_formant = [], composite_score, cefr, citation, reference_source, reference_group, high_impact, student_formants } = result;
+  const f0 = student_formants?.F0;
+  const groupLabel = { men: 'uomo', women: 'donna', children: 'bambino', male: 'uomo', female: 'donna' }[reference_group] || reference_group;
 
   return (
     <div className="mt-6 rounded-2xl border border-cyan-500/25 bg-slate-950/60 p-5 md:p-6" data-testid="formant-score-panel">
@@ -49,6 +51,14 @@ export const FormantScorePanel = ({ result }) => {
           <p className="text-xs mt-1 opacity-90">{cefr?.label}</p>
         </div>
       </div>
+
+      {/* Speaker group + detected mean F0 (diagnostics) */}
+      {reference_source === 'dataset' && (
+        <p className="mb-5 text-[11px] text-slate-400" data-testid="formant-speaker-group">
+          Confrontato con riferimento madrelingua <span className="font-bold text-cyan-200">{groupLabel}</span>
+          {f0 ? <span className="text-slate-500"> · voce rilevata F0 medio ~{f0} Hz</span> : null}
+        </p>
+      )}
 
       {/* Per-formant */}
       <div className="space-y-4">
