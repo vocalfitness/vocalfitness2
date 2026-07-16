@@ -12,6 +12,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix Bug 3 (F1 alto + composito troppo penalizzante) — DONE ✅ (testing agent 15/15)
+
+- **Logging gruppo speaker**: `analyze-formants` ora logga `selected_group` (men/women/children), `groups_available` e le medie per gruppo; la risposta include `reference_group`. Diagnostica per capire quale riferimento viene usato.
+- **Tolleranza ±2SD → ±2.5SD**: `_score_gop(..., tol_sd=2.5)` — i dataset Hillenbrand/Deterding sono registrazioni studio, il microfono consumer devia legittimamente di più.
+- **Composito ripesato**: `_weighted_composite` con pesi F1=0.15 / F2=0.425 / F3=0.425 (con F3) e F1=0.35 / F2=0.65 (senza F3). F1 è pesato meno perché la banda bassa è quella più corrotta dai microfoni consumer. Caso segnalato [F1=0, F2=59, F3=88]: composito 49→**62.5**, CEFR A2→**B1**.
+- Testing agent: 15/15 PASS (unit su `_score_gop`/`_weighted_composite` + E2E group-logging + regressioni Bug1/Bug2/consent).
+
+
+
 ### 16/07/2026 · FASE 2 · Fix 2 bug pre-deploy (formanti + riferimento parola) — DONE ✅ (testing agent 5/5)
 
 - **BUG 1** (estrazione formanti da microfono reale errata: /iː/ dava F1=834 Hz): `_extract_formants` ora localizza il **nucleo vocalico** (istante di massima intensità via `to_intensity`) e prende la **mediana** delle formanti in una finestra ±60ms, invece della media su una finestra fissa 20-80% che includeva silenzio/rumore/plosive. Fix aggiuntivo: `snd.subtract_mean()` (metodo in-place, non riassegnato). Verificato: F1=333 Hz (range corretto).
