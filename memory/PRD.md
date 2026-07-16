@@ -12,6 +12,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix architetturale scoring parole (dataset come riferimento numerico) — DONE ✅ (testing agent 23/23)
+
+- **Problema**: i formanti estratti dai campioni MP3 del Prof. Dapper variano troppo tra parole (/iː/ 'feel' F3=2967 vs 'season' F3=2554) → scoring instabile.
+- **Fix 1 — dataset sempre**: lo scoring numerico F1/F2/F3 + composito CEFR usa SEMPRE le medie Hillenbrand/Deterding da `formant_references` quando esiste un riferimento per phoneme+dialect, **anche per le parole** (rimosso il gate `use_dataset = target_kind=='phoneme'`; `_find_reference` chiamato incondizionatamente). Il campione docente resta solo come riferimento **visivo** nello spettrogramma sinistro; il teacher-sample numerico è fallback solo per fonemi assenti dal dataset (dittonghi/consonanti).
+- **Fix 2 — nucleo a minima varianza**: `_extract_formants` sceglie la finestra scorrevole di 20ms con **SD minima di F1+F2** (steady-state), invece della massima intensità — robusto in contesto consonantico.
+- **Fix 3 — sanity check F1>900Hz**: se la finestra candidata ha F1 mediana >900 Hz (implausibile per vocale adulta) viene scartata e si usa la finestra adiacente stabile; fallback alla minima varianza solo se tutte >900.
+- Verificato: word /ʊ/ → `reference_source=dataset` (era teacher_sample), F1=448; WAV con segmento spurio F1=1200 + /ʊ/ → F1=437 (finestra alta scartata). Testing agent 23/23 PASS, tutte le regressioni (Bug1-4, consent, fallback teacher_sample per fonemi assenti) intatte.
+
+
+
 ### 16/07/2026 · FASE 2 · Fix Bug 4 (gruppo 'children' errato + F1>1000 su /ʊ/ CVC) — DONE ✅ (testing agent 18/18)
 
 - **Causa**: su parole CVC brevi (/lʊk/) il nucleo vocalico veniva trovato come istante di massima intensità globale → cadeva sul burst della consonante /k/ (più forte della vocale breve) → F1>1000 Hz; la selezione gruppo usava la distanza tra formanti (circolare) → sceglieva 'children'.
