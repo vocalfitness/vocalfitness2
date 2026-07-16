@@ -62,26 +62,60 @@ async def ensure_formant_references(db) -> dict:
 
 
 def _extract_formants(path: str) -> Optional[dict]:
-    """Return mean F1/F2/F3 (Hz) over the stable middle of the clip."""
+    """Return median F1/F2/F3 (Hz) measured at the voiced vowel nucleus.
+
+    Robustness for real microphone audio:
+    * DC offset removed (mic bias / breath).
+    * The nucleus is located at the point of maximum intensity so leading
+      silence, plosive bursts and trailing noise never bias the estimate.
+    * Values are the MEDIAN over voiced frames in a ±60 ms window around the
+      nucleus (median rejects the octave/formant-tracking outliers that a
+      plain time-averaged mean would fold in).
+    * ``To FormantPath (burg)`` keeps the ceiling adaptive (M/F/child).
+    """
     try:
         snd = parselmouth.Sound(path)
     except Exception:  # noqa: BLE001
         return None
     dur = snd.get_total_duration()
-    if dur <= 0.03:
+    if dur <= 0.05:
         return None
+    try:
+        snd.subtract_mean()
+    except Exception:  # noqa: BLE001
+        pass
+    # Locate the voiced nucleus (loudest instant).
+    t_center = dur / 2.0
+    try:
+        intensity = snd.to_intensity(minimum_pitch=100.0)
+        tmax = call(intensity, "Get time of maximum", 0.0, 0.0, "Parabolic")
+        if tmax and tmax == tmax:
+            t_center = tmax
+    except Exception:  # noqa: BLE001
+        pass
     try:
         fp = call(snd, "To FormantPath (burg)", 0.0025, 5.0, 5500.0, 0.025, 50.0, 0.05, 4)
         formant = call(fp, "Extract Formant")
     except Exception:  # noqa: BLE001
         return None
-    t0, t1 = dur * 0.2, dur * 0.8
+    win = 0.06
+    t0, t1 = max(0.0, t_center - win), min(dur, t_center + win)
     out = {}
     for i, key in ((1, "F1"), (2, "F2"), (3, "F3")):
-        try:
-            v = call(formant, "Get mean", i, t0, t1, "hertz")
-            out[key] = round(v) if v and v == v else None  # NaN check
-        except Exception:  # noqa: BLE001
+        vals = []
+        t = t0
+        while t <= t1:
+            try:
+                v = call(formant, "Get value at time", i, t, "hertz", "Linear")
+                if v and v == v:  # not NaN
+                    vals.append(v)
+            except Exception:  # noqa: BLE001
+                pass
+            t += 0.01
+        if vals:
+            vals.sort()
+            out[key] = round(vals[len(vals) // 2])
+        else:
             out[key] = None
     if not out.get("F1") and not out.get("F2"):
         return None
@@ -294,25 +328,43 @@ def build_phoneme_formants_router(
         return result
 
     async def _fetch_and_extract(url: str) -> Optional[dict]:
+        # Relative URLs (e.g. per-word clips stored as ``/api/uploads/...``)
+        # are resolved against the backend's own internal origin so the fetch
+        # works identically in Preview and Production, regardless of the
+        # public domain configured in FRONTEND_URL.
+        full = f"http://localhost:8001{url}" if url.startswith("/") else url
         try:
             async with httpx.AsyncClient(follow_redirects=True, timeout=20) as client:
-                resp = await client.get(url)
+                resp = await client.get(full)
                 resp.raise_for_status()
                 data = resp.content
         except Exception:  # noqa: BLE001
             return None
         if not data:
             return None
-        ext = ".mp3" if url.lower().endswith(".mp3") else ".wav"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tf:
+        is_mp3 = full.lower().split("?")[0].endswith(".mp3")
+        src_ext = ".mp3" if is_mp3 else ".wav"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=src_ext) as tf:
             tf.write(data)
-            p = tf.name
+            src_path = tf.name
+        wav_path = None
         try:
-            return _extract_formants(p)
+            # Convert to WAV before handing the clip to Parselmouth.
+            if is_mp3:
+                try:
+                    snd = parselmouth.Sound(src_path)
+                    wav_path = src_path + ".wav"
+                    snd.save(wav_path, parselmouth.SoundFileFormat.WAV)
+                    return _extract_formants(wav_path)
+                except Exception:  # noqa: BLE001
+                    return _extract_formants(src_path)
+            return _extract_formants(src_path)
         finally:
-            try:
-                os.unlink(p)
-            except OSError:
-                pass
+            for p in (src_path, wav_path):
+                if p:
+                    try:
+                        os.unlink(p)
+                    except OSError:
+                        pass
 
     return router

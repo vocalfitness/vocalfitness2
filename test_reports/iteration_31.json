@@ -1,0 +1,22 @@
+{
+  "summary": "Phase-2 formant scoring pipeline: verified both bug fixes and regressions via pytest against the external preview URL. Login (mario.rossi/VocalTest2026!) works, GDPR consent gate works, /iː/ synthetic WAV now returns F1=333 Hz (was ~834 Hz), and teacher-sample reference with a RELATIVE URL for target_kind=word returns 200 with 3 per_formant entries. Dataset path for /i/ AmE still returns reference_source=dataset with a CEFR band and citation. 5/5 tests passed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_formants_phase2.py",
+    "/app/test_reports/pytest/phase2_formants.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_extract_formants scans the ±60ms window in a Python while-loop at 10ms step (13 samples × 3 formants ≈ 39 Praat calls). Acceptable now but could be replaced with `Get quantile` (median) via praat call for ~2x speedup and cleaner code.",
+    "_fetch_and_extract() hard-codes http://localhost:8001. Comment explains why (works in Preview + Prod regardless of FRONTEND_URL). If the backend container ever binds a different internal port, this string must change — consider deriving from an env var (e.g. INTERNAL_BACKEND_ORIGIN) with sensible default."
+  ],
+  "updated_files": ["/app/backend/tests/test_phoneme_formants_phase2.py"],
+  "success_rate": {"backend": "100%", "frontend": "not tested (per request)"},
+  "test_credentials": "mario.rossi / VocalTest2026! (JWT login via /api/auth/login)",
+  "seed_data_creation": "None. Uses in-test synthesized WAV (impulse train through 3 cascaded resonators) — no DB writes beyond user_consents toggling.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reusable pytest file /app/backend/tests/test_phoneme_formants_phase2.py. Uses REACT_APP_BACKEND_URL env var (required, no default). Synthesizes vowel WAVs with numpy-only IIR resonators (no scipy dependency). Toggles audio consent between tests. Reference mp3 http://localhost:8001/api/uploads/elevenlabs/u-foot_word_look_AmE_mIrm7gNC_1783527116.mp3 is present and served with 200. Measured /iː/ synthetic vowel: F1=333, F2=2061, F3=2268 Hz.",
+  "rca of the issue": "BUG 1 root cause: previous mean over fixed 20-80% window folded silence + noise + plosive artefacts into F1, biasing it upward. Fix locates the loudest instant (voiced nucleus) via to_intensity() and takes the median over a ±60 ms window — median rejects Burg's occasional octave/formant-tracking outliers. BUG 2 root cause: httpx cannot fetch relative URLs; per-word audio URLs are stored as /api/uploads/... The fix in _fetch_and_extract prepends http://localhost:8001 to URLs starting with '/', then converts mp3→wav via parselmouth.Sound.save before formant extraction. Both fixes now behave as intended, confirmed by 5/5 passing tests including the exact BUG-2 reference_url."
+}
