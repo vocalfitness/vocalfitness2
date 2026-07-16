@@ -12,6 +12,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Fix Bug 4 (gruppo 'children' errato + F1>1000 su /ʊ/ CVC) — DONE ✅ (testing agent 18/18)
+
+- **Causa**: su parole CVC brevi (/lʊk/) il nucleo vocalico veniva trovato come istante di massima intensità globale → cadeva sul burst della consonante /k/ (più forte della vocale breve) → F1>1000 Hz; la selezione gruppo usava la distanza tra formanti (circolare) → sceglieva 'children'.
+- **Fix**: `_extract_formants` costruisce un contorno di pitch (To Pitch, floor 60Hz), cerca il nucleo tra i **frame sonori** (voiced), misura F1/F2/F3 mediana + **F0 mediana** solo su frame sonori (finestra ±50ms, allargamento adattivo per vocali brevi). Selezione gruppo ora **guidata da F0** (men≈130/women≈220/children≈236 Hz) invece che dalle formanti; fallback a distanza formanti solo se F0 assente.
+- **Logging**: F0 estratto + `selected_group=... (via f0|formant_distance)` per entrambi i percorsi (dataset e teacher-sample).
+- Verificato: WAV con vocale sonora F0=120 + burst non-sonoro **più forte** → F1≈450 (non >1000), F0=120, gruppo=**men**. Testing agent 18/18 PASS, nessuna regressione (Bug1/2/3, consent, /iː/).
+
+
+
 ### 16/07/2026 · FASE 2 · Fix Bug 3 (F1 alto + composito troppo penalizzante) — DONE ✅ (testing agent 15/15)
 
 - **Logging gruppo speaker**: `analyze-formants` ora logga `selected_group` (men/women/children), `groups_available` e le medie per gruppo; la risposta include `reference_group`. Diagnostica per capire quale riferimento viene usato.
