@@ -63,16 +63,19 @@ async def ensure_formant_references(db) -> dict:
 
 
 def _extract_formants(path: str) -> Optional[dict]:
-    """Return median F1/F2/F3 (Hz) measured at the voiced vowel nucleus.
+    """Return median F1/F2/F3 + F0 (Hz) measured at the VOICED vowel nucleus.
 
-    Robustness for real microphone audio:
+    Robustness for real microphone audio and short CVC words (e.g. /lʊk/):
     * DC offset removed (mic bias / breath).
-    * The nucleus is located at the point of maximum intensity so leading
-      silence, plosive bursts and trailing noise never bias the estimate.
-    * Values are the MEDIAN over voiced frames in a ±60 ms window around the
-      nucleus (median rejects the octave/formant-tracking outliers that a
-      plain time-averaged mean would fold in).
-    * ``To FormantPath (burg)`` keeps the ceiling adaptive (M/F/child).
+    * A pitch contour marks the voiced frames; the vowel nucleus is the loudest
+      instant **restricted to voiced frames** so a plosive burst (/k/) or a
+      leading approximant (/l/) can never be mistaken for the vowel.
+    * F1/F2/F3 are the MEDIAN over a ±50 ms window around the nucleus, sampled
+      ONLY where the frame is voiced (unvoiced frames give spurious formants).
+    * F0 is the MEDIAN pitch over the same voiced window — used downstream to
+      pick the correct native speaker group (men/women/children).
+    * For short vowels, if the voiced window yields too few samples the search
+      widens across the whole voiced span.
     """
     try:
         snd = parselmouth.Sound(path)
@@ -85,42 +88,106 @@ def _extract_formants(path: str) -> Optional[dict]:
         snd.subtract_mean()
     except Exception:  # noqa: BLE001
         pass
-    # Locate the voiced nucleus (loudest instant).
+
+    # Pitch contour → voiced-frame mask (floor 60 Hz covers low male voices).
+    pitch = None
+    try:
+        pitch = call(snd, "To Pitch", 0.0, 60.0, 500.0)
+    except Exception:  # noqa: BLE001
+        pitch = None
+
+    def is_voiced(t: float) -> bool:
+        if pitch is None:
+            return True
+        try:
+            v = call(pitch, "Get value at time", t, "Hertz", "Linear")
+            return bool(v and v == v)
+        except Exception:  # noqa: BLE001
+            return True
+
+    def f0_at(t: float):
+        if pitch is None:
+            return None
+        try:
+            v = call(pitch, "Get value at time", t, "Hertz", "Linear")
+            return v if (v and v == v) else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    # Vowel nucleus = loudest instant among VOICED frames.
     t_center = dur / 2.0
     try:
-        intensity = snd.to_intensity(minimum_pitch=100.0)
-        tmax = call(intensity, "Get time of maximum", 0.0, 0.0, "Parabolic")
-        if tmax and tmax == tmax:
-            t_center = tmax
+        intensity = snd.to_intensity(minimum_pitch=60.0)
+        step = 0.01
+        best_t, best_i = None, -1e9
+        t = 0.0
+        while t <= dur:
+            if is_voiced(t):
+                try:
+                    iv = call(intensity, "Get value at time", t, "cubic")
+                except Exception:  # noqa: BLE001
+                    iv = None
+                if iv is not None and iv == iv and iv > best_i:
+                    best_i, best_t = iv, t
+            t += step
+        if best_t is not None:
+            t_center = best_t
+        else:
+            tmax = call(intensity, "Get time of maximum", 0.0, 0.0, "Parabolic")
+            if tmax and tmax == tmax:
+                t_center = tmax
     except Exception:  # noqa: BLE001
         pass
+
     try:
         fp = call(snd, "To FormantPath (burg)", 0.0025, 5.0, 5500.0, 0.025, 50.0, 0.05, 4)
         formant = call(fp, "Extract Formant")
     except Exception:  # noqa: BLE001
         return None
-    win = 0.06
-    t0, t1 = max(0.0, t_center - win), min(dur, t_center + win)
+
+    def collect(win: float, voiced_only: bool):
+        cols = {1: [], 2: [], 3: []}
+        f0s = []
+        t = max(0.0, t_center - win)
+        end = min(dur, t_center + win)
+        while t <= end:
+            if (not voiced_only) or is_voiced(t):
+                for i in (1, 2, 3):
+                    try:
+                        v = call(formant, "Get value at time", i, t, "hertz", "Linear")
+                        if v and v == v:
+                            cols[i].append(v)
+                    except Exception:  # noqa: BLE001
+                        pass
+                fv = f0_at(t)
+                if fv:
+                    f0s.append(fv)
+            t += 0.01
+        return cols, f0s
+
+    cols, f0s = collect(0.05, voiced_only=True)
+    if len(cols[1]) < 3:  # short/low-intensity vowel → widen, still voiced-only
+        cols, f0s = collect(0.09, voiced_only=True)
+    if len(cols[1]) < 3:  # last resort: drop the voiced restriction
+        cols, f0s = collect(0.06, voiced_only=False)
+
     out = {}
     for i, key in ((1, "F1"), (2, "F2"), (3, "F3")):
-        vals = []
-        t = t0
-        while t <= t1:
-            try:
-                v = call(formant, "Get value at time", i, t, "hertz", "Linear")
-                if v and v == v:  # not NaN
-                    vals.append(v)
-            except Exception:  # noqa: BLE001
-                pass
-            t += 0.01
+        vals = cols[i]
         if vals:
             vals.sort()
             out[key] = round(vals[len(vals) // 2])
         else:
             out[key] = None
+    if f0s:
+        f0s.sort()
+        out["F0"] = round(f0s[len(f0s) // 2])
+    else:
+        out["F0"] = None
     if not out.get("F1") and not out.get("F2"):
         return None
     return out
+
 
 
 def _score_gop(measured: float, mean: float, sd: float, tol_sd: float = 2.5) -> float:
@@ -285,7 +352,14 @@ def build_phoneme_formants_router(
         refs = await _find_reference(phoneme_ipa, dialect) if use_dataset else []
 
         if refs:
-            # Pick the native speaker group nearest to the student (gender-agnostic).
+            # Speaker group selected from the VOWEL-ZONE F0 (men/women/children
+            # have distinct mean F0). This is far more reliable than matching the
+            # student's — possibly distorted — formants against each group.
+            # Typical mean F0 (Hz): Hillenbrand 1995 men=130, women=220,
+            # children=236 (RP/Deterding: men=~120, women=~210).
+            _TYP_F0 = {"men": 130.0, "women": 220.0, "children": 236.0, "male": 120.0, "female": 210.0}
+            f0 = student.get("F0")
+
             def group_distance(r):
                 d = 0.0
                 n = 0
@@ -295,14 +369,20 @@ def build_phoneme_formants_router(
                         d += abs(s - m) / m
                         n += 1
                 return d / n if n else 9e9
-            best = min(refs, key=group_distance)
+
+            if f0:
+                best = min(refs, key=lambda r: abs(f0 - _TYP_F0.get(r["speaker_group"], 200.0)))
+                group_method = "f0"
+            else:
+                best = min(refs, key=group_distance)
+                group_method = "formant_distance"
             ref_group = best["speaker_group"]
             citation = best["source_citation"]
             ref_source = "dataset"
             logging.info(
-                "analyze-formants: phoneme=%s dialect=%s student=%s "
-                "selected_group=%s groups_available=%s group_refs=%s",
-                phoneme_ipa, dialect, student, ref_group,
+                "analyze-formants: phoneme=%s dialect=%s student=%s F0=%s "
+                "selected_group=%s (via %s) groups_available=%s group_refs=%s",
+                phoneme_ipa, dialect, student, f0, ref_group, group_method,
                 [r["speaker_group"] for r in refs],
                 {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs},
             )
@@ -330,6 +410,11 @@ def build_phoneme_formants_router(
                 )
             ref_source = "teacher_sample"
             citation = "Campione di riferimento Prof. Dapper (Fase 1)"
+            logging.info(
+                "analyze-formants: phoneme=%s dialect=%s student=%s F0=%s "
+                "source=teacher_sample ref_formants=%s",
+                phoneme_ipa, dialect, student, student.get("F0"), ref_formants,
+            )
             for k in ("F1", "F2", "F3"):
                 m, meas = ref_formants.get(k), student.get(k)
                 if m and meas:
