@@ -63,20 +63,82 @@ async def ensure_formant_references(db) -> dict:
     return {"total": len(rows), "inserted": inserted}
 
 
+F1_MAX = 900.0  # implausible ceiling for any adult vowel F1
+
+
+def _formants_for_ceiling(snd, dur, F0grid, VOI, step, max_formant, max_num):
+    """Extract median F1/F2/F3 at the min-variance vowel window for one LPC
+    ceiling. Returns dict with F1/F2/F3 and ``_plausible`` (True if the chosen
+    window's median F1 <= F1_MAX), or None if no usable window exists."""
+    try:
+        fp = call(snd, "To FormantPath (burg)", 0.0025, float(max_num), float(max_formant),
+                  0.025, 50.0, 0.05, 4)
+        formant = call(fp, "Extract Formant")
+    except Exception:  # noqa: BLE001
+        return None
+
+    times, F1, F2, F3 = [], [], [], []
+    t = 0.0
+    while t <= dur:
+        for i, arr in ((1, F1), (2, F2), (3, F3)):
+            try:
+                v = call(formant, "Get value at time", i, t, "hertz", "Linear")
+                arr.append(v if (v and v == v) else None)
+            except Exception:  # noqa: BLE001
+                arr.append(None)
+        times.append(t)
+        t += step
+
+    wframes = max(3, int(round(0.020 / step)))  # 20 ms sliding window
+    candidates = []
+    for start in range(0, len(times) - wframes + 1):
+        idxs = list(range(start, start + wframes))
+        f1s = [F1[j] for j in idxs if F1[j]]
+        f2s = [F2[j] for j in idxs if F2[j]]
+        vcount = sum(1 for j in idxs if j < len(VOI) and VOI[j])
+        if len(f1s) < wframes or len(f2s) < wframes or vcount < wframes * 0.5:
+            continue
+        sd = statistics.pstdev(f1s) + statistics.pstdev(f2s)
+        candidates.append((sd, idxs))
+    candidates.sort(key=lambda x: x[0])
+
+    def _measure(idxs):
+        out = {}
+        for i, key, arr in ((1, "F1", F1), (2, "F2", F2), (3, "F3", F3)):
+            vals = sorted(arr[j] for j in idxs if arr[j])
+            out[key] = round(vals[len(vals) // 2]) if vals else None
+        return out
+
+    chosen, plausible = None, False
+    for sd, idxs in candidates:
+        m = _measure(idxs)
+        if m.get("F1") and m["F1"] <= F1_MAX:
+            chosen, plausible = m, True
+            break
+    if chosen is None and candidates:
+        chosen = _measure(candidates[0][1])  # least-variance, still implausible
+    if chosen is None:  # no stable voiced window → mid third
+        lo, hi = int(len(times) * 0.33), int(len(times) * 0.67)
+        chosen = _measure(list(range(lo, max(lo + 1, hi))))
+    if not chosen or (not chosen.get("F1") and not chosen.get("F2")):
+        return None
+    chosen["_plausible"] = plausible
+    return chosen
+
+
 def _extract_formants(path: str) -> Optional[dict]:
     """Return median F1/F2/F3 + F0 (Hz) at the most STABLE vowel window.
 
     Robustness for words in a consonantal context (e.g. /lʊk/, /siːzn̩/):
-    * DC offset removed (mic bias / breath).
-    * A pitch contour marks the voiced frames.
-    * The vowel nucleus is the 20 ms sliding window with the MINIMUM combined
-      standard deviation of F1+F2 (the steady-state vowel is where the formants
-      are flattest), which is far more robust in a consonantal context than the
-      loudest instant (a plosive burst can be louder than a short vowel).
-    * Sanity check: if a candidate window's median F1 exceeds 900 Hz — implausible
-      for any adult vowel — that window is discarded and the next-best (adjacent)
-      stable window is used instead.
-    * F0 is the median pitch over the chosen window (drives speaker-group choice).
+    * DC offset removed; a pitch contour marks voiced frames.
+    * The vowel window is the 20 ms slice with the MINIMUM combined SD of F1+F2.
+    * Plausibility: a window whose median F1 > 900 Hz is rejected.
+    * If NO ceiling yields a plausible window, the extraction is RETRIED with
+      alternative LPC ceilings (5500 → 5000 → 4500 Hz). Only if every retry
+      still yields an implausible F1 is the result returned with
+      ``reliable=False`` (the caller then rejects it), logged at WARNING.
+    * F0 = MEAN over ALL voiced frames of the whole take (>=100 ms voiced),
+      used for the fixed-threshold speaker-group choice.
     """
     try:
         snd = parselmouth.Sound(path)
@@ -90,21 +152,13 @@ def _extract_formants(path: str) -> Optional[dict]:
     except Exception:  # noqa: BLE001
         pass
 
-    # Pitch contour → voiced-frame mask (floor 60 Hz covers low male voices).
     pitch = None
     try:
         pitch = call(snd, "To Pitch", 0.0, 60.0, 500.0)
     except Exception:  # noqa: BLE001
         pitch = None
 
-    def is_voiced(t: float) -> bool:
-        if pitch is None:
-            return True
-        try:
-            v = call(pitch, "Get value at time", t, "Hertz", "Linear")
-            return bool(v and v == v)
-        except Exception:  # noqa: BLE001
-            return True
+    step = 0.005
 
     def f0_at(t: float):
         if pitch is None:
@@ -115,82 +169,40 @@ def _extract_formants(path: str) -> Optional[dict]:
         except Exception:  # noqa: BLE001
             return None
 
-    try:
-        fp = call(snd, "To FormantPath (burg)", 0.0025, 5.0, 5500.0, 0.025, 50.0, 0.05, 4)
-        formant = call(fp, "Extract Formant")
-    except Exception:  # noqa: BLE001
-        return None
-
-    # Sample formants + F0 on a fine grid across the clip.
-    step = 0.005
-    times, F1, F2, F3, F0, VOI = [], [], [], [], [], []
+    # Voiced mask + F0 grid (ceiling-independent → computed once).
+    F0grid, VOI = [], []
     t = 0.0
     while t <= dur:
-        vals = {}
-        for i in (1, 2, 3):
-            try:
-                v = call(formant, "Get value at time", i, t, "hertz", "Linear")
-                vals[i] = v if (v and v == v) else None
-            except Exception:  # noqa: BLE001
-                vals[i] = None
-        times.append(t)
-        F1.append(vals[1]); F2.append(vals[2]); F3.append(vals[3])
-        F0.append(f0_at(t)); VOI.append(is_voiced(t))
+        fv = f0_at(t)
+        F0grid.append(fv)
+        VOI.append(bool(fv) if pitch is not None else True)
         t += step
+    voiced_f0 = [v for v in F0grid if v]
+    f0_global = round(sum(voiced_f0) / len(voiced_f0)) if len(voiced_f0) * step >= 0.100 else None
 
-    F1_MAX = 900.0  # implausible ceiling for any adult vowel F1
-    wframes = max(3, int(round(0.020 / step)))  # 20 ms sliding window
-
-    # Score every voiced, fully-tracked window by combined SD of F1+F2.
-    candidates = []  # (sd, start_idx, indices)
-    for start in range(0, len(times) - wframes + 1):
-        idxs = list(range(start, start + wframes))
-        f1s = [F1[j] for j in idxs if F1[j]]
-        f2s = [F2[j] for j in idxs if F2[j]]
-        vcount = sum(1 for j in idxs if VOI[j])
-        if len(f1s) < wframes or len(f2s) < wframes or vcount < wframes * 0.5:
+    fallback = None
+    for max_formant, max_num in ((5500.0, 5.0), (5000.0, 5.0), (4500.0, 5.0)):
+        res = _formants_for_ceiling(snd, dur, F0grid, VOI, step, max_formant, max_num)
+        if res is None:
             continue
-        sd = statistics.pstdev(f1s) + statistics.pstdev(f2s)
-        candidates.append((sd, start, idxs))
-    candidates.sort(key=lambda x: x[0])
+        if res.pop("_plausible", False):
+            res["F0"] = f0_global
+            res["reliable"] = True
+            return res
+        if fallback is None:
+            fallback = res
 
-    def _measure(idxs):
-        out = {}
-        for i, key, arr in ((1, "F1", F1), (2, "F2", F2), (3, "F3", F3)):
-            vals = sorted(arr[j] for j in idxs if arr[j])
-            out[key] = round(vals[len(vals) // 2]) if vals else None
-        f0s = sorted(F0[j] for j in idxs if F0[j])
-        out["F0"] = round(f0s[len(f0s) // 2]) if f0s else None
-        return out
-
-    chosen = None
-    # Prefer the minimum-variance window whose median F1 is plausible (<=900).
-    for sd, start, idxs in candidates:
-        m = _measure(idxs)
-        if m.get("F1") and m["F1"] <= F1_MAX:
-            chosen = m
-            break
-    if chosen is None and candidates:
-        chosen = _measure(candidates[0][2])  # all implausible → least-variance
-
-    if chosen is None:
-        # No stable voiced window (e.g. all unvoiced) → median over mid third.
-        lo, hi = int(len(times) * 0.33), int(len(times) * 0.67)
-        chosen = _measure(list(range(lo, max(lo + 1, hi))))
-
-    if not chosen or (not chosen.get("F1") and not chosen.get("F2")):
-        return None
-
-    # F0 for speaker-group detection is the MEAN over ALL voiced frames of the
-    # whole take (not just the vowel nucleus) — a nucleus-only estimate is too
-    # noise-sensitive and flips men/women between consecutive recordings.
-    # Require at least 100 ms of voiced audio; otherwise leave F0 undefined.
-    voiced_f0 = [F0[j] for j in range(len(F0)) if F0[j]]
-    if len(voiced_f0) * step >= 0.100:
-        chosen["F0"] = round(sum(voiced_f0) / len(voiced_f0))
-    else:
-        chosen["F0"] = None
-    return chosen
+    if fallback is not None:
+        fallback.pop("_plausible", None)
+        logging.warning(
+            "analyze-formants: implausible F1=%s Hz after all LPC-ceiling retries "
+            "(5500/5000/4500) → measurement flagged UNRELIABLE",
+            fallback.get("F1"),
+        )
+        fallback["F0"] = f0_global
+        fallback["reliable"] = False
+        return fallback
+    return None
 
 
 
@@ -346,6 +358,19 @@ def build_phoneme_formants_router(
             raise HTTPException(
                 status_code=422,
                 detail="Impossibile estrarre le formanti. Registra di nuovo in un ambiente silenzioso.",
+            )
+        # Reject implausible measurements outright rather than scoring them as
+        # if valid (F1 > 900 Hz after all LPC-ceiling retries → unreliable).
+        if student.get("reliable") is False:
+            logging.warning(
+                "analyze-formants: REJECTED unreliable measurement F1=%s Hz "
+                "phoneme=%s dialect=%s user=%s",
+                student.get("F1"), phoneme_ipa, dialect, user.get("id"),
+            )
+            raise HTTPException(
+                status_code=422,
+                detail="Misura non affidabile (formanti implausibili). Registra di nuovo "
+                       "avvicinando il microfono e in un ambiente silenzioso.",
             )
 
         # ---- Resolve reference ---- #

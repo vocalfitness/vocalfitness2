@@ -1123,3 +1123,229 @@ class TestPhase2Min100msVoicedFallback:
             f"when F0 is None; log line: {line}"
         )
 
+
+# --------------------------------------------------------------------------- #
+# Phase-2 SILENT-FALLBACK FIX: implausible F1 (>900 Hz after all LPC-ceiling  #
+# retries 5500→5000→4500) now returns HTTP 422 with reliable=False and emits  #
+# WARNING logs — NEVER a silent 200 with a misleading score. Reproducibility  #
+# 5× identical POSTs → all 200 identical (plausible) OR all 422 (implausible).#
+# --------------------------------------------------------------------------- #
+@pytest.fixture(scope="module")
+def implausible_wav() -> bytes:
+    """Vowel synthesised with an implausibly high F1 (~1250 Hz) that survives
+    ALL LPC-ceiling retries (5500/5000/4500). F2~1700, F3~2600 keep it a valid
+    stable voiced vowel — the ONLY issue is the physiologically-implausible F1.
+    """
+    return _synthesize_vowel_wav(
+        f1=1250.0, f2=1700.0, f3=2600.0, f0=120.0,
+        dur=0.40, lead_silence=0.10,
+    )
+
+
+@pytest.fixture(scope="module")
+def normal_u_wav() -> bytes:
+    """Normal /ʊ/-like vowel (F1≈430, F2≈1100, F3≈2400, F0=120)."""
+    return _synthesize_vowel_wav(
+        f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+        dur=0.40, lead_silence=0.10,
+    )
+
+
+class TestSilentFallbackImplausibleReturns422:
+    """IMPLAUSIBLE → 422. A stable voiced vowel with F1~1250 (implausible for
+    any adult) must yield HTTP 422 (never a silent 200 with a misleading
+    score). The detail must mention 'non affidabile' / implausible and NO
+    composite_score should be returned.
+    """
+
+    def test_implausible_f1_returns_422_no_score(self, auth_headers, implausible_wav):
+        _grant_audio_consent(auth_headers)
+        r = _post_analyze(auth_headers, implausible_wav, "ʊ", "AmE",
+                          target_kind="phoneme")
+        assert r.status_code == 422, (
+            f"SILENT-FALLBACK REGRESSION: implausible F1 must yield 422, "
+            f"got {r.status_code}: {r.text}"
+        )
+        body = r.json()
+        detail = (body.get("detail") or "").lower()
+        assert ("non affidabile" in detail or "implausible" in detail or
+                "affidabile" in detail), (
+            f"422 detail should mention 'non affidabile'/implausible, "
+            f"got: {body.get('detail')!r}"
+        )
+        # A 422 must NOT smuggle a composite score under any other key.
+        assert "composite_score" not in body, (
+            f"422 response must NOT contain composite_score, got: {body}"
+        )
+        assert "student_formants" not in body, (
+            f"422 response must NOT contain student_formants, got: {body}"
+        )
+
+
+class TestSilentFallbackWarningLogs:
+    """WARNING LOGS — the backend must emit two WARNING lines whenever an
+    implausible measurement is rejected:
+      1. 'analyze-formants: implausible F1=<val> Hz after all LPC-ceiling retries'
+      2. 'REJECTED unreliable measurement F1=<val>'
+    The F1 value in both lines must be >900.
+    """
+
+    def test_warning_logs_on_implausible_rejection(
+        self, auth_headers, implausible_wav
+    ):
+        _grant_audio_consent(auth_headers)
+        pre = _log_size()
+        r = _post_analyze(auth_headers, implausible_wav, "ʊ", "AmE",
+                          target_kind="phoneme")
+        assert r.status_code == 422, r.text
+        time.sleep(0.5)
+        new_log = _tail_log_since(pre)
+
+        # 1) 'implausible F1=<val>' warning line
+        impl_lines = [
+            ln for ln in new_log.splitlines()
+            if "implausible F1=" in ln and "LPC-ceiling retries" in ln
+        ]
+        assert impl_lines, (
+            f"WARNING LOG REGRESSION: expected 'analyze-formants: implausible "
+            f"F1=... after all LPC-ceiling retries' log line. "
+            f"new_log tail: {new_log[-2000:]}"
+        )
+        # F1 value in the line must parse to a float > 900.
+        import re
+        m = re.search(r"implausible F1=([0-9]+(?:\.[0-9]+)?)", impl_lines[-1])
+        assert m, f"Could not parse F1 value from log line: {impl_lines[-1]}"
+        f1_impl = float(m.group(1))
+        assert f1_impl > 900.0, (
+            f"WARNING LOG F1 should be >900 (was {f1_impl}). line={impl_lines[-1]}"
+        )
+
+        # 2) 'REJECTED unreliable measurement F1=<val>' warning line
+        rej_lines = [
+            ln for ln in new_log.splitlines()
+            if "REJECTED unreliable measurement F1=" in ln
+        ]
+        assert rej_lines, (
+            f"WARNING LOG REGRESSION: expected 'REJECTED unreliable "
+            f"measurement F1=...' log line. new_log tail: {new_log[-2000:]}"
+        )
+        m2 = re.search(r"REJECTED unreliable measurement F1=([0-9]+(?:\.[0-9]+)?)",
+                       rej_lines[-1])
+        assert m2, f"Could not parse F1 from REJECTED line: {rej_lines[-1]}"
+        f1_rej = float(m2.group(1))
+        assert f1_rej > 900.0, (
+            f"REJECTED F1 should be >900 (was {f1_rej}). line={rej_lines[-1]}"
+        )
+
+
+class TestNormalUReturnsReliable200:
+    """NORMAL → 200 reliable. A normal /ʊ/-like vowel must return HTTP 200
+    with student_formants.reliable == True, F1 in the plausible range (≤550),
+    plus composite_score and CEFR band.
+    """
+
+    def test_normal_u_returns_reliable_and_scored(self, auth_headers, normal_u_wav):
+        _grant_audio_consent(auth_headers)
+        r = _post_analyze(auth_headers, normal_u_wav, "ʊ", "AmE",
+                          target_kind="phoneme")
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        body = r.json()
+        sf = body.get("student_formants") or {}
+        assert sf.get("reliable") is True, (
+            f"student_formants.reliable must be True for a normal /ʊ/, sf={sf}"
+        )
+        f1 = sf.get("F1")
+        assert isinstance(f1, (int, float)) and f1 > 0 and f1 <= 550, (
+            f"F1={f1} not in plausible /ʊ/ range (>0 and <=550). sf={sf}"
+        )
+        assert body.get("composite_score") is not None, (
+            f"composite_score missing: {body}"
+        )
+        assert (body.get("cefr") or {}).get("band"), (
+            f"cefr.band missing: {body}"
+        )
+
+
+class TestSilentFallbackReproducibility5x:
+    """KEY ACCEPTANCE TEST — 5× identical POSTs must be deterministic:
+      * 5× normal /ʊ/ WAV → ALL five return HTTP 200 with reliable=True and
+        IDENTICAL F1/F0/reference_group/composite_score.
+      * 5× implausible WAV → ALL five consistently return HTTP 422.
+    Guarantees the SILENT-fallback bug (same input → 73/100 one time, 16/100
+    the next) is fully eliminated.
+    """
+
+    def test_5x_normal_wav_identical_reliable_scores(
+        self, auth_headers, normal_u_wav
+    ):
+        _grant_audio_consent(auth_headers)
+        results = []
+        for i in range(5):
+            r = _post_analyze(auth_headers, normal_u_wav, "ʊ", "AmE",
+                              target_kind="phoneme")
+            assert r.status_code == 200, (
+                f"REPRODUCIBILITY REGRESSION (normal): run #{i} got "
+                f"{r.status_code}, expected 200. Body: {r.text}"
+            )
+            body = r.json()
+            sf = body.get("student_formants") or {}
+            assert sf.get("reliable") is True, (
+                f"Run #{i}: reliable must be True. sf={sf}"
+            )
+            results.append({
+                "F1": sf.get("F1"),
+                "F0": sf.get("F0"),
+                "reference_group": body.get("reference_group"),
+                "composite_score": body.get("composite_score"),
+            })
+        # All 5 tuples must be identical.
+        first = results[0]
+        for i, r_ in enumerate(results[1:], start=1):
+            assert r_ == first, (
+                f"REPRODUCIBILITY REGRESSION (normal): run #{i} differs from "
+                f"run #0.\n  run0={first}\n  run{i}={r_}\n  all={results}"
+            )
+
+    def test_5x_implausible_wav_consistently_422(
+        self, auth_headers, implausible_wav
+    ):
+        _grant_audio_consent(auth_headers)
+        statuses = []
+        for i in range(5):
+            r = _post_analyze(auth_headers, implausible_wav, "ʊ", "AmE",
+                              target_kind="phoneme")
+            statuses.append(r.status_code)
+            # Assert never a silent 200 with a smuggled score.
+            if r.status_code == 200:
+                body = r.json()
+                pytest.fail(
+                    f"SILENT-FALLBACK REGRESSION: run #{i} returned 200 with "
+                    f"a score for an implausible input. body={body}"
+                )
+        # All five must be 422 (never a misleading score).
+        assert all(s == 422 for s in statuses), (
+            f"REPRODUCIBILITY REGRESSION (implausible): expected 5×422, got "
+            f"{statuses}. Must NEVER silently score an implausible measurement."
+        )
+
+
+class TestSilentFallbackRetriesCeilings:
+    """RETRY EFFECT — the router must attempt THREE LPC ceilings
+    (5500 → 5000 → 4500 Hz) before rejecting a measurement. Verified via the
+    source code: `_extract_formants` iterates `(5500.0, 5000.0, 4500.0)`.
+    """
+
+    def test_three_ceilings_are_attempted_in_source(self):
+        import inspect
+        from routers.phoneme_formants import _extract_formants
+        src = inspect.getsource(_extract_formants)
+        assert "5500" in src and "5000" in src and "4500" in src, (
+            f"RETRY REGRESSION: _extract_formants must try ceilings "
+            f"5500/5000/4500 Hz. Source:\n{src}"
+        )
+        # And it must return a fallback with reliable=False before raising.
+        assert 'reliable"] = False' in src or "reliable'] = False" in src or \
+               'reliable"]=False' in src or "reliable=False" in src, (
+            f"RETRY REGRESSION: _extract_formants must set reliable=False on "
+            f"the fallback. Source:\n{src}"
+        )
