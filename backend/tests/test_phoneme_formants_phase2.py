@@ -6,20 +6,33 @@ Covers:
  * BUG 2 FIX — teacher-sample reference for a WORD works when
    ``reference_url`` is RELATIVE (backend resolves against localhost:8001
    and converts mp3→wav before Parselmouth).
+ * BUG 3 FIXES:
+     - FIX 1 (group logging): backend logs 'analyze-formants: ...
+       selected_group=...' line; response includes reference_group.
+     - FIX 2 (tolerance ±2.5 SD): _score_gop uses tol_sd=2.5 by default.
+     - FIX 3 (weighted composite): _weighted_composite uses
+       F1=0.15,F2=0.425,F3=0.425 (with F3) / F1=0.35,F2=0.65 (no F3);
+       CEFR band for a >=60 composite is at least 'B1'.
  * REGRESSION — GDPR consent gate (403 without audio consent) and the
    dataset-vowel path still returning ``reference_source == 'dataset'`` with
-   a CEFR band + citation.
+   a CEFR band + citation. End-to-end /ʊ/-like WAV analysis returns 200
+   with reference_group in {men,women,children}.
 """
 from __future__ import annotations
 
 import io
 import os
+import sys
 import math
+import time
 import struct
 import wave
 import numpy as np
 import pytest
 import requests
+
+# Make backend importable for unit tests on pure functions.
+sys.path.insert(0, "/app/backend")
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 assert BASE_URL, "REACT_APP_BACKEND_URL is required"
@@ -235,3 +248,179 @@ class TestRegressionDatasetPhoneme:
         assert body.get("citation"), f"Missing citation: {body}"
         cefr = body.get("cefr") or {}
         assert cefr.get("band"), f"Missing CEFR band: {body}"
+
+# --------------------------------------------------------------------------- #
+# BUG 3 FIX unit tests on pure helpers (no HTTP, no DB, no audio).            #
+# --------------------------------------------------------------------------- #
+from routers.phoneme_formants import _score_gop, _weighted_composite  # noqa: E402
+
+
+class TestBug3Fix2ScoreGopWiderTolerance:
+    """FIX 2 — _score_gop uses tol_sd=2.5 by default (was 2.0)."""
+
+    def test_default_tol_sd_is_2_5(self):
+        # Signature-level check: default must be 2.5.
+        import inspect
+        sig = inspect.signature(_score_gop)
+        assert sig.parameters["tol_sd"].default == 2.5, (
+            f"tol_sd default is {sig.parameters['tol_sd'].default}, expected 2.5"
+        )
+
+    def test_score_at_mean_is_100(self):
+        assert _score_gop(1122, 1122, 112) == 100.0
+
+    def test_score_at_2_5_sd_is_0(self):
+        # 2.5 * sd away from the mean → 0.
+        assert _score_gop(1122 + 2.5 * 112, 1122, 112) == 0.0
+        assert _score_gop(1122 - 2.5 * 112, 1122, 112) == 0.0
+
+    def test_score_slightly_off_is_higher_than_at_2sd(self):
+        # Reference scenario from review: measured=1050, mean=1122, sd=112.
+        # z = 72/112 ≈ 0.643.
+        # At tol_sd=2.5 → score ≈ 100*(1 - 0.643/2.5) ≈ 74.28 → rounded to 74.3.
+        # At tol_sd=2.0 → score ≈ 100*(1 - 0.643/2.0) ≈ 67.86 → rounded to 67.9.
+        score_25 = _score_gop(1050, 1122, 112)  # default tol_sd=2.5
+        score_20 = _score_gop(1050, 1122, 112, tol_sd=2.0)
+        # Wider tolerance → higher score for same deviation.
+        assert score_25 > score_20, (
+            f"Expected score at 2.5 SD ({score_25}) to be > score at 2.0 SD ({score_20})"
+        )
+        # Expected value ≈ 74 (spec).
+        assert 73.0 <= score_25 <= 75.0, (
+            f"Expected _score_gop(1050,1122,112) ≈ 74 at tol_sd=2.5, got {score_25}"
+        )
+        # And the 2.0 SD score should be ≈ 68.
+        assert 67.0 <= score_20 <= 69.0, (
+            f"Expected _score_gop(1050,1122,112) ≈ 68 at tol_sd=2.0, got {score_20}"
+        )
+
+
+class TestBug3Fix3WeightedComposite:
+    """FIX 3 — _weighted_composite must NOT be a plain mean.
+
+    Weights: F1=0.15, F2=0.425, F3=0.425 (with F3), F1=0.35, F2=0.65 (no F3).
+    Critical assertion: [F1=0, F2=59, F3=88] weighted composite ≈ 62.5 (>=60),
+    not 49 (the old plain mean).
+    """
+
+    def test_composite_with_f3_matches_expected_weights(self):
+        per_formant = [
+            {"name": "F1", "score": 0},
+            {"name": "F2", "score": 59},
+            {"name": "F3", "score": 88},
+        ]
+        result = _weighted_composite(per_formant)
+        # Expected: 0*0.15 + 59*0.425 + 88*0.425 = 25.075 + 37.4 = 62.475 → 62.5
+        assert result >= 60.0, (
+            f"BUG-3 REGRESSION: composite for [0,59,88] must be >=60, got {result}"
+        )
+        assert 62.0 <= result <= 63.0, (
+            f"Expected ≈ 62.5 with F1=0.15,F2=0.425,F3=0.425, got {result}"
+        )
+
+    def test_plain_mean_would_be_49(self):
+        """Sanity check: the OLD (broken) plain mean of [0,59,88] is 49."""
+        scores = [0, 59, 88]
+        assert round(sum(scores) / len(scores)) == 49
+
+    def test_composite_no_f3_uses_f1_035_f2_065(self):
+        # Weights without F3: F1=0.35, F2=0.65.
+        # For [F1=0, F2=100] → 0*0.35 + 100*0.65 = 65.0
+        per_formant = [
+            {"name": "F1", "score": 0},
+            {"name": "F2", "score": 100},
+        ]
+        assert _weighted_composite(per_formant) == 65.0
+
+    def test_composite_all_100_is_100(self):
+        per_formant = [
+            {"name": "F1", "score": 100},
+            {"name": "F2", "score": 100},
+            {"name": "F3", "score": 100},
+        ]
+        assert _weighted_composite(per_formant) == 100.0
+
+    def test_composite_ge_60_maps_to_at_least_B1(self):
+        """FIX 3 side effect: >=60 composite must map to CEFR B1 or better."""
+        from routers.phoneme_formants import _cefr_band
+        band = _cefr_band(62.5)["band"]
+        # B1 / B2 / C1–C2 are all acceptable (not A1/A2).
+        assert band in {"B1", "B2", "C1–C2"}, (
+            f"Composite 62.5 must map to at least B1, got {band}"
+        )
+
+
+class TestBug3Fix1GroupLoggingE2E:
+    """FIX 1 — analyze-formants logs selected_group and returns reference_group.
+
+    Uses a synthesized /ʊ/-like WAV (F1~400 F2~1100 F3~2400, 44.1 kHz mono 16-bit
+    with ~120 ms leading silence) and asserts:
+      * HTTP 200
+      * reference_source == 'dataset'
+      * reference_group in {men, women, children}
+      * composite_score present, citation present
+      * backend log contains the 'analyze-formants: phoneme=ʊ ...
+        selected_group=<group>' line for THIS request.
+    """
+
+    def test_group_logging_and_e2e(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+
+        wav = _synthesize_vowel_wav(
+            f1=400.0, f2=1100.0, f3=2400.0,
+            lead_silence=0.12, dur=0.5,
+        )
+
+        # Snapshot backend log size BEFORE the request so we only scan new lines.
+        log_path = "/var/log/supervisor/backend.err.log"
+        pre_size = 0
+        try:
+            pre_size = os.path.getsize(log_path)
+        except OSError:
+            pass
+
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+
+        body = r.json()
+        assert body.get("reference_source") == "dataset", body
+        assert body.get("reference_group") in {"men", "women", "children"}, (
+            f"reference_group missing or invalid: {body.get('reference_group')}"
+        )
+        assert body.get("composite_score") is not None, body
+        assert body.get("citation"), body
+
+        # Allow a moment for the log line to flush.
+        time.sleep(0.5)
+
+        # Read only the new bytes appended since pre_size.
+        new_log = ""
+        try:
+            with open(log_path, "r", errors="replace") as f:
+                f.seek(pre_size)
+                new_log = f.read()
+        except OSError as e:
+            pytest.fail(f"Could not read backend log at {log_path}: {e}")
+
+        # Assert FIX 1 log line is present with selected_group, groups_available
+        # and per-group reference means. Match the format emitted by the router:
+        #   analyze-formants: phoneme=<ipa> dialect=<d> student=<...>
+        #   selected_group=<g> groups_available=[...] group_refs={...}
+        marker = "analyze-formants: phoneme=ʊ"
+        assert marker in new_log, (
+            f"BUG-3 FIX1 REGRESSION: expected log line starting with "
+            f"'{marker}' after the request; new_log snippet: {new_log[-2000:]}"
+        )
+        # Locate the specific line and check the extra fields.
+        matching_lines = [ln for ln in new_log.splitlines() if marker in ln]
+        assert matching_lines, "Could not extract matching analyze-formants line"
+        line = matching_lines[-1]
+        assert "selected_group=" in line, f"selected_group missing in log: {line}"
+        assert "groups_available=" in line, f"groups_available missing in log: {line}"
+        assert "group_refs=" in line, f"group_refs missing in log: {line}"
+        # Selected group in log must match the API response.
+        assert f"selected_group={body['reference_group']}" in line, (
+            f"Log selected_group != response reference_group. "
+            f"Response={body['reference_group']}, log line={line}"
+        )
+

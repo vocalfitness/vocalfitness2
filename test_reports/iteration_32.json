@@ -1,0 +1,23 @@
+{
+  "summary": "Phase-2 formant scoring — Bug-3 fixes verified. Extended /app/backend/tests/test_phoneme_formants_phase2.py with 10 new Bug-3 assertions (unit tests on _score_gop and _weighted_composite + E2E group-logging test with /ʊ/ synthesized WAV). All 15 tests pass (5 pre-existing + 10 new). FIX 1: analyze-formants logs 'selected_group=...' with groups_available and per-group means, and response now includes reference_group (verified 'men' for the synthetic /ʊ/ clip). FIX 2: _score_gop default tol_sd=2.5, score at mean=100, score at ±2.5 SD=0, and _score_gop(1050,1122,112)≈74.3 (vs 67.9 at 2.0 SD). FIX 3: _weighted_composite([F1=0,F2=59,F3=88]) = 62.5 (≥60, was 49 as plain mean); CEFR band for 62.5 = B1 (was A2). Weights confirmed: F1=0.15/F2=0.425/F3=0.425 (with F3) and F1=0.35/F2=0.65 (no F3). Regressions: consent gate (403 → 200 after grant), Bug-1 /iː/ F1<500, Bug-2 relative teacher-sample URL all still green.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phoneme_formants_phase2.py",
+    "/app/test_reports/pytest/phase2_formants_bug3.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_score_gop and _weighted_composite are pure helpers imported into tests — good testability. Consider exposing them at a `routers.phoneme_formants` __all__ so refactors don't accidentally rename/hide them.",
+    "The two logging.info calls in analyze_formants are helpful for debugging in Preview but will be noisy in production. Consider gating the verbose 'group_refs={...}' payload behind DEBUG (logger.debug) and keeping only the summary 'selected_group=..' line at INFO.",
+    "_extract_formants still scans the ±60 ms window in a Python while-loop at 10 ms step (Praat call per sample × 3 formants). Not a bug, but replacing with a single Praat `Get quantile ... 0.5` would be ~2× faster and cleaner."
+  ],
+  "updated_files": ["/app/backend/tests/test_phoneme_formants_phase2.py"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "not tested (per request)"},
+  "test_credentials": "mario.rossi / VocalTest2026! (JWT via POST /api/auth/login)",
+  "seed_data_creation": "None. Synthesized WAVs generated in-test with numpy IIR resonators; consent toggled via /api/phonemes/consent.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reusable pytest file /app/backend/tests/test_phoneme_formants_phase2.py now covers Bugs 1/2/3. Requires env REACT_APP_BACKEND_URL (no default). Bug-3 group-logging test snapshots /var/log/supervisor/backend.err.log file size BEFORE the request and asserts the new 'analyze-formants: phoneme=ʊ ... selected_group=<g>' line appears with groups_available and group_refs, and that selected_group in log matches reference_group in the JSON response. For the synthetic /ʊ/ WAV (F1=400 F2=1100 F3=2400, 44.1 kHz mono 16-bit, 120 ms lead silence) the router selects speaker_group=men.",
+  "rca of the issue": "BUG 3 root cause: (a) no visibility into which speaker-group reference was auto-selected — impossible to diagnose 'why did F1=620 score 0 against 421?'. (b) tol_sd=2.0 was borrowed from studio-corpus GOP literature, but consumer mic + untreated room ⇒ real F1 deviations from studio references legitimately fall in the 2.0–2.5 SD band → penalised to 0. (c) Composite = plain arithmetic mean of per-formant scores meant one bad formant (esp. F1, which is most corrupted by mic low-end roll-off) tanked the whole composite. Fixes: (1) two logging.info calls emit selected_group + all group means; response now returns reference_group so the UI/log can attribute the score; (2) tol_sd default widened to 2.5 in the signature — verified by inspect.signature and by comparing scores at 2.0 vs 2.5 for the (1050,1122,112) triplet; (3) _weighted_composite down-weights F1 to 0.15 (with F3 available) or 0.35 (no F3); mathematically [0,59,88] → 62.475 → CEFR B1, replacing the old 49 → A2."
+}

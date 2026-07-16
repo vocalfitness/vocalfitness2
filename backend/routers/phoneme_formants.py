@@ -6,7 +6,7 @@ Phase-2 formant scoring pipeline + GDPR consent endpoints.
   gender-agnostic), compare to a canonical native reference (Hillenbrand 1995 /
   Deterding 1997 for monophthong vowels; the teacher's Phase-1 sample for
   diphthongs and dialectal consonant realisations), score each formant 0-100
-  (GOP, ±2 SD tolerance) and map the composite to a CEFR-inspired band.
+  (GOP, ±2.5 SD tolerance) and map the composite to a CEFR-inspired band.
 
 * Consent (GDPR): separate, independently revocable audio & video consents.
 * RBAC (minimal now): recordings are scoped per student; admins may read all.
@@ -15,6 +15,7 @@ Phase-2 formant scoring pipeline + GDPR consent endpoints.
 from __future__ import annotations
 
 import os
+import logging
 import tempfile
 from datetime import datetime, timezone
 from typing import Callable, Optional
@@ -122,12 +123,35 @@ def _extract_formants(path: str) -> Optional[dict]:
     return out
 
 
-def _score_gop(measured: float, mean: float, sd: float) -> float:
-    """GOP score 0-100: 100 at the native mean, 0 at ±2 SD."""
+def _score_gop(measured: float, mean: float, sd: float, tol_sd: float = 2.5) -> float:
+    """GOP score 0-100: 100 at the native mean, 0 at ±``tol_sd`` SD.
+
+    Tolerance widened to ±2.5 SD (from ±2 SD) because the native reference
+    corpora (Hillenbrand 1995 / Deterding 1997) are studio recordings, while
+    students record on consumer microphones in untreated rooms.
+    """
     if not measured or not mean or not sd:
         return 0.0
     z = abs(measured - mean) / sd
-    return round(max(0.0, min(100.0, 100.0 * (1.0 - z / 2.0))), 1)
+    return round(max(0.0, min(100.0, 100.0 * (1.0 - z / tol_sd))), 1)
+
+
+# Composite weighting. F1 (vowel height) sits in the low-frequency band most
+# corrupted by consumer-mic low-end roll-off and room modes, so it is weighted
+# down relative to F2/F3 to avoid a single unreliable formant tanking the score.
+_W_WITH_F3 = {"F1": 0.15, "F2": 0.425, "F3": 0.425}
+_W_NO_F3 = {"F1": 0.35, "F2": 0.65}
+
+
+def _weighted_composite(per_formant: list) -> float:
+    present = {p["name"] for p in per_formant}
+    weights = _W_WITH_F3 if "F3" in present else _W_NO_F3
+    total_w = sum(weights.get(p["name"], 0.0) for p in per_formant)
+    if total_w <= 0:
+        return round(sum(p["score"] for p in per_formant) / len(per_formant), 1)
+    acc = sum(p["score"] * weights.get(p["name"], 0.0) for p in per_formant)
+    return round(acc / total_w, 1)
+
 
 
 def _score_relative(measured: float, ref: float, tol: float = 0.15) -> float:
@@ -275,6 +299,13 @@ def build_phoneme_formants_router(
             ref_group = best["speaker_group"]
             citation = best["source_citation"]
             ref_source = "dataset"
+            logging.info(
+                "analyze-formants: phoneme=%s dialect=%s student=%s "
+                "selected_group=%s groups_available=%s group_refs=%s",
+                phoneme_ipa, dialect, student, ref_group,
+                [r["speaker_group"] for r in refs],
+                {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs},
+            )
             for k in ("F1", "F2", "F3"):
                 m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
                 meas = student.get(k)
@@ -311,7 +342,13 @@ def build_phoneme_formants_router(
         if not per_formant:
             raise HTTPException(status_code=422, detail="Confronto formanti non disponibile.")
 
-        composite = round(sum(p["score"] for p in per_formant) / len(per_formant), 1)
+        composite = _weighted_composite(per_formant)
+        logging.info(
+            "analyze-formants: source=%s group=%s per_formant=%s composite=%s",
+            ref_source, ref_group,
+            [(p["name"], p["measured"], p["reference"], p["score"]) for p in per_formant],
+            composite,
+        )
         result = {
             "phoneme_ipa": phoneme_ipa,
             "dialect": dialect,
