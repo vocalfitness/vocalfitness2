@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import logging
 import tempfile
+import statistics
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
@@ -63,19 +64,19 @@ async def ensure_formant_references(db) -> dict:
 
 
 def _extract_formants(path: str) -> Optional[dict]:
-    """Return median F1/F2/F3 + F0 (Hz) measured at the VOICED vowel nucleus.
+    """Return median F1/F2/F3 + F0 (Hz) at the most STABLE vowel window.
 
-    Robustness for real microphone audio and short CVC words (e.g. /lʊk/):
+    Robustness for words in a consonantal context (e.g. /lʊk/, /siːzn̩/):
     * DC offset removed (mic bias / breath).
-    * A pitch contour marks the voiced frames; the vowel nucleus is the loudest
-      instant **restricted to voiced frames** so a plosive burst (/k/) or a
-      leading approximant (/l/) can never be mistaken for the vowel.
-    * F1/F2/F3 are the MEDIAN over a ±50 ms window around the nucleus, sampled
-      ONLY where the frame is voiced (unvoiced frames give spurious formants).
-    * F0 is the MEDIAN pitch over the same voiced window — used downstream to
-      pick the correct native speaker group (men/women/children).
-    * For short vowels, if the voiced window yields too few samples the search
-      widens across the whole voiced span.
+    * A pitch contour marks the voiced frames.
+    * The vowel nucleus is the 20 ms sliding window with the MINIMUM combined
+      standard deviation of F1+F2 (the steady-state vowel is where the formants
+      are flattest), which is far more robust in a consonantal context than the
+      loudest instant (a plosive burst can be louder than a short vowel).
+    * Sanity check: if a candidate window's median F1 exceeds 900 Hz — implausible
+      for any adult vowel — that window is discarded and the next-best (adjacent)
+      stable window is used instead.
+    * F0 is the median pitch over the chosen window (drives speaker-group choice).
     """
     try:
         snd = parselmouth.Sound(path)
@@ -114,79 +115,73 @@ def _extract_formants(path: str) -> Optional[dict]:
         except Exception:  # noqa: BLE001
             return None
 
-    # Vowel nucleus = loudest instant among VOICED frames.
-    t_center = dur / 2.0
-    try:
-        intensity = snd.to_intensity(minimum_pitch=60.0)
-        step = 0.01
-        best_t, best_i = None, -1e9
-        t = 0.0
-        while t <= dur:
-            if is_voiced(t):
-                try:
-                    iv = call(intensity, "Get value at time", t, "cubic")
-                except Exception:  # noqa: BLE001
-                    iv = None
-                if iv is not None and iv == iv and iv > best_i:
-                    best_i, best_t = iv, t
-            t += step
-        if best_t is not None:
-            t_center = best_t
-        else:
-            tmax = call(intensity, "Get time of maximum", 0.0, 0.0, "Parabolic")
-            if tmax and tmax == tmax:
-                t_center = tmax
-    except Exception:  # noqa: BLE001
-        pass
-
     try:
         fp = call(snd, "To FormantPath (burg)", 0.0025, 5.0, 5500.0, 0.025, 50.0, 0.05, 4)
         formant = call(fp, "Extract Formant")
     except Exception:  # noqa: BLE001
         return None
 
-    def collect(win: float, voiced_only: bool):
-        cols = {1: [], 2: [], 3: []}
-        f0s = []
-        t = max(0.0, t_center - win)
-        end = min(dur, t_center + win)
-        while t <= end:
-            if (not voiced_only) or is_voiced(t):
-                for i in (1, 2, 3):
-                    try:
-                        v = call(formant, "Get value at time", i, t, "hertz", "Linear")
-                        if v and v == v:
-                            cols[i].append(v)
-                    except Exception:  # noqa: BLE001
-                        pass
-                fv = f0_at(t)
-                if fv:
-                    f0s.append(fv)
-            t += 0.01
-        return cols, f0s
+    # Sample formants + F0 on a fine grid across the clip.
+    step = 0.005
+    times, F1, F2, F3, F0, VOI = [], [], [], [], [], []
+    t = 0.0
+    while t <= dur:
+        vals = {}
+        for i in (1, 2, 3):
+            try:
+                v = call(formant, "Get value at time", i, t, "hertz", "Linear")
+                vals[i] = v if (v and v == v) else None
+            except Exception:  # noqa: BLE001
+                vals[i] = None
+        times.append(t)
+        F1.append(vals[1]); F2.append(vals[2]); F3.append(vals[3])
+        F0.append(f0_at(t)); VOI.append(is_voiced(t))
+        t += step
 
-    cols, f0s = collect(0.05, voiced_only=True)
-    if len(cols[1]) < 3:  # short/low-intensity vowel → widen, still voiced-only
-        cols, f0s = collect(0.09, voiced_only=True)
-    if len(cols[1]) < 3:  # last resort: drop the voiced restriction
-        cols, f0s = collect(0.06, voiced_only=False)
+    F1_MAX = 900.0  # implausible ceiling for any adult vowel F1
+    wframes = max(3, int(round(0.020 / step)))  # 20 ms sliding window
 
-    out = {}
-    for i, key in ((1, "F1"), (2, "F2"), (3, "F3")):
-        vals = cols[i]
-        if vals:
-            vals.sort()
-            out[key] = round(vals[len(vals) // 2])
-        else:
-            out[key] = None
-    if f0s:
-        f0s.sort()
-        out["F0"] = round(f0s[len(f0s) // 2])
-    else:
-        out["F0"] = None
-    if not out.get("F1") and not out.get("F2"):
+    # Score every voiced, fully-tracked window by combined SD of F1+F2.
+    candidates = []  # (sd, start_idx, indices)
+    for start in range(0, len(times) - wframes + 1):
+        idxs = list(range(start, start + wframes))
+        f1s = [F1[j] for j in idxs if F1[j]]
+        f2s = [F2[j] for j in idxs if F2[j]]
+        vcount = sum(1 for j in idxs if VOI[j])
+        if len(f1s) < wframes or len(f2s) < wframes or vcount < wframes * 0.5:
+            continue
+        sd = statistics.pstdev(f1s) + statistics.pstdev(f2s)
+        candidates.append((sd, start, idxs))
+    candidates.sort(key=lambda x: x[0])
+
+    def _measure(idxs):
+        out = {}
+        for i, key, arr in ((1, "F1", F1), (2, "F2", F2), (3, "F3", F3)):
+            vals = sorted(arr[j] for j in idxs if arr[j])
+            out[key] = round(vals[len(vals) // 2]) if vals else None
+        f0s = sorted(F0[j] for j in idxs if F0[j])
+        out["F0"] = round(f0s[len(f0s) // 2]) if f0s else None
+        return out
+
+    chosen = None
+    # Prefer the minimum-variance window whose median F1 is plausible (<=900).
+    for sd, start, idxs in candidates:
+        m = _measure(idxs)
+        if m.get("F1") and m["F1"] <= F1_MAX:
+            chosen = m
+            break
+    if chosen is None and candidates:
+        chosen = _measure(candidates[0][2])  # all implausible → least-variance
+
+    if chosen is None:
+        # No stable voiced window (e.g. all unvoiced) → median over mid third.
+        lo, hi = int(len(times) * 0.33), int(len(times) * 0.67)
+        chosen = _measure(list(range(lo, max(lo + 1, hi))))
+
+    if not chosen or (not chosen.get("F1") and not chosen.get("F2")):
         return None
-    return out
+    return chosen
+
 
 
 
@@ -348,8 +343,14 @@ def build_phoneme_formants_router(
         ref_group = None
         citation = ""
         per_formant = []
-        use_dataset = target_kind == "phoneme"
-        refs = await _find_reference(phoneme_ipa, dialect) if use_dataset else []
+        # Numeric GOP scoring ALWAYS uses the Hillenbrand/Deterding dataset means
+        # whenever a reference exists for this phoneme+dialect — regardless of
+        # target_kind (word or isolated phoneme) or whether a teacher clip exists.
+        # The teacher's clip stays as the VISUAL spectrogram reference only, since
+        # its extracted formants vary too much across words to be a stable numeric
+        # reference. Teacher-sample scoring is used ONLY as a fallback for phonemes
+        # absent from the dataset (diphthongs / consonant realisations).
+        refs = await _find_reference(phoneme_ipa, dialect)
 
         if refs:
             # Speaker group selected from the VOWEL-ZONE F0 (men/women/children
