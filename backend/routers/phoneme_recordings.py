@@ -73,6 +73,11 @@ def build_phoneme_recordings_router(
         if target_kind not in {"phoneme", "word"}:
             raise HTTPException(status_code=400, detail="target_kind non valido")
 
+        # GDPR: audio consent required before persisting any recording.
+        consent = await db.user_consents.find_one({"user_id": current_user["id"]}, {"_id": 0})
+        if not consent or not consent.get("audio_granted"):
+            raise HTTPException(status_code=403, detail="Consenso audio mancante.")
+
         raw = await file.read()
         if not raw:
             raise HTTPException(status_code=400, detail="Registrazione vuota")

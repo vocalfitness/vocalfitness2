@@ -160,6 +160,12 @@ async def startup_event():
         logging.info(f"Canonical phoneme inventory seed: upserted={result['upserted']} total={result['total']}")
     except Exception as e:
         logging.warning(f"Canonical phoneme seed failed (non-fatal): {e}")
+    try:
+        from routers.phoneme_formants import ensure_formant_references
+        result = await ensure_formant_references(db)
+        logging.info(f"Formant references seed: inserted={result['inserted']} total={result['total']}")
+    except Exception as e:
+        logging.warning(f"Formant references seed failed (non-fatal): {e}")
 
 
 # ==================== AUTHENTICATION CONFIG ====================
@@ -1889,6 +1895,8 @@ from routers.chat_alice import build_chat_alice_router
 from routers.auth import build_auth_router
 from routers.canonical_phonemes import build_canonical_phonemes_router
 from routers.phoneme_recordings import build_phoneme_recordings_router
+from routers.phoneme_formants import build_phoneme_formants_router, ensure_formant_references
+api_router.include_router(build_phoneme_formants_router(db, get_current_user, emergent_put, UPLOADS_DIR))
 api_router.include_router(build_phoneme_cards_router(db, get_admin_user, build_user_deps.optional_admin))
 api_router.include_router(build_phoneme_recordings_router(db, get_current_user, emergent_put, UPLOADS_DIR))
 api_router.include_router(build_elevenlabs_router(get_admin_user, emergent_put, UPLOADS_DIR))

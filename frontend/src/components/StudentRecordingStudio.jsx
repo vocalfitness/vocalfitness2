@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, Square, Save, Trash2, Loader2, AudioLines, Lock, RotateCcw } from 'lucide-react';
+import { Mic, Square, Save, Trash2, Loader2, AudioLines, Lock, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import SpectrogramView from './SpectrogramView';
+import FormantScorePanel from './FormantScorePanel';
+import ConsentDialog from './ConsentDialog';
 import { pickDialectAudio } from '../lib/pickDialectAudio';
+import { blobToWav } from '../lib/blobToWav';
 
 /**
  * StudentRecordingStudio — Phase 1 self-assessment (audio only).
@@ -52,6 +55,14 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
   const [saved, setSaved] = useState(false);
   const [history, setHistory] = useState([]);
 
+  // Phase-2: GDPR consent + formant scoring state.
+  const [consent, setConsent] = useState({ audio_granted: false, video_granted: false });
+  const [showConsent, setShowConsent] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [analyzeError, setAnalyzeError] = useState('');
+
   const MAX_SECONDS = 10;
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -89,9 +100,76 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  const loadConsent = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await fetch(`${API}/api/phonemes/consent`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const c = await res.json();
+        setConsent({ audio_granted: !!c.audio_granted, video_granted: !!c.video_granted });
+      }
+    } catch (_) { /* silent */ }
+  }, [API, isLoggedIn, token]);
+
+  useEffect(() => { loadConsent(); }, [loadConsent]);
+
+  const saveConsent = async ({ audio, video }) => {
+    setSavingConsent(true);
+    try {
+      for (const [kind, granted] of [['audio', audio], ['video', video]]) {
+        await fetch(`${API}/api/phonemes/consent`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind, granted }),
+        });
+      }
+      setConsent({ audio_granted: audio, video_granted: video });
+      setShowConsent(false);
+    } catch (_) { /* silent */ } finally {
+      setSavingConsent(false);
+    }
+  };
+
+  const analyzeRecording = useCallback(async () => {
+    if (!isLoggedIn || !consent.audio_granted || !blobRef.current) return;
+    setAnalyzing(true);
+    setAnalyzeError('');
+    setAnalysis(null);
+    try {
+      const wav = await blobToWav(blobRef.current);
+      const fd = new FormData();
+      fd.append('file', wav, 'rec.wav');
+      fd.append('phoneme_ipa', phoneme?.ipa || '');
+      fd.append('dialect', recDialect);
+      fd.append('target_kind', targetKind);
+      if (referenceSrc) fd.append('reference_url', referenceSrc);
+      const res = await fetch(`${API}/api/phonemes/analyze-formants`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Analisi non riuscita');
+      setAnalysis(data);
+    } catch (e) {
+      setAnalyzeError(e.message || 'Analisi non riuscita.');
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [API, isLoggedIn, consent.audio_granted, phoneme?.ipa, recDialect, targetKind, referenceSrc, token]);
+
   const startRecording = async () => {
     setError('');
     setSaved(false);
+    setAnalysis(null);
+    setAnalyzeError('');
+    // GDPR gate: logged-in users must grant audio consent first.
+    if (isLoggedIn && !consent.audio_granted) {
+      setShowConsent(true);
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setError('Il tuo browser non supporta la registrazione audio.');
       return;
@@ -195,6 +273,11 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
       if (btn) btn.click();
     }, 450);
     return () => clearTimeout(t);
+  }, [recordedUrl]);
+
+  // Auto-run formant analysis once a recording is ready (logged-in + consent).
+  useEffect(() => {
+    if (recordedUrl && isLoggedIn && consent.audio_granted) analyzeRecording();
   }, [recordedUrl]);
 
   const dialectBtn = (d, label, enabled) => (
@@ -341,6 +424,29 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
         più la tua pronuncia è accurata.
       </p>
 
+      {/* Formant analysis (Phase 2) */}
+      {analyzing && (
+        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-cyan-300" data-testid="formant-analyzing">
+          <Loader2 className="w-4 h-4 animate-spin" /> Analisi acustica delle formanti in corso…
+        </div>
+      )}
+      {analyzeError && !analyzing && (
+        <p className="mt-4 text-center text-[12px] text-rose-300" data-testid="formant-error">{analyzeError}</p>
+      )}
+      {analysis && !analyzing && <FormantScorePanel result={analysis} />}
+      {recordedUrl && !recording && isLoggedIn && consent.audio_granted && !analyzing && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={analyzeRecording}
+            data-testid="formant-reanalyze-btn"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-slate-800/70 text-cyan-200 border border-cyan-500/40 hover:border-cyan-300 transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> {analysis ? 'Rianalizza' : 'Analizza pronuncia'}
+          </button>
+        </div>
+      )}
+
       {/* Save action */}
       {recordedUrl && !recording && (
         <div className="mt-5 flex items-center gap-3" data-testid="rec-save-row">
@@ -404,6 +510,31 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
           </div>
         </div>
       )}
+
+      {/* Consent management + dialog */}
+      {isLoggedIn && (
+        <div className="mt-8 pt-5 border-t border-slate-800 flex flex-wrap items-center gap-3" data-testid="rec-consent-manage">
+          <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400/70" />
+            Consensi: audio {consent.audio_granted ? '✓' : '✕'} · video {consent.video_granted ? '✓' : '✕'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowConsent(true)}
+            data-testid="rec-consent-manage-btn"
+            className="text-[11px] font-bold text-cyan-300 hover:text-cyan-200 underline underline-offset-2"
+          >
+            Gestisci consensi
+          </button>
+        </div>
+      )}
+      <ConsentDialog
+        open={showConsent}
+        onOpenChange={setShowConsent}
+        initial={consent}
+        onSave={saveConsent}
+        saving={savingConsent}
+      />
     </div>
   );
 };

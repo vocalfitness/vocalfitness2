@@ -12,6 +12,30 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 16/07/2026 · FASE 2 · Scoring automatico formanti + GDPR — DONE ✅ (backend testato; flusso microfono live da verificare manualmente)
+
+**Richiesta**: potenziare l'auto-valutazione (Fase 1) con pipeline di scoring formanti end-to-end (7 step) + requisiti GDPR.
+
+**STEP 1** — `praat-parselmouth==0.4.7` installato (Praat incluso, nessuna dip. di sistema). `To FormantPath (burg)` a tetto adattivo → gestisce voci M/F/bambino senza selezione manuale. Verificato.
+
+**STEP 2** — Endpoint `POST /api/phonemes/analyze-formants` (`routers/phoneme_formants.py`): estrae F1/F2/F3 (media sul 20-80% stabile della clip). **Audio convertito in WAV lato client** (`lib/blobToWav.js`, Web Audio API) → Parselmouth legge WAV/MP3 nativamente, **nessun ffmpeg** → pipeline identica Preview/Prod.
+
+**STEP 3** — Collezione `formant_references` (58 righe, seed idempotente allo startup): GenAm Hillenbrand et al. 1995 (12 vocali × M/F/bambini, F1/F2/F3) + RP Deterding 1997 (11 vocali × M/F, F1/F2). Riferimenti misti: dataset per vocali monottongali, campione Prof. Dapper (fetch+analisi mp3) per dittonghi/consonanti/parole. `data/formant_references.py`.
+
+**STEP 4** — Scoring GOP: per-formante 0-100 con tolleranza ±2 SD dalla media nativa (dataset) o ±15% relativo (campione docente). Selezione automatica del gruppo speaker più vicino (gender-agnostic). Composito = media formanti.
+
+**STEP 5** — Mapping fasce ispirate CEFR "Sound Articulation" (A1→C1-C2). Flag `high_impact` per fonemi ad alto carico funzionale (/θ/,/ð/,/iː/,/ɪ/,/i/). UI cita Hillenbrand 1995 / Deterding 1997 + CEFR Companion Volume (Piccardo 2016), esplicitando "metodologia Vocal Fitness, non certificazione CEFR ufficiale".
+
+**STEP 6** — Frontend `FormantScorePanel.jsx` sotto gli spettrogrammi: punteggio F1/F2/F3 con barre + hint direzionale ("F2 troppo basso = non abbastanza frontale"), composito + fascia CEFR, citazione fonte. Auto-analisi dopo la registrazione (nessun click extra) + pulsante "Rianalizza".
+
+**STEP 7 · GDPR** — `ConsentDialog.jsx`: doppio consenso separato audio/video, revocabile indipendentemente (`POST/GET /api/phonemes/consent`, collezione `user_consents`). Registrazione/analisi bloccate senza consenso audio (gate su Fase-1 save + analyze). Cancellazione granulare per singola registrazione già presente (DELETE Fase 1). RBAC minimo: studente vede solo le proprie registrazioni, admin tutto; ruoli `teacher`/`corporate` rimandati a fase successiva (scelta utente 1b).
+
+**Verifica**: backend E2E via curl — consent gate 403, GOP dataset (gruppo men auto-selezionato), teacher-sample (fetch mp3), CEFR, citazione, routing risolto (consent vs /phonemes/{id}). Frontend: studio + consent dialog + footer renderizzati (screenshot). ⚠️ Il flusso microfono LIVE (registra→WAV→analyze→punteggio) non è testabile in automazione headless — da verificare manualmente.
+
+**Deploy**: Preview — richiede Deploy per la Produzione.
+
+
+
 ### 15/07/2026 · Modulo Auto-valutazione · Registrazione audio + spettrogramma affiancato (Fase 1) — DONE ✅
 
 **Richiesta**: aggiungere alla phoneme card un modulo di auto-valutazione con registrazione audio (solo audio, niente webcam/video/scoring/LPC in questa fase). Lo studente registra la propria pronuncia, vede il proprio spettrogramma affiancato a quello di riferimento del Prof. Dapper, e (se loggato) salva la registrazione collegata a studente/card/fonema/dialetto/timestamp.
