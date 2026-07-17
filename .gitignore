@@ -113,10 +113,6 @@ frontend/node_modules/.cache/default-development/48.pack
 frontend/node_modules/.cache/default-development/48.pack
 frontend/node_modules/.cache/default-development/53.pack
 frontend/node_modules/.cache/default-development/53.pack
-.env
-.env.*
-credentials.json
-*.key
 .credentials
 frontend/node_modules/.cache/default-development/54.pack
 frontend/node_modules/.cache/default-development/50.pack
@@ -161,5 +157,5 @@ frontend/node_modules/.cache/default-development/105.pack
 frontend/node_modules/.cache/default-development/106.pack
 frontend/node_modules/.cache/default-development/107.pack
 frontend/node_modules/.cache/default-development/107.pack
-*.env
 frontend/node_modules/.cache/default-development/2.pack
+frontend/node_modules/.cache/default-development/5.pack
