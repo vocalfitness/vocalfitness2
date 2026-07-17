@@ -64,3 +64,23 @@ Generato da `build_reference_rows()`. F3 = "-" quando null (RP).
 Vedi tabella allegata nella chat (36 righe AmE: men/women/children × 12 vocali;
 22 righe RP: male/female × 11 vocali). Rigenerabile con:
 `python -c "from data.formant_references import build_reference_rows; ..."`
+
+---
+
+## [2026-07-17] Tracciabilità per-valore — meccanismo aggiunto (nessun valore modificato)
+
+Il sospetto su RP /æ/ 690/1550 è RITIRATO (coerenza interna RP male sana:
+/e/ 494/1650 > /æ/ 690/1550 > /ʌ/ 644/1259 > /ɑː/ 646/1155; 834 sarebbe più aperto
+di /ɑː/ = assurdo. Deterding misura BBC anni '90, TRAP britannico abbassatosi dopo).
+
+Resta il problema vero: **nessuna citazione per-valore**. Soluzione (scaffolding):
+- `formant_references.py` → dict `SOURCE_LOCATORS`, chiave `(ipa, dialect, group)` → stringa
+  locator precisa ("<paper>, Table X, row /ipa/, col <group>"). Parte VUOTO.
+- Ogni riga espone ora `source_locator` (default "") e `source_verified` (bool).
+- **Processo:** man mano che verifichi un valore sul paper, aggiungi UNA riga a
+  `SOURCE_LOCATORS`; al riavvio il reseed propaga `source_locator`/`source_verified=True`.
+- Regola: NON si inventano locator. Riga senza locator ⇒ `source_verified=False`.
+- Stato attuale: 58/58 `source_verified=False`.
+
+Nota E: `RHOTIC_IPA` include `ɝ` e `ɚ`. ɝ AmE men F3=1710 (vs ~2500 non-rotiche) conferma
+che la pesatura rotica (F3 50%) poggia sul riferimento corretto.

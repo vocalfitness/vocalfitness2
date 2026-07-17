@@ -64,9 +64,22 @@ _DET_CITE = ("Deterding (1997), JIPA 27:47-55. F3 non riportato. "
              "SD = stima pooled (F1~12%, F2~10%).")
 
 
+# ---- Per-value bibliographic traceability ---- #
+# The reference means below are hand-transcribed literals. To make each value
+# INDEPENDENTLY VERIFIABLE, record its precise locator in the source paper here,
+# keyed by (phoneme_ipa, dialect, speaker_group). Fill this in incrementally as
+# each value is checked against the original table — DO NOT invent locators.
+# Format example:
+#   ("æ", "AmE", "men"): "Hillenbrand et al. (1995), Table V, row /æ/, col Men",
+#   ("æ", "RP",  "male"): "Deterding (1997), Table 2, row /æ/, col Male",
+# A row with no entry here reports source_locator="" and source_verified=False.
+SOURCE_LOCATORS: dict[tuple, str] = {}
+
+
 def _row(ipa, dialect, group, f1, f2, f3, cite):
     def sd(v, frac):
         return round(v * frac) if v else None
+    locator = SOURCE_LOCATORS.get((ipa, dialect, group), "")
     return {
         "phoneme_ipa": ipa,
         "dialect": dialect,
@@ -81,6 +94,9 @@ def _row(ipa, dialect, group, f1, f2, f3, cite):
         # real published SDs are encoded, switch this to 'published'.
         "sd_source": "estimated_pooled",
         "source_citation": cite,
+        # Per-value bibliographic locator (table/row/col). Empty until verified.
+        "source_locator": locator,
+        "source_verified": bool(locator),
     }
 
 
