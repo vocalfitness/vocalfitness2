@@ -2385,3 +2385,23 @@ backend/
   viene ri-estratto con la pipeline di produzione (`_measure_all_ceilings`) e si assert che i formanti
   siano dentro/fuori il range /i/ AmE-men. Così il test verifica il GATE, non i parametri di sintesi.
   (Ideale futuro: sostituire con un WAV reale committato nel repo.)
+
+---
+
+## [2026-07-17] Fixture /iː — registrazione reale committata (risolto)
+
+- `backend/tests/fixtures/vowel_i.wav`: **registrazione umana reale** di /iː/ (Prof. Steve),
+  mono 16 kHz (2.2 s). NON TTS, NON sintesi.
+- Estrazione pipeline di produzione: **F1=237, F2=2524, F3=3037** — /iː/ genuina (F2 alto),
+  tutti i formanti nel range /i/ AmE-men → self-check PASS.
+- Fixture `plausible_i_wav` carica il file + auto-verifica; skip pulito se il file manca.
+- Risolve la fragilità del vecchio synth (3 risonatori → F2 1922 ≈ /ɪ/, non /i/).
+- Test: iter38 **14 passed** (nessuno skip), phase2 **52 passed / 1 skip / 1 xfail**.
+- NB: il file va incluso nel repo (Save to GitHub) per essere versionato.
+
+## Verifica provenienza valori di riferimento — CONSEGNATA
+- Documento: `/app/memory/reference_values_provenance.md` + dump 58 righe in chat.
+- Esito: valori = letterali hardcoded in `formant_references.py` (`_H95`/`_DET`), trascritti a mano,
+  senza citazione per-valore. GenAm coincide con Hillenbrand/h95 (verificabile). RP: da verificare
+  riga per riga; /æ/ male 690/1550 vs atteso ~834/1782 (discrepanza da confermare sul paper).
+- Ordine SD confermato: PRIMA verifica provenienza → POI SD reali.
