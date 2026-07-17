@@ -495,6 +495,9 @@ def build_phoneme_formants_router(
         best = None
         teacher_ref = None
         ranges: dict = {}
+        group_method = None
+        groups_available: list = []
+        group_refs: dict = {}
 
         def _range(name, ref, sd_real, source):
             if sd_real:
@@ -536,6 +539,8 @@ def build_phoneme_formants_router(
             ref_group = best["speaker_group"]
             citation = best["source_citation"]
             ref_source = "dataset"
+            groups_available = [r["speaker_group"] for r in refs]
+            group_refs = {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs}
             row_sd_source = best.get("sd_source", "estimated_pooled")
             for k in ("F1", "F2", "F3"):
                 m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
@@ -579,6 +584,7 @@ def build_phoneme_formants_router(
                 "analyze-formants: REJECTED (%s) phoneme=%s dialect=%s user=%s expert=%s",
                 reason, phoneme_ipa, dialect, user.get("id"), diag,
             )
+            logging.warning("analyze-formants[expert]: %s", diag)
             raise HTTPException(
                 status_code=422,
                 detail={
@@ -592,6 +598,14 @@ def build_phoneme_formants_router(
         win = sel["window"]
         student = {"F1": win["F1"], "F2": win["F2"], "F3": win["F3"], "F0": f0, "reliable": True}
         diagnostics = _build_diagnostics(meas, ranges, sel, True)
+        if ref_source == "dataset":
+            logging.info(
+                "analyze-formants: phoneme=%s dialect=%s student=%s F0=%s "
+                "selected_group=%s (via %s) groups_available=%s group_refs=%s",
+                phoneme_ipa, dialect, student, f0, ref_group, group_method,
+                groups_available, group_refs,
+            )
+        logging.info("analyze-formants[expert]: %s", diagnostics)
 
         # ---- Score ---- #
         per_formant = []

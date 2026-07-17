@@ -2281,3 +2281,45 @@ backend/
 - P2: Toggle admin `showAnatomicalLabels` per opt-out per singola card.
 - P2: Testing agent v3 su tutta la feature §3.2 (fluida verifica end-to-end).
 
+
+---
+
+## [2026-07-17] Fase 2 — FIX A2 (stabilità SD nucleo) + PROBLEMA B (plausibilità per-fonema/gruppo)
+
+### Cosa è stato implementato (`backend/routers/phoneme_formants.py`)
+- **PROBLEMA B**: rimosso il check globale `F1 > 900 Hz`. Ora la plausibilità è
+  per-fonema/per-gruppo: una formante è plausibile sse `|misura − rif| ≤ 3×SD`,
+  con SD reale dal dataset (fallback stima % F1 12/F2 10/F3 8). Retry ceiling LPC
+  5500→5000→4500 Hz; se nessuna finestra plausibile → **422 "implausible"**.
+- **FIX A2**: sulla finestra-nucleo scelta, SD per-formante deve rispettare
+  F1≤25, F2≤50, F3≤70 Hz (soglie PROVVISORIE, da tarare sui dati). Se l'unica
+  finestra plausibile è instabile → **422 "unstable"**.
+- 422 con `detail` STRUTTURATO: `{message (azionabile, senza gergo), reason, offenders, expert}`.
+- Expert Mode espone SEMPRE (200 e 422): `nucleus_sd_hz`, `nucleus_sd_thresholds_hz`,
+  `plausibility_range_hz` (con `sd_source`), `dispersion_source`.
+- **Footer dinamico (PUNTO C)**: `formant_references.py` ora marca ogni riga con
+  `sd_source='estimated_pooled'` → il footer dichiara onestamente "Dispersione:
+  stima interna Vocal Fitness" (le SD reali dei paper NON sono ancora codificate).
+
+### Scoperta importante
+- Il dataset attuale NON contiene le SD pubblicate di Hillenbrand/Deterding: TUTTE
+  le SD sono stime % della media. Il ramo "SD reale" non scatta mai finché non si
+  codificano le SD vere → task dati NEEDS-SOURCE.
+
+### Frontend
+- `FormantScorePanel.jsx`: Expert Mode mostra SD nucleo vs soglia + range plausibilità;
+  footer dinamico su `dispersion_source`.
+- `StudentRecordingStudio.jsx`: gestione errore 422 strutturato + blocco Expert Mode di rifiuto.
+
+### Testing
+- `tests/test_phoneme_formants_iter38.py` (14 test) + suite legacy aggiornata al nuovo
+  contratto: **57 passed, 1 skipped, 1 xfailed**. Report: `/app/test_reports/iteration_38.json`.
+- xfail documentato: FIX A2 (soglie provvisorie) rifiuta vocali sintetiche ad F0 alto
+  (bambini) — estrazione formanti instabile su finestra 20 ms con pochi impulsi glottali.
+
+### Next Actions
+- P1: **Tarare le soglie FIX A2** su registrazioni reali (Expert Mode espone le SD).
+  Rischio noto: possibile over-reject di voci acute (bambini/alcune donne).
+- P1: Codificare le SD pubblicate reali di Hillenbrand/Deterding (task dati) → footer
+  passerà automaticamente a `dispersion_source='published'`.
+- P1: Fase 3 forced alignment — decisione utente su torchaudio MMS vs Charsiu.
