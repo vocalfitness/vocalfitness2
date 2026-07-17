@@ -1349,3 +1349,339 @@ class TestSilentFallbackRetriesCeilings:
             f"RETRY REGRESSION: _extract_formants must set reliable=False on "
             f"the fallback. Source:\n{src}"
         )
+
+
+# --------------------------------------------------------------------------- #
+# Phase-2 EXPERT MODE DIAGNOSTICS (iteration 37): diagnostics-only change.    #
+# The /analyze-formants endpoint now returns a top-level result.diagnostics   #
+# with the FormantPath internals (candidate windows, chosen ceiling, nucleus  #
+# window, attempts across ceiling retries, reliability flag) and emits a      #
+# structured backend log line 'analyze-formants[expert]: <dict>' (INFO on     #
+# reliable, WARNING on unreliable) so operators can study formant-tracker    #
+# oscillation from logs. NO change to scoring, references, or any UI/API     #
+# contract otherwise. The `diagnostics` key MUST live at the TOP LEVEL of    #
+# the response and MUST NOT leak into student_formants.                       #
+# --------------------------------------------------------------------------- #
+
+
+class TestExpertDiagnosticsInResponse:
+    """DIAGNOSTICS IN RESPONSE — plausible /ʊ/ WAV → 200 with result.diagnostics
+    populated with all required fields and the correct structure.
+    """
+
+    def test_diagnostics_structure_for_plausible_u(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        body = r.json()
+
+        # 1) diagnostics is top-level, present, and a dict.
+        assert "diagnostics" in body, f"Missing 'diagnostics' in response body: {body}"
+        diag = body["diagnostics"]
+        assert isinstance(diag, dict) and diag, f"diagnostics must be a non-empty dict: {diag}"
+
+        # 2) max_num_formants == 5.
+        assert diag.get("max_num_formants") == 5, (
+            f"diagnostics.max_num_formants must be 5, got {diag.get('max_num_formants')}"
+        )
+
+        # 3) ceiling_range_tested_hz == [5500, 5000, 4500].
+        assert diag.get("ceiling_range_tested_hz") == [5500, 5000, 4500], (
+            f"ceiling_range_tested_hz must be [5500,5000,4500], got "
+            f"{diag.get('ceiling_range_tested_hz')}"
+        )
+
+        # 4) ceiling_selected_hz is one of the three tested.
+        assert diag.get("ceiling_selected_hz") in {5500, 5000, 4500}, (
+            f"ceiling_selected_hz must be one of 5500/5000/4500, got "
+            f"{diag.get('ceiling_selected_hz')}"
+        )
+
+        # 5) candidate_formants — non-empty list, each item has the required fields.
+        cands = diag.get("candidate_formants")
+        assert isinstance(cands, list) and len(cands) > 0, (
+            f"candidate_formants must be a non-empty list, got {cands!r}"
+        )
+        required_fields = {"start_ms", "end_ms", "F1", "F2", "F3", "sd_f1f2", "plausible"}
+        for i, c in enumerate(cands):
+            missing = required_fields - set(c.keys())
+            assert not missing, (
+                f"candidate_formants[{i}] missing fields {missing}: {c}"
+            )
+            assert isinstance(c["plausible"], bool), (
+                f"candidate_formants[{i}].plausible must be bool, got {type(c['plausible'])}"
+            )
+
+        # 6) nucleus_window_ms — start/end numeric ms.
+        nw = diag.get("nucleus_window_ms")
+        assert isinstance(nw, dict), f"nucleus_window_ms must be dict, got {nw!r}"
+        assert isinstance(nw.get("start"), (int, float)), (
+            f"nucleus_window_ms.start must be numeric, got {nw.get('start')!r}"
+        )
+        assert isinstance(nw.get("end"), (int, float)), (
+            f"nucleus_window_ms.end must be numeric, got {nw.get('end')!r}"
+        )
+
+        # 7) reliable is a bool (True here since plausible /ʊ/).
+        assert isinstance(diag.get("reliable"), bool), (
+            f"diagnostics.reliable must be bool, got {type(diag.get('reliable'))}"
+        )
+        assert diag["reliable"] is True, (
+            f"For a normal /ʊ/, diagnostics.reliable must be True, got {diag['reliable']}"
+        )
+
+        # 8) attempts — list of per-ceiling dicts.
+        attempts = diag.get("attempts")
+        assert isinstance(attempts, list) and len(attempts) >= 1, (
+            f"attempts must be a non-empty list, got {attempts!r}"
+        )
+        for a in attempts:
+            assert isinstance(a, dict) and "ceiling_hz" in a, (
+                f"each attempt must include ceiling_hz, got {a}"
+            )
+            # Each attempt is either a formants-summary dict or a no_usable_window dict.
+            if a.get("result") == "no_usable_window":
+                continue
+            for k in ("F1", "F2", "F3", "plausible"):
+                assert k in a, f"attempt missing {k}: {a}"
+
+    def test_diagnostics_does_not_leak_into_student_formants(self, auth_headers):
+        """The diagnostics key must be TOP-LEVEL result.diagnostics only.
+        student_formants must contain ONLY F1/F2/F3/F0/reliable (no _diagnostics
+        or diagnostics key leak).
+        """
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        sf = body.get("student_formants") or {}
+        # No leak of any diagnostics key inside student_formants.
+        forbidden = {"diagnostics", "_diagnostics", "_diag"}
+        leaked = forbidden.intersection(sf.keys())
+        assert not leaked, (
+            f"student_formants must NOT contain any diagnostics keys, "
+            f"but found {leaked}. sf={sf}"
+        )
+        # Allowed keys are exactly a subset of {F1,F2,F3,F0,reliable}.
+        allowed = {"F1", "F2", "F3", "F0", "reliable"}
+        extra = set(sf.keys()) - allowed
+        assert not extra, (
+            f"student_formants should only contain F1/F2/F3/F0/reliable, "
+            f"found extra keys: {extra}. sf={sf}"
+        )
+
+
+class TestExpertDiagnosticsStructuredLog:
+    """STRUCTURED LOG — the backend log must contain an 'analyze-formants[expert]:'
+    line for BOTH reliable (INFO) and unreliable (WARNING) analyses.
+    """
+
+    def test_expert_log_line_present_on_reliable(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        pre = _log_size()
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, r.text
+        time.sleep(0.5)
+        new_log = _tail_log_since(pre)
+
+        marker = "analyze-formants[expert]:"
+        expert_lines = [ln for ln in new_log.splitlines() if marker in ln]
+        assert expert_lines, (
+            f"STRUCTURED LOG REGRESSION: expected '{marker}' line after a "
+            f"reliable analysis. new_log tail: {new_log[-2000:]}"
+        )
+        line = expert_lines[-1]
+        # Diagnostics dict content markers must be present in the log line.
+        assert "ceiling_selected_hz" in line, (
+            f"expert log line must include ceiling_selected_hz: {line}"
+        )
+        assert "candidate_formants" in line, (
+            f"expert log line must include candidate_formants: {line}"
+        )
+        assert "nucleus_window_ms" in line, (
+            f"expert log line must include nucleus_window_ms: {line}"
+        )
+        # Reliable analysis → 'reliable': True in dict repr.
+        assert "'reliable': True" in line or '"reliable": True' in line, (
+            f"expert log line must show reliable=True for a plausible analysis: {line}"
+        )
+
+    def test_expert_log_line_present_on_unreliable(self, auth_headers, implausible_wav):
+        """DIAGNOSTICS ON UNRELIABLE — 422 rejection MUST still emit the expert
+        WARNING log line with reliable:false so oscillation can be studied.
+        (No diagnostics field in the 422 body is fine.)
+        """
+        _grant_audio_consent(auth_headers)
+        pre = _log_size()
+        r = _post_analyze(auth_headers, implausible_wav, "æ", "AmE",
+                          target_kind="phoneme")
+        assert r.status_code == 422, (
+            f"Implausible F1 must yield 422, got {r.status_code}: {r.text}"
+        )
+        time.sleep(0.5)
+        new_log = _tail_log_since(pre)
+
+        marker = "analyze-formants[expert]:"
+        expert_lines = [ln for ln in new_log.splitlines() if marker in ln]
+        assert expert_lines, (
+            f"UNRELIABLE EXPERT LOG REGRESSION: expected '{marker}' line even "
+            f"on 422 rejection. new_log tail: {new_log[-2000:]}"
+        )
+        line = expert_lines[-1]
+        assert "'reliable': False" in line or '"reliable": False' in line, (
+            f"expert log line must show reliable=False for unreliable analysis: {line}"
+        )
+        # The three key diagnostic markers must still be logged so the
+        # oscillation regime can be studied from the log alone.
+        assert "ceiling_selected_hz" in line, line
+        assert "candidate_formants" in line, line
+        assert "nucleus_window_ms" in line, line
+
+
+class TestExpertDiagnosticsNucleusWindow:
+    """NUCLEUS WINDOW — nucleus_window_ms.start & .end are numeric ms with
+    start < end and correspond to the FIRST plausible candidate window (the
+    chosen most-stable window).
+    """
+
+    def test_nucleus_window_start_lt_end(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        diag = body.get("diagnostics") or {}
+        nw = diag.get("nucleus_window_ms") or {}
+        s, e = nw.get("start"), nw.get("end")
+        assert isinstance(s, (int, float)) and isinstance(e, (int, float)), (
+            f"nucleus_window_ms.start/end must be numeric ms, got {nw}"
+        )
+        assert s < e, (
+            f"nucleus_window_ms must have start<end, got start={s} end={e}"
+        )
+        # Sanity: window fits within total duration (~500 ms including padding).
+        assert 0 <= s < 2000 and 0 <= e < 2000, (
+            f"nucleus window out of expected bounds: start={s} end={e}"
+        )
+
+    def test_nucleus_window_matches_first_plausible_candidate(self, auth_headers):
+        """The chosen nucleus_window_ms MUST correspond to the first plausible
+        entry in candidate_formants (the most-stable plausible window).
+        """
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, r.text
+        diag = r.json().get("diagnostics") or {}
+        nw = diag.get("nucleus_window_ms") or {}
+        cands = diag.get("candidate_formants") or []
+        first_plausible = next((c for c in cands if c.get("plausible")), None)
+        assert first_plausible is not None, (
+            f"For a reliable analysis, at least one candidate must be plausible: "
+            f"cands={cands}"
+        )
+        # The chosen window (nucleus_window_ms) MUST match the first plausible
+        # candidate's start_ms/end_ms.
+        assert nw.get("start") == first_plausible.get("start_ms"), (
+            f"nucleus_window_ms.start ({nw.get('start')}) must match first "
+            f"plausible candidate.start_ms ({first_plausible.get('start_ms')}). "
+            f"cands={cands}"
+        )
+        assert nw.get("end") == first_plausible.get("end_ms"), (
+            f"nucleus_window_ms.end ({nw.get('end')}) must match first "
+            f"plausible candidate.end_ms ({first_plausible.get('end_ms')}). "
+            f"cands={cands}"
+        )
+
+
+class TestExpertDiagnosticsNoScoringRegression:
+    """NO SCORING REGRESSION — the diagnostics-only change must not affect any
+    scoring/reference behaviour. Verify:
+      * normal /ʊ/ still returns reference_source='dataset', composite_score,
+        cefr band, per_formant with the DATASET reference means (unchanged);
+      * _weighted_composite([{'F1':0},{'F2':59},{'F3':88}]) still == 62.5;
+      * word target on /ʊ/ still uses dataset;
+      * consent gate still 403 without audio consent.
+    """
+
+    def test_normal_u_still_scored_from_dataset(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(auth_headers, wav, "ʊ", "AmE", target_kind="phoneme")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("reference_source") == "dataset", body
+        assert body.get("composite_score") is not None, body
+        cefr = body.get("cefr") or {}
+        assert cefr.get("band"), f"CEFR band missing: {body}"
+        # per_formant references match the DATASET means for the selected group.
+        group = body.get("reference_group")
+        assert group in _U_AME_MEANS, f"unexpected group: {group}"
+        pf = {p["name"]: p for p in body.get("per_formant", [])}
+        expected = _U_AME_MEANS[group]
+        for k in ("F1", "F2", "F3"):
+            assert k in pf, f"Missing per_formant entry for {k}: {body}"
+            assert pf[k]["reference"] == expected[k], (
+                f"NO-REGRESSION FAILURE: per_formant[{k}].reference="
+                f"{pf[k]['reference']} != dataset mean {expected[k]} for "
+                f"/ʊ/ AmE group={group}."
+            )
+
+    def test_weighted_composite_still_62_5(self):
+        result = _weighted_composite([
+            {"name": "F1", "score": 0},
+            {"name": "F2", "score": 59},
+            {"name": "F3", "score": 88},
+        ])
+        assert 62.0 <= result <= 63.0, (
+            f"_weighted_composite([0,59,88]) must still ≈ 62.5, got {result}"
+        )
+
+    def test_word_target_u_still_uses_dataset(self, auth_headers):
+        _grant_audio_consent(auth_headers)
+        wav = _synthesize_vowel_wav(
+            f1=430.0, f2=1100.0, f3=2400.0, f0=120.0,
+            dur=0.40, lead_silence=0.10,
+        )
+        r = _post_analyze(
+            auth_headers, wav,
+            phoneme_ipa="ʊ", dialect="AmE",
+            target_kind="word", reference_url=REL_REF_URL,
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("reference_source") == "dataset", (
+            f"word target /ʊ/ must still use dataset (Hillenbrand), got "
+            f"reference_source={body.get('reference_source')}"
+        )
+
+    def test_consent_gate_still_403_without_consent(self, auth_headers, voiced_wav):
+        _revoke_audio_consent(auth_headers)
+        r = _post_analyze(auth_headers, voiced_wav, "ʊ", "AmE",
+                          target_kind="phoneme")
+        assert r.status_code == 403, (
+            f"Consent gate broken: expected 403, got {r.status_code}"
+        )
+        # Clean up: re-grant consent for subsequent tests.
+        _grant_audio_consent(auth_headers)

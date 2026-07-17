@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle2, AlertTriangle, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, AlertTriangle, TrendingUp, FlaskConical, ChevronDown } from 'lucide-react';
 
 const bandColor = (band) => {
   if (band?.startsWith('C')) return 'text-emerald-300 border-emerald-400/50 bg-emerald-500/10';
@@ -20,9 +20,10 @@ const scoreBar = (score) => {
 
 export const FormantScorePanel = ({ result }) => {
   if (!result) return null;
-  const { per_formant = [], composite_score, cefr, citation, reference_source, reference_group, high_impact, student_formants } = result;
+  const { per_formant = [], composite_score, cefr, citation, reference_source, reference_group, high_impact, student_formants, diagnostics } = result;
   const f0 = student_formants?.F0;
   const groupLabel = { men: 'uomo', women: 'donna', children: 'bambino', male: 'uomo', female: 'donna' }[reference_group] || reference_group;
+  const [showExpert, setShowExpert] = useState(false);
 
   return (
     <div className="mt-6 rounded-2xl border border-cyan-500/25 bg-slate-950/60 p-5 md:p-6" data-testid="formant-score-panel">
@@ -83,6 +84,82 @@ export const FormantScorePanel = ({ result }) => {
           </div>
         ))}
       </div>
+
+      {/* Expert Mode — diagnostics (hidden by default) */}
+      {diagnostics && (
+        <div className="mt-5 pt-4 border-t border-slate-800" data-testid="expert-mode-section">
+          <button
+            type="button"
+            onClick={() => setShowExpert((v) => !v)}
+            data-testid="expert-mode-toggle"
+            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-fuchsia-300/80 hover:text-fuchsia-200 transition-colors"
+          >
+            <FlaskConical className="w-3.5 h-3.5" /> Expert Mode
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExpert ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showExpert && (
+            <div className="mt-3 rounded-xl border border-fuchsia-500/20 bg-slate-950/70 p-4 space-y-3 font-mono text-[11px] text-slate-300" data-testid="expert-mode-panel">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <span className="text-slate-500">Max n° formanti (LPC)</span>
+                <span data-testid="expert-max-formants">{diagnostics.max_num_formants}</span>
+                <span className="text-slate-500">Ceiling testati (Hz)</span>
+                <span data-testid="expert-ceiling-range">{(diagnostics.ceiling_range_tested_hz || []).join(' → ')}</span>
+                <span className="text-slate-500">Ceiling selezionato (Hz)</span>
+                <span className="text-fuchsia-300 font-bold" data-testid="expert-ceiling-selected">{diagnostics.ceiling_selected_hz}</span>
+                <span className="text-slate-500">Finestra nucleo (ms)</span>
+                <span data-testid="expert-nucleus-window">
+                  {diagnostics.nucleus_window_ms?.start} – {diagnostics.nucleus_window_ms?.end}
+                </span>
+                <span className="text-slate-500">Misura affidabile</span>
+                <span className={diagnostics.reliable ? 'text-emerald-300' : 'text-rose-300'} data-testid="expert-reliable">
+                  {diagnostics.reliable ? 'sì' : 'no (fallback)'}
+                </span>
+              </div>
+
+              {/* Retry attempts per ceiling */}
+              {Array.isArray(diagnostics.attempts) && diagnostics.attempts.length > 0 && (
+                <div data-testid="expert-attempts">
+                  <p className="text-slate-500 mb-1">Tentativi per ceiling:</p>
+                  {diagnostics.attempts.map((a, i) => (
+                    <div key={i} className="pl-2 text-slate-400">
+                      {a.ceiling_hz} Hz → {a.result === 'no_usable_window'
+                        ? 'nessuna finestra utile'
+                        : `F1=${a.F1} F2=${a.F2} F3=${a.F3} · ${a.plausible ? 'plausibile' : 'IMPLAUSIBILE'}`}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Candidate windows before final selection */}
+              {Array.isArray(diagnostics.candidate_formants) && diagnostics.candidate_formants.length > 0 && (
+                <div data-testid="expert-candidates">
+                  <p className="text-slate-500 mb-1">Finestre candidate (pre-selezione):</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="text-slate-600">
+                        <tr><th className="pr-3">ms</th><th className="pr-3">F1</th><th className="pr-3">F2</th><th className="pr-3">F3</th><th className="pr-3">SD</th><th>plaus.</th></tr>
+                      </thead>
+                      <tbody>
+                        {diagnostics.candidate_formants.map((c, i) => (
+                          <tr key={i} className={i === 0 ? 'text-fuchsia-300' : ''}>
+                            <td className="pr-3">{c.start_ms}–{c.end_ms}</td>
+                            <td className="pr-3">{c.F1}</td>
+                            <td className="pr-3">{c.F2}</td>
+                            <td className="pr-3">{c.F3}</td>
+                            <td className="pr-3">{c.sd_f1f2}</td>
+                            <td>{c.plausible ? '✓' : '✕'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Citation */}
       <p className="mt-5 pt-4 border-t border-slate-800 text-[10px] text-slate-500 leading-relaxed" data-testid="formant-citation">

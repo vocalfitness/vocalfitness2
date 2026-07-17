@@ -109,21 +109,46 @@ def _formants_for_ceiling(snd, dur, F0grid, VOI, step, max_formant, max_num):
             out[key] = round(vals[len(vals) // 2]) if vals else None
         return out
 
-    chosen, plausible = None, False
+    def _win_ms(idxs):
+        return round(times[idxs[0]] * 1000, 1), round(times[idxs[-1]] * 1000, 1)
+
+    # Diagnostics: candidate windows (top 6 by stability) BEFORE final selection.
+    diag_candidates = []
+    for sd, idxs in candidates[:6]:
+        m = _measure(idxs)
+        s_ms, e_ms = _win_ms(idxs)
+        diag_candidates.append({
+            "start_ms": s_ms, "end_ms": e_ms,
+            "F1": m.get("F1"), "F2": m.get("F2"), "F3": m.get("F3"),
+            "sd_f1f2": round(sd, 1),
+            "plausible": bool(m.get("F1") and m["F1"] <= F1_MAX),
+        })
+
+    chosen, plausible, chosen_idxs = None, False, None
     for sd, idxs in candidates:
         m = _measure(idxs)
         if m.get("F1") and m["F1"] <= F1_MAX:
-            chosen, plausible = m, True
+            chosen, plausible, chosen_idxs = m, True, idxs
             break
     if chosen is None and candidates:
-        chosen = _measure(candidates[0][1])  # least-variance, still implausible
+        chosen_idxs = candidates[0][1]
+        chosen = _measure(chosen_idxs)  # least-variance, still implausible
     if chosen is None:  # no stable voiced window → mid third
         lo, hi = int(len(times) * 0.33), int(len(times) * 0.67)
-        chosen = _measure(list(range(lo, max(lo + 1, hi))))
+        chosen_idxs = list(range(lo, max(lo + 1, hi)))
+        chosen = _measure(chosen_idxs)
     if not chosen or (not chosen.get("F1") and not chosen.get("F2")):
         return None
+    win_start_ms, win_end_ms = _win_ms(chosen_idxs) if chosen_idxs else (None, None)
     chosen["_plausible"] = plausible
+    chosen["_diag"] = {
+        "ceiling_hz": round(max_formant),
+        "max_num_formants": int(max_num),
+        "candidates": diag_candidates,
+        "nucleus_window_ms": {"start": win_start_ms, "end": win_end_ms},
+    }
     return chosen
+
 
 
 def _extract_formants(path: str) -> Optional[dict]:
@@ -180,19 +205,40 @@ def _extract_formants(path: str) -> Optional[dict]:
     voiced_f0 = [v for v in F0grid if v]
     f0_global = round(sum(voiced_f0) / len(voiced_f0)) if len(voiced_f0) * step >= 0.100 else None
 
+    ceiling_range = [5500, 5000, 4500]
     fallback = None
+    attempts = []  # per-ceiling diagnostic summary
     for max_formant, max_num in ((5500.0, 5.0), (5000.0, 5.0), (4500.0, 5.0)):
         res = _formants_for_ceiling(snd, dur, F0grid, VOI, step, max_formant, max_num)
         if res is None:
+            attempts.append({"ceiling_hz": round(max_formant), "result": "no_usable_window"})
             continue
+        d = res.get("_diag", {})
+        attempts.append({
+            "ceiling_hz": round(max_formant),
+            "F1": res.get("F1"), "F2": res.get("F2"), "F3": res.get("F3"),
+            "plausible": bool(res.get("_plausible")),
+        })
         if res.pop("_plausible", False):
+            diag = res.pop("_diag", {})
             res["F0"] = f0_global
             res["reliable"] = True
+            res["_diagnostics"] = {
+                "max_num_formants": diag.get("max_num_formants"),
+                "ceiling_range_tested_hz": ceiling_range,
+                "ceiling_selected_hz": diag.get("ceiling_hz"),
+                "candidate_formants": diag.get("candidates", []),
+                "nucleus_window_ms": diag.get("nucleus_window_ms"),
+                "reliable": True,
+                "attempts": attempts,
+            }
+            logging.info("analyze-formants[expert]: %s", res["_diagnostics"])
             return res
         if fallback is None:
             fallback = res
 
     if fallback is not None:
+        diag = fallback.pop("_diag", {})
         fallback.pop("_plausible", None)
         logging.warning(
             "analyze-formants: implausible F1=%s Hz after all LPC-ceiling retries "
@@ -201,6 +247,16 @@ def _extract_formants(path: str) -> Optional[dict]:
         )
         fallback["F0"] = f0_global
         fallback["reliable"] = False
+        fallback["_diagnostics"] = {
+            "max_num_formants": diag.get("max_num_formants"),
+            "ceiling_range_tested_hz": ceiling_range,
+            "ceiling_selected_hz": diag.get("ceiling_hz"),
+            "candidate_formants": diag.get("candidates", []),
+            "nucleus_window_ms": diag.get("nucleus_window_ms"),
+            "reliable": False,
+            "attempts": attempts,
+        }
+        logging.warning("analyze-formants[expert]: %s", fallback["_diagnostics"])
         return fallback
     return None
 
@@ -476,6 +532,7 @@ def build_phoneme_formants_router(
             raise HTTPException(status_code=422, detail="Confronto formanti non disponibile.")
 
         composite = _weighted_composite(per_formant)
+        diagnostics = student.pop("_diagnostics", None)
         logging.info(
             "analyze-formants: source=%s group=%s per_formant=%s composite=%s",
             ref_source, ref_group,
@@ -493,6 +550,7 @@ def build_phoneme_formants_router(
             "composite_score": composite,
             "cefr": _cefr_band(composite),
             "high_impact": phoneme_ipa in HIGH_IMPACT_IPA,
+            "diagnostics": diagnostics,
             "analyzed_at": datetime.now(timezone.utc).isoformat(),
         }
         return result
