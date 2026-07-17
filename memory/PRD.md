@@ -2357,3 +2357,31 @@ backend/
 ### Nota manutenzione
 - Fixture iter38 `plausible_i_wav`/`implausible_wav` resi deterministici (sintesi diretta, niente
   dipendenza da file /tmp effimeri che rendeva i test non riproducibili).
+
+---
+
+## [2026-07-17] Backlog — CORREZIONI AUTORITATIVE (supersede le voci precedenti)
+
+### Fase 3 — Forced alignment: NON è una decisione "MMS vs Charsiu"
+- **torchaudio MMS: ESCLUSO.** Allinea GRAFEMI, non fonemi. Il dump lo dimostra:
+  su "actually" produce buchi di 600–850 ms tra lettere adiacenti → inutilizzabile per il feedback fonemico.
+- **Charsiu: scelto, ma OSPITATO ESTERNAMENTE (non nel pod).** Support ha escluso l'in-pod:
+  health check 90 s contro ~1.9 GB di cold load, duplicazione del modello su 2 repliche, storage effimero.
+- **Decisione APERTA (le uniche cose da definire):**
+  1. Quale host esterno (candidato: **Google Cloud Run**).
+  2. Il **contratto dell'endpoint** (input audio+testo → output allineamento per-fonema con timestamp/confidenza).
+
+### SD reali — PRIMA la verifica di provenienza, POI la codifica
+- **NON codificare le SD reali finché non è verificata la provenienza dei VALORI di riferimento.**
+- Sospetto concreto: il footer RP dichiara Deterding (1997) ma usa /æ/ ≈ F1 690 / F2 1550,
+  mentre Deterding riporta /æ/ maschile ≈ 834 / 1782. Se i valori non vengono da Deterding,
+  codificare le "SD reali di Deterding" sarebbe incoerente.
+- Ordine corretto: (1) verifica provenienza di TUTTI i valori di riferimento (GenAm + RP) vs paper citati →
+  (2) correggi eventuali disallineamenti → (3) codifica le SD pubblicate → (4) footer passa a `dispersion_source='published'`.
+- (L'utente invierà un prompt di verifica dedicato.)
+
+### Fixture di test — nota
+- I fixture iter38 `plausible_i_wav`/`implausible_wav` sono ora **auto-verificanti**: l'audio sintetico
+  viene ri-estratto con la pipeline di produzione (`_measure_all_ceilings`) e si assert che i formanti
+  siano dentro/fuori il range /i/ AmE-men. Così il test verifica il GATE, non i parametri di sintesi.
+  (Ideale futuro: sostituire con un WAV reale committato nel repo.)

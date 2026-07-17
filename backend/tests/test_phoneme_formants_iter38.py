@@ -15,12 +15,15 @@ from __future__ import annotations
 import io
 import os
 import struct
+import tempfile
 import wave
 from typing import Optional
 
 import numpy as np
 import pytest
 import requests
+
+from routers.phoneme_formants import _measure_all_ceilings  # noqa: E402
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 assert BASE_URL, "REACT_APP_BACKEND_URL is required"
@@ -112,16 +115,66 @@ def ensure_audio_consent(headers):
 
 @pytest.fixture(scope="module")
 def plausible_i_wav() -> bytes:
-    # Deterministic synthetic /i/ AmE-men whose extracted formants land inside
-    # the /i/ plausibility range with margin (F1≈388, F2≈1922, F3≈2411). NOTE:
-    # do NOT load a leftover /tmp file — that made the fixture non-reproducible.
-    return _synthesize_vowel_wav(300.0, 2400.0, 3400.0)
+    """Synthetic /i/ AmE-men, SELF-VERIFYING.
+
+    The synth targets are an INPUT, not a guarantee: the fixture immediately
+    re-extracts the formants with the PRODUCTION pipeline (_measure_all_ceilings)
+    and asserts they fall inside the /i/ AmE-men plausibility range. So the test
+    that consumes this fixture genuinely exercises the plausibility GATE — if the
+    synth (or the extractor) ever drifts so the audio is no longer a plausible
+    /i/, THIS fixture fails loudly at setup instead of silently testing nothing.
+    Do NOT retune the synth to make a downstream test pass; fix the real cause.
+    """
+    wav = _synthesize_vowel_wav(300.0, 2400.0, 3400.0)
+    # /i/ AmE-men reference means (Hillenbrand) ± 3·(pooled % SD) — the SAME
+    # range the production plausibility gate uses.
+    ref_pct = {"F1": (342, 0.12), "F2": (2322, 0.10), "F3": (3000, 0.08)}
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tf:
+        tf.write(wav)
+        _p = tf.name
+    try:
+        _meas = _measure_all_ceilings(_p)
+    finally:
+        os.unlink(_p)
+    assert _meas, "SELF-CHECK: synth produced unmeasurable audio"
+    _win = next((c["windows"][0] for c in _meas["ceilings"] if c["windows"]), None)
+    assert _win, "SELF-CHECK: synth produced no usable window"
+    for _k, (_mean, _pct) in ref_pct.items():
+        _lo, _hi = _mean - 3 * _mean * _pct, _mean + 3 * _mean * _pct
+        assert _lo <= _win[_k] <= _hi, (
+            f"SELF-CHECK FAILED: synth /i/ {_k}={_win[_k]} is OUTSIDE the /i/ AmE-men "
+            f"range [{round(_lo)},{round(_hi)}]. This fixture is not a genuinely "
+            f"plausible /i/ — fix the synth or the extractor, do NOT weaken the gate."
+        )
+    return wav
 
 
 @pytest.fixture(scope="module")
 def implausible_wav() -> bytes:
-    # Deterministic off-target signal (F1 1000 / F2 900) → implausible for /i/.
-    return _synthesize_vowel_wav(1000.0, 900.0, 2100.0)
+    """Off-target signal (F1 1000 / F2 900), SELF-VERIFYING as IMPLAUSIBLE for /i/:
+    at least one extracted formant must fall OUTSIDE the /i/ AmE-men range, so the
+    422-rejection test truly exercises the gate."""
+    wav = _synthesize_vowel_wav(1000.0, 900.0, 2100.0)
+    ref_pct = {"F1": (342, 0.12), "F2": (2322, 0.10), "F3": (3000, 0.08)}
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tf:
+        tf.write(wav)
+        _p = tf.name
+    try:
+        _meas = _measure_all_ceilings(_p)
+    finally:
+        os.unlink(_p)
+    assert _meas, "SELF-CHECK: synth produced unmeasurable audio"
+    _win = next((c["windows"][0] for c in _meas["ceilings"] if c["windows"]), None)
+    assert _win, "SELF-CHECK: synth produced no usable window"
+    _out = any(
+        not (_mean - 3 * _mean * _pct <= _win[_k] <= _mean + 3 * _mean * _pct)
+        for _k, (_mean, _pct) in ref_pct.items()
+    )
+    assert _out, (
+        f"SELF-CHECK FAILED: off-target synth {_win} is fully INSIDE the /i/ range — "
+        f"it is not implausible, the 422 test would prove nothing."
+    )
+    return wav
 
 
 # --------------------------------------------------------------------------- #
