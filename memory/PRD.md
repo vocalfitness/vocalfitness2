@@ -12,6 +12,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 17/07/2026 · FASE 2 · Expert Mode diagnostica FormantPath (solo diagnostica) — DONE ✅ (testing agent 45/45)
+
+- **Scopo**: capire perché il tracker oscilla tra regimi di misura su /æ/ identici (F1 573-897, F3 2160-3273). Nessuna modifica a scoring/riferimenti/UI di scoring.
+- **Backend**: la risposta di `analyze-formants` include ora `diagnostics` con: `max_num_formants`, `ceiling_range_tested_hz` [5500,5000,4500], `ceiling_selected_hz`, `candidate_formants` (top-6 finestre con start/end ms + F1/F2/F3 + SD + plausibile), `nucleus_window_ms` (start/end), `reliable`, `attempts` per-ceiling. Log strutturato `analyze-formants[expert]:` (INFO se reliable, WARNING se unreliable — così l'oscillazione è tracciabile anche sui 422). `diagnostics` è top-level, non inquina `student_formants`.
+- **Frontend** (`FormantScorePanel`): pannello **Expert Mode** nascosto di default (toggle `expert-mode-toggle`), mostra parametri FormantPath, tentativi per ceiling, tabella finestre candidate pre-selezione e finestra nucleo.
+- Testing agent 45/45 PASS, nessuna regressione sullo scoring.
+
+
+
 ### 16/07/2026 · FASE 2 · Fix fallback silenzioso su misure implausibili — DONE ✅ (testing agent 35/35)
 
 - **Problema**: quando nessuna finestra passava il controllo F1≤900Hz, il codice ripiegava silenziosamente sulla finestra a minima varianza (F1 implausibile) e la punteggiava come valida — nessun flag. Riprodotto: stesso /iː/, 343Hz (73/B1) vs 933Hz (16/A1).
