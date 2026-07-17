@@ -174,6 +174,24 @@ export const FormantScorePanel = ({ result }) => {
                 </div>
               )}
 
+              {/* PUNTO D/E — scoring curve k + per-formant weights */}
+              {(diagnostics.formant_weights || diagnostics.scoring_curve) && (
+                <div data-testid="expert-scoring">
+                  <p className="text-slate-500 mb-1">
+                    Curva punteggio: gaussiana · k = <span className="text-fuchsia-300">{diagnostics.scoring_curve?.k}</span>
+                    {diagnostics.rhotic ? ' · fonema rotico' : ''}
+                  </p>
+                  {diagnostics.formant_weights && (
+                    <div className="pl-2 text-slate-400" data-testid="expert-weights">
+                      Pesi: {['F1', 'F2', 'F3']
+                        .filter((k) => diagnostics.formant_weights[k] != null)
+                        .map((k) => `${k} ${Math.round(diagnostics.formant_weights[k] * 100)}%`)
+                        .join(' · ')}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Retry attempts per ceiling */}
               {Array.isArray(diagnostics.attempts) && diagnostics.attempts.length > 0 && (
                 <div data-testid="expert-attempts">

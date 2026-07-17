@@ -32,6 +32,7 @@ Validation (FIX A2 + PROBLEMA B)
 from __future__ import annotations
 
 import os
+import math
 import logging
 import tempfile
 import statistics
@@ -320,28 +321,53 @@ def _build_diagnostics(meas: dict, ranges: dict, sel: dict, reliable: bool) -> d
 
 
 def _score_gop(measured: float, mean: float, sd: float, tol_sd: float = 2.5) -> float:
-    """GOP score 0-100: 100 at the native mean, 0 at ±``tol_sd`` SD.
-
-    Tolerance widened to ±2.5 SD (from ±2 SD) because the native reference
-    corpora (Hillenbrand 1995 / Deterding 1997) are studio recordings, while
-    students record on consumer microphones in untreated rooms.
-    """
+    """DEPRECATED (kept for unit tests). Legacy linear GOP score. Production
+    scoring now uses ``_score_gaussian`` (PUNTO D)."""
     if not measured or not mean or not sd:
         return 0.0
     z = abs(measured - mean) / sd
     return round(max(0.0, min(100.0, 100.0 * (1.0 - z / tol_sd))), 1)
 
 
-# Composite weighting. F1 (vowel height) sits in the low-frequency band most
-# corrupted by consumer-mic low-end roll-off and room modes, so it is weighted
-# down relative to F2/F3 to avoid a single unreliable formant tanking the score.
-_W_WITH_F3 = {"F1": 0.15, "F2": 0.425, "F3": 0.425}
-_W_NO_F3 = {"F1": 0.35, "F2": 0.65}
+# ---- PUNTO D: deviation → score curve (gaussian) ---- #
+# score = 100·exp(−GAUSSIAN_K·d²) with d = |measured − reference| / SD, where SD
+# is the SAME per-phoneme/per-group dispersion used by the ±3·SD plausibility
+# gate (read from ``ranges[k]["sd_used"]`` — single source of truth). A gaussian
+# (not linear) is the correct shape for a distance from a distribution: small
+# deviations near the native mean barely cost, large ones cost steeply. d > 3
+# is already rejected upstream (PROBLEMA B), so no score is produced there.
+# GAUSSIAN_K is the ONLY tunable knob: raise (0.25) for stricter, lower (0.15)
+# for more lenient. Exposed as a named constant on purpose.
+GAUSSIAN_K = 0.20
 
 
-def _weighted_composite(per_formant: list) -> float:
+def _score_gaussian(measured: float, ref: float, sd: float) -> float:
+    if not measured or not ref or not sd:
+        return 0.0
+    d = abs(measured - ref) / sd
+    return round(100.0 * math.exp(-GAUSSIAN_K * d * d), 1)
+
+
+# ---- PUNTO E: per-phoneme formant weighting ---- #
+# F3 is the acoustic correlate of rhoticity. On a NON-rhotic vowel F3 carries no
+# distinctive phonemic information, so it is down-weighted; on an r-coloured
+# vowel it is the defining cue and dominates. RP/Deterding has no F3 → F1+F2
+# only. Weights are named + per-phoneme configurable (to be tuned on data).
+RHOTIC_IPA = {"ɝ", "ɚ", "ɹ", "ɜɹ", "ɑɹ", "ɔɹ", "ɪɹ", "ɛɹ", "ʊɹ", "ɝː"}
+_WEIGHTS_NONRHOTIC = {"F1": 0.45, "F2": 0.45, "F3": 0.10}
+_WEIGHTS_RHOTIC = {"F1": 0.25, "F2": 0.25, "F3": 0.50}
+_WEIGHTS_NO_F3 = {"F1": 0.50, "F2": 0.50}
+
+
+def _formant_weights(phoneme_ipa: str, present: set) -> dict:
+    if "F3" not in present:
+        return dict(_WEIGHTS_NO_F3)
+    return dict(_WEIGHTS_RHOTIC if phoneme_ipa in RHOTIC_IPA else _WEIGHTS_NONRHOTIC)
+
+
+def _weighted_composite(per_formant: list, phoneme_ipa: str = "") -> float:
     present = {p["name"] for p in per_formant}
-    weights = _W_WITH_F3 if "F3" in present else _W_NO_F3
+    weights = _formant_weights(phoneme_ipa, present)
     total_w = sum(weights.get(p["name"], 0.0) for p in per_formant)
     if total_w <= 0:
         return round(sum(p["score"] for p in per_formant) / len(per_formant), 1)
@@ -607,35 +633,33 @@ def build_phoneme_formants_router(
             )
         logging.info("analyze-formants[expert]: %s", diagnostics)
 
-        # ---- Score ---- #
+        # ---- Score (PUNTO D gaussian curve + PUNTO E per-phoneme weights) ---- #
+        # Single source of truth: both the score and the plausibility gate read
+        # the SAME per-formant SD from ``ranges[k]["sd_used"]`` (no divergent path).
         per_formant = []
         dispersion_sources = set()
-        if ref_source == "dataset":
-            for k in ("F1", "F2", "F3"):
-                m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
-                meas_v = student.get(k)
-                if m and meas_v:
-                    per_formant.append({
-                        "name": k, "measured": meas_v, "reference": m,
-                        "score": _score_gop(meas_v, m, sd),
-                        "hint": _direction_hint(k, meas_v, m),
-                    })
-                    dispersion_sources.add(ranges.get(k, {}).get("sd_source"))
-        else:
-            for k in ("F1", "F2", "F3"):
-                m, meas_v = teacher_ref.get(k), student.get(k)
-                if m and meas_v:
-                    per_formant.append({
-                        "name": k, "measured": meas_v, "reference": m,
-                        "score": _score_relative(meas_v, m),
-                        "hint": _direction_hint(k, meas_v, m),
-                    })
-                    dispersion_sources.add("teacher_estimate")
+        for k in ("F1", "F2", "F3"):
+            r = ranges.get(k)
+            meas_v = student.get(k)
+            if r and meas_v:
+                per_formant.append({
+                    "name": k, "measured": meas_v, "reference": r["ref"],
+                    "score": _score_gaussian(meas_v, r["ref"], r["sd_used"]),
+                    "hint": _direction_hint(k, meas_v, r["ref"]),
+                })
+                dispersion_sources.add(r["sd_source"])
 
         if not per_formant:
             raise HTTPException(status_code=422, detail="Confronto formanti non disponibile.")
 
-        composite = _weighted_composite(per_formant)
+        present = {p["name"] for p in per_formant}
+        weights = _formant_weights(phoneme_ipa, present)
+        composite = _weighted_composite(per_formant, phoneme_ipa)
+        # Expose the scoring knobs in Expert Mode (PUNTO D/E): the k of the
+        # gaussian curve and the per-formant weights actually applied.
+        diagnostics["scoring_curve"] = {"model": "gaussian", "k": GAUSSIAN_K}
+        diagnostics["formant_weights"] = {p["name"]: weights.get(p["name"]) for p in per_formant}
+        diagnostics["rhotic"] = phoneme_ipa in RHOTIC_IPA
         # Dispersion provenance for an honest, dynamic footer (PUNTO C):
         #   'published'  → all scored formants used a real dataset SD
         #   'estimated'  → at least one used the pooled % estimate
@@ -648,10 +672,11 @@ def build_phoneme_formants_router(
             dispersion_source = "estimated"
 
         logging.info(
-            "analyze-formants: source=%s group=%s per_formant=%s composite=%s dispersion=%s",
+            "analyze-formants: source=%s group=%s per_formant=%s composite=%s "
+            "weights=%s dispersion=%s",
             ref_source, ref_group,
             [(p["name"], p["measured"], p["reference"], p["score"]) for p in per_formant],
-            composite, dispersion_source,
+            composite, weights, dispersion_source,
         )
         return {
             "phoneme_ipa": phoneme_ipa,

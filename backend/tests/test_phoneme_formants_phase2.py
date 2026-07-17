@@ -329,6 +329,43 @@ class TestRegressionDatasetPhoneme:
 # BUG 3 FIX unit tests on pure helpers (no HTTP, no DB, no audio).            #
 # --------------------------------------------------------------------------- #
 from routers.phoneme_formants import _score_gop, _weighted_composite  # noqa: E402
+from routers.phoneme_formants import _score_gaussian, GAUSSIAN_K  # noqa: E402
+
+
+class TestPuntoDGaussianCurve:
+    """PUNTO D — score = 100·exp(−k·d²), d = |measured−ref|/SD, k=GAUSSIAN_K.
+
+    Reference table (k=0.20): d=0→100, 0.5→95, 1.0→82, 1.5→64, 2.0→45,
+    2.5→29, 3.0→~17. Small deviations near the mean cost little; large ones
+    cost steeply.
+    """
+
+    def test_k_default_is_0_20(self):
+        assert GAUSSIAN_K == 0.20
+
+    def test_score_at_mean_is_100(self):
+        assert _score_gaussian(588, 588, 71) == 100.0
+
+    @pytest.mark.parametrize("d,expected", [
+        (0.5, 95.0), (1.0, 82.0), (1.5, 64.0),
+        (2.0, 45.0), (2.5, 29.0),
+    ])
+    def test_curve_matches_reference_table(self, d, expected):
+        ref, sd = 1000.0, 100.0
+        measured = ref + d * sd
+        score = _score_gaussian(measured, ref, sd)
+        assert abs(score - expected) <= 1.0, (
+            f"d={d}: expected ≈{expected}, got {score}"
+        )
+
+    def test_small_deviation_barely_costs(self):
+        # /æ/ F1: measured 615, ref 588, sd 71 → d≈0.38 → ≈97 (was ~85 linear).
+        score = _score_gaussian(615, 588, 71)
+        assert 96.0 <= score <= 98.0, f"0.38 SD should give ≈97, got {score}"
+
+    def test_gaussian_more_lenient_near_center_than_old_linear(self):
+        # Near the center the gaussian must be MORE generous than the old linear GOP.
+        assert _score_gaussian(615, 588, 71) > _score_gop(615, 588, 71)
 
 
 class TestBug3Fix2ScoreGopWiderTolerance:
@@ -372,41 +409,48 @@ class TestBug3Fix2ScoreGopWiderTolerance:
 
 
 class TestBug3Fix3WeightedComposite:
-    """FIX 3 — _weighted_composite must NOT be a plain mean.
+    """PUNTO E — _weighted_composite uses PER-PHONEME weights (not a plain mean).
 
-    Weights: F1=0.15, F2=0.425, F3=0.425 (with F3), F1=0.35, F2=0.65 (no F3).
-    Critical assertion: [F1=0, F2=59, F3=88] weighted composite ≈ 62.5 (>=60),
-    not 49 (the old plain mean).
+    Non-rhotic vowel (default): F1=0.45, F2=0.45, F3=0.10.
+    Rhotic vowel (/ɝ/, /ɚ/, ...): F1=0.25, F2=0.25, F3=0.50.
+    No F3 (RP/Deterding): F1=0.50, F2=0.50.
     """
 
-    def test_composite_with_f3_matches_expected_weights(self):
+    def test_composite_nonrhotic_with_f3_weights(self):
         per_formant = [
             {"name": "F1", "score": 0},
             {"name": "F2", "score": 59},
             {"name": "F3", "score": 88},
         ]
-        result = _weighted_composite(per_formant)
-        # Expected: 0*0.15 + 59*0.425 + 88*0.425 = 25.075 + 37.4 = 62.475 → 62.5
-        assert result >= 60.0, (
-            f"BUG-3 REGRESSION: composite for [0,59,88] must be >=60, got {result}"
-        )
-        assert 62.0 <= result <= 63.0, (
-            f"Expected ≈ 62.5 with F1=0.15,F2=0.425,F3=0.425, got {result}"
+        # Non-rhotic /æ/: 0*0.45 + 59*0.45 + 88*0.10 = 26.55 + 8.8 = 35.35 → 35.4
+        result = _weighted_composite(per_formant, "æ")
+        assert 35.0 <= result <= 35.7, (
+            f"Non-rhotic weights (0.45/0.45/0.10) for [0,59,88] should give ≈35.4, got {result}"
         )
 
-    def test_plain_mean_would_be_49(self):
-        """Sanity check: the OLD (broken) plain mean of [0,59,88] is 49."""
-        scores = [0, 59, 88]
-        assert round(sum(scores) / len(scores)) == 49
+    def test_composite_rhotic_f3_dominates(self):
+        per_formant = [
+            {"name": "F1", "score": 0},
+            {"name": "F2", "score": 0},
+            {"name": "F3", "score": 90},
+        ]
+        # Rhotic /ɝ/: 0*0.25 + 0*0.25 + 90*0.50 = 45.0
+        result = _weighted_composite(per_formant, "ɝ")
+        assert 44.5 <= result <= 45.5, (
+            f"Rhotic weights (0.25/0.25/0.50) for [0,0,90] should give ≈45, got {result}"
+        )
+        # And F3 must matter MORE for a rhotic than a non-rhotic phoneme.
+        assert _weighted_composite(per_formant, "ɝ") > _weighted_composite(per_formant, "æ"), (
+            "F3 must weigh more on a rhotic vowel than on a non-rhotic one"
+        )
 
-    def test_composite_no_f3_uses_f1_035_f2_065(self):
-        # Weights without F3: F1=0.35, F2=0.65.
-        # For [F1=0, F2=100] → 0*0.35 + 100*0.65 = 65.0
+    def test_composite_no_f3_uses_50_50(self):
+        # No F3 (RP): F1=0.50, F2=0.50. For [F1=0, F2=100] → 50.0
         per_formant = [
             {"name": "F1", "score": 0},
             {"name": "F2", "score": 100},
         ]
-        assert _weighted_composite(per_formant) == 65.0
+        assert _weighted_composite(per_formant, "iː") == 50.0
 
     def test_composite_all_100_is_100(self):
         per_formant = [
@@ -414,10 +458,10 @@ class TestBug3Fix3WeightedComposite:
             {"name": "F2", "score": 100},
             {"name": "F3", "score": 100},
         ]
-        assert _weighted_composite(per_formant) == 100.0
+        assert _weighted_composite(per_formant, "æ") == 100.0
 
     def test_composite_ge_60_maps_to_at_least_B1(self):
-        """FIX 3 side effect: >=60 composite must map to CEFR B1 or better."""
+        """>=60 composite must map to CEFR B1 or better."""
         from routers.phoneme_formants import _cefr_band
         band = _cefr_band(62.5)["band"]
         # B1 / B2 / C1–C2 are all acceptable (not A1/A2).
@@ -1622,7 +1666,8 @@ class TestExpertDiagnosticsNoScoringRegression:
     scoring/reference behaviour. Verify:
       * normal /ʊ/ still returns reference_source='dataset', composite_score,
         cefr band, per_formant with the DATASET reference means (unchanged);
-      * _weighted_composite([{'F1':0},{'F2':59},{'F3':88}]) still == 62.5;
+      * _weighted_composite([{'F1':0},{'F2':59},{'F3':88}], non-rhotic) ≈ 35.4
+        (PUNTO E per-phoneme weights);
       * word target on /ʊ/ still uses dataset;
       * consent gate still 403 without audio consent.
     """
@@ -1653,14 +1698,16 @@ class TestExpertDiagnosticsNoScoringRegression:
                 f"/ʊ/ AmE group={group}."
             )
 
-    def test_weighted_composite_still_62_5(self):
+    def test_weighted_composite_punto_e_nonrhotic(self):
+        # PUNTO E: non-rhotic weights F1=0.45/F2=0.45/F3=0.10.
+        # [0,59,88] → 0*0.45 + 59*0.45 + 88*0.10 = 35.35 → 35.4
         result = _weighted_composite([
             {"name": "F1", "score": 0},
             {"name": "F2", "score": 59},
             {"name": "F3", "score": 88},
-        ])
-        assert 62.0 <= result <= 63.0, (
-            f"_weighted_composite([0,59,88]) must still ≈ 62.5, got {result}"
+        ], "æ")
+        assert 35.0 <= result <= 35.7, (
+            f"_weighted_composite([0,59,88], non-rhotic) must ≈ 35.4, got {result}"
         )
 
     def test_word_target_u_still_uses_dataset(self, auth_headers):

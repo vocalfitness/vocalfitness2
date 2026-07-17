@@ -2323,3 +2323,37 @@ backend/
 - P1: Codificare le SD pubblicate reali di Hillenbrand/Deterding (task dati) → footer
   passerà automaticamente a `dispersion_source='published'`.
 - P1: Fase 3 forced alignment — decisione utente su torchaudio MMS vs Charsiu.
+
+---
+
+## [2026-07-17] Fase 2 — PUNTO D (curva gaussiana) + PUNTO E (pesatura per-fonema)
+
+### PUNTO D — curva deviazione→punteggio (`phoneme_formants.py`)
+- Nuova `_score_gaussian(measured, ref, sd)`: `score = 100·exp(−GAUSSIAN_K·d²)`, `d = |misura−rif|/SD`.
+- `GAUSSIAN_K = 0.20` costante nominata e tarabile (0.25 più severa / 0.15 più generosa).
+- Tabella verificata: d=0→100, 0.5→95, 1.0→82, 1.5→64, 2.0→45, 2.5→29.
+- **SD unificata**: la curva e il check di plausibilità (±3·SD) leggono ORA la stessa
+  `ranges[k]["sd_used"]` (prima erano due strade separate `best[F*_sd]` vs `ranges`).
+- `_score_gop`/`_score_relative` conservate solo come utility legacy (non più usate in produzione).
+
+### PUNTO E — pesatura per-fonema
+- `_formant_weights(phoneme_ipa, present)` + `RHOTIC_IPA`:
+  - non-rotiche: F1 45 / F2 45 / F3 10
+  - rotiche (ɝ, ɚ, ɹ, …): F1 25 / F2 25 / F3 50
+  - senza F3 (RP/Deterding): F1 50 / F2 50
+- Costanti nominate e configurabili per fonema.
+
+### Expert Mode / trasparenza
+- `diagnostics.scoring_curve {model:'gaussian', k}`, `diagnostics.formant_weights`, `diagnostics.rhotic`
+  esposti in risposta e mostrati nel pannello Expert Mode del frontend.
+
+### Verifica
+- Unit: `TestPuntoDGaussianCurve` (tabella curva), `TestBug3Fix3WeightedComposite` (pesi per-fonema).
+- E2E /æ/ GenAm: F1 625/588→94.7, F2 1931/1952→99.8, F3 2047/2601→24.2, pesi 45/45/10,
+  composite 89.9 (B2) — l'F3 mis-tracciato pesa solo 10% e non fa crollare il punteggio.
+- Suite completa: **66 passed, 1 skipped, 1 xfailed**.
+- Vincolo rispettato: NON toccati riferimenti, SD, range plausibilità, check stabilità, footer.
+
+### Nota manutenzione
+- Fixture iter38 `plausible_i_wav`/`implausible_wav` resi deterministici (sintesi diretta, niente
+  dipendenza da file /tmp effimeri che rendeva i test non riproducibili).

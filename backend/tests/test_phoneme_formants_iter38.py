@@ -112,14 +112,16 @@ def ensure_audio_consent(headers):
 
 @pytest.fixture(scope="module")
 def plausible_i_wav() -> bytes:
-    # Existing /tmp/vowel.wav OR synth /i/ AmE men-ish (F1 280, F2 2250, F3 2900)
-    return _load_or_synth("/tmp/vowel.wav", 280.0, 2250.0, 2900.0)
+    # Deterministic synthetic /i/ AmE-men whose extracted formants land inside
+    # the /i/ plausibility range with margin (F1≈388, F2≈1922, F3≈2411). NOTE:
+    # do NOT load a leftover /tmp file — that made the fixture non-reproducible.
+    return _synthesize_vowel_wav(300.0, 2400.0, 3400.0)
 
 
 @pytest.fixture(scope="module")
 def implausible_wav() -> bytes:
-    # Existing /tmp/bad.wav OR synth off-target (F1 1000, F2 900, F3 2100).
-    return _load_or_synth("/tmp/bad.wav", 1000.0, 900.0, 2100.0)
+    # Deterministic off-target signal (F1 1000 / F2 900) → implausible for /i/.
+    return _synthesize_vowel_wav(1000.0, 900.0, 2100.0)
 
 
 # --------------------------------------------------------------------------- #
