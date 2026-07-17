@@ -113,38 +113,41 @@ def ensure_audio_consent(headers):
     _grant(headers, "video", True)
 
 
+FIXTURE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
+REAL_I_WAV = os.path.join(FIXTURE_DIR, "vowel_i.wav")
+
+
 @pytest.fixture(scope="module")
 def plausible_i_wav() -> bytes:
-    """Synthetic /i/ AmE-men, SELF-VERIFYING.
+    """REAL human /iː/ recording committed at backend/tests/fixtures/vowel_i.wav
+    (mono 16 kHz WAV). This is a deterministic regression INPUT, not the method's
+    phonetic ground truth: it only has to be (a) identical every run and (b) a
+    genuine /i/ (not a 3-resonator toy whose F2≈1922 Hz is really /ɪ/~/e/).
 
-    The synth targets are an INPUT, not a guarantee: the fixture immediately
-    re-extracts the formants with the PRODUCTION pipeline (_measure_all_ceilings)
-    and asserts they fall inside the /i/ AmE-men plausibility range. So the test
-    that consumes this fixture genuinely exercises the plausibility GATE — if the
-    synth (or the extractor) ever drifts so the audio is no longer a plausible
-    /i/, THIS fixture fails loudly at setup instead of silently testing nothing.
-    Do NOT retune the synth to make a downstream test pass; fix the real cause.
+    SELF-VERIFYING: the fixture re-extracts the formants with the PRODUCTION
+    pipeline and asserts they fall inside the /i/ AmE-men plausibility range, so
+    the consuming test truly exercises the plausibility GATE. If the recording is
+    missing, the dependent tests SKIP with a clear message (never silently pass).
+    TTS clips (ElevenLabs/OpenAI) are NOT acceptable here — a real vocal tract only.
     """
-    wav = _synthesize_vowel_wav(300.0, 2400.0, 3400.0)
-    # /i/ AmE-men reference means (Hillenbrand) ± 3·(pooled % SD) — the SAME
-    # range the production plausibility gate uses.
+    if not os.path.exists(REAL_I_WAV):
+        pytest.skip(
+            f"Missing real /iː/ recording at {REAL_I_WAV}. Commit a mono 16 kHz WAV "
+            f"of a human saying /iː/ (any quality, just a genuine /i/)."
+        )
+    with open(REAL_I_WAV, "rb") as fh:
+        wav = fh.read()
     ref_pct = {"F1": (342, 0.12), "F2": (2322, 0.10), "F3": (3000, 0.08)}
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tf:
-        tf.write(wav)
-        _p = tf.name
-    try:
-        _meas = _measure_all_ceilings(_p)
-    finally:
-        os.unlink(_p)
-    assert _meas, "SELF-CHECK: synth produced unmeasurable audio"
+    _meas = _measure_all_ceilings(REAL_I_WAV)
+    assert _meas, f"SELF-CHECK: {REAL_I_WAV} is unmeasurable"
     _win = next((c["windows"][0] for c in _meas["ceilings"] if c["windows"]), None)
-    assert _win, "SELF-CHECK: synth produced no usable window"
+    assert _win, f"SELF-CHECK: {REAL_I_WAV} yields no usable window"
     for _k, (_mean, _pct) in ref_pct.items():
         _lo, _hi = _mean - 3 * _mean * _pct, _mean + 3 * _mean * _pct
         assert _lo <= _win[_k] <= _hi, (
-            f"SELF-CHECK FAILED: synth /i/ {_k}={_win[_k]} is OUTSIDE the /i/ AmE-men "
-            f"range [{round(_lo)},{round(_hi)}]. This fixture is not a genuinely "
-            f"plausible /i/ — fix the synth or the extractor, do NOT weaken the gate."
+            f"SELF-CHECK FAILED: {os.path.basename(REAL_I_WAV)} {_k}={_win[_k]} is OUTSIDE "
+            f"the /i/ AmE-men range [{round(_lo)},{round(_hi)}]. The committed recording is "
+            f"not a plausible /i/ — re-record; do NOT weaken the gate."
         )
     return wav
 
