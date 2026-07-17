@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, Square, Save, Trash2, Loader2, AudioLines, Lock, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
+import { Mic, Square, Save, Trash2, Loader2, AudioLines, Lock, RotateCcw, ShieldCheck, Sparkles, FlaskConical, ChevronDown } from 'lucide-react';
 import SpectrogramView from './SpectrogramView';
 import FormantScorePanel from './FormantScorePanel';
 import ConsentDialog from './ConsentDialog';
@@ -62,6 +62,8 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzeError, setAnalyzeError] = useState('');
+  const [analyzeExpert, setAnalyzeExpert] = useState(null);
+  const [showRejectExpert, setShowRejectExpert] = useState(false);
 
   const MAX_SECONDS = 10;
   const mediaRecorderRef = useRef(null);
@@ -137,6 +139,7 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
     setAnalyzing(true);
     setAnalyzeError('');
     setAnalysis(null);
+    setAnalyzeExpert(null);
     try {
       const wav = await blobToWav(blobRef.current);
       const fd = new FormData();
@@ -151,7 +154,15 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
         body: fd,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Analisi non riuscita');
+      if (!res.ok) {
+        // 422 may carry a structured detail: { message, reason, expert }.
+        const d = data.detail;
+        if (d && typeof d === 'object') {
+          if (d.expert) setAnalyzeExpert(d.expert);
+          throw new Error(d.message || 'Analisi non riuscita');
+        }
+        throw new Error(d || 'Analisi non riuscita');
+      }
       setAnalysis(data);
     } catch (e) {
       setAnalyzeError(e.message || 'Analisi non riuscita.');
@@ -165,6 +176,7 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
     setSaved(false);
     setAnalysis(null);
     setAnalyzeError('');
+    setAnalyzeExpert(null);
     // GDPR gate: logged-in users must grant audio consent first.
     if (isLoggedIn && !consent.audio_granted) {
       setShowConsent(true);
@@ -431,7 +443,70 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
         </div>
       )}
       {analyzeError && !analyzing && (
-        <p className="mt-4 text-center text-[12px] text-rose-300" data-testid="formant-error">{analyzeError}</p>
+        <div className="mt-4" data-testid="formant-error-wrap">
+          <p className="text-center text-[12px] text-rose-300" data-testid="formant-error">{analyzeError}</p>
+          {analyzeExpert && (
+            <div className="mt-3 max-w-2xl mx-auto rounded-xl border border-fuchsia-500/20 bg-slate-950/60 p-3" data-testid="reject-expert-section">
+              <button
+                type="button"
+                onClick={() => setShowRejectExpert((v) => !v)}
+                data-testid="reject-expert-toggle"
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-fuchsia-300/80 hover:text-fuchsia-200 transition-colors"
+              >
+                <FlaskConical className="w-3.5 h-3.5" /> Expert Mode · dettaglio rifiuto
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showRejectExpert ? 'rotate-180' : ''}`} />
+              </button>
+              {showRejectExpert && (
+                <div className="mt-3 font-mono text-[11px] text-slate-300 space-y-3" data-testid="reject-expert-panel">
+                  <p className="text-slate-500">
+                    Ceiling selezionato: <span className="text-fuchsia-300">{analyzeExpert.ceiling_selected_hz || '—'} Hz</span>
+                    {' · '}affidabile: <span className="text-rose-300">no</span>
+                  </p>
+                  {analyzeExpert.nucleus_sd_hz && Object.keys(analyzeExpert.nucleus_sd_hz).length > 0 && (
+                    <div>
+                      <p className="text-slate-500 mb-1">SD finestra-nucleo (Hz) · soglia:</p>
+                      {['F1', 'F2', 'F3'].filter((k) => analyzeExpert.nucleus_sd_hz[k] != null).map((k) => {
+                        const sd = analyzeExpert.nucleus_sd_hz[k];
+                        const thr = (analyzeExpert.nucleus_sd_thresholds_hz || {})[k];
+                        const ok = thr == null || sd <= thr;
+                        return (
+                          <div key={k} className={`pl-2 ${ok ? 'text-slate-400' : 'text-rose-300'}`} data-testid={`reject-sd-${k}`}>
+                            {k}: SD {sd} (≤ {thr}) {ok ? '✓' : '✕ instabile'}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {analyzeExpert.plausibility_range_hz && (
+                    <div>
+                      <p className="text-slate-500 mb-1">Range plausibilità (rif ± 3·SD):</p>
+                      {['F1', 'F2', 'F3'].filter((k) => analyzeExpert.plausibility_range_hz[k]).map((k) => {
+                        const r = analyzeExpert.plausibility_range_hz[k];
+                        return (
+                          <div key={k} className="pl-2 text-slate-400" data-testid={`reject-range-${k}`}>
+                            {k}: {r.min}–{r.max} Hz (rif {r.ref}, SD {r.sd_used} · {r.sd_source})
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {Array.isArray(analyzeExpert.attempts) && analyzeExpert.attempts.length > 0 && (
+                    <div data-testid="reject-attempts">
+                      <p className="text-slate-500 mb-1">Tentativi per ceiling:</p>
+                      {analyzeExpert.attempts.map((a, i) => (
+                        <div key={i} className="pl-2 text-slate-400">
+                          {a.ceiling_hz} Hz → {a.result === 'no_usable_window'
+                            ? 'nessuna finestra utile'
+                            : `F1=${a.F1} F2=${a.F2} F3=${a.F3} · ${a.plausible ? 'plausibile' : 'IMPLAUSIBILE'}`}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
       {analysis && !analyzing && <FormantScorePanel result={analysis} />}
       {recordedUrl && !recording && isLoggedIn && consent.audio_granted && !analyzing && (

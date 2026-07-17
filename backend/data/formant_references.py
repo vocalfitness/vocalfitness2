@@ -74,6 +74,12 @@ def _row(ipa, dialect, group, f1, f2, f3, cite):
         "F1_mean": f1, "F1_sd": sd(f1, 0.12),
         "F2_mean": f2, "F2_sd": sd(f2, 0.10),
         "F3_mean": f3, "F3_sd": sd(f3, 0.08),
+        # Provenance of the SDs above. Currently the per-vowel SDs are pooled
+        # estimates (fractions of the mean), NOT the SDs published in the source
+        # papers — so the scoring/plausibility dispersion is flagged as
+        # 'estimated_pooled' for an honest, dynamic citation footer. When the
+        # real published SDs are encoded, switch this to 'published'.
+        "sd_source": "estimated_pooled",
         "source_citation": cite,
     }
 

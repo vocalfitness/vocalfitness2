@@ -117,6 +117,63 @@ export const FormantScorePanel = ({ result }) => {
                 </span>
               </div>
 
+              {/* FIX A2 — per-formant nucleus SD vs threshold (always shown) */}
+              {diagnostics.nucleus_sd_hz && Object.keys(diagnostics.nucleus_sd_hz).length > 0 && (
+                <div data-testid="expert-nucleus-sd">
+                  <p className="text-slate-500 mb-1">SD finestra-nucleo (Hz) · soglia stabilità:</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="text-slate-600">
+                        <tr><th className="pr-3">form.</th><th className="pr-3">SD</th><th className="pr-3">soglia</th><th>stato</th></tr>
+                      </thead>
+                      <tbody>
+                        {['F1', 'F2', 'F3'].filter((k) => diagnostics.nucleus_sd_hz[k] != null).map((k) => {
+                          const sd = diagnostics.nucleus_sd_hz[k];
+                          const thr = (diagnostics.nucleus_sd_thresholds_hz || {})[k];
+                          const ok = thr == null || sd <= thr;
+                          return (
+                            <tr key={k} className={ok ? '' : 'text-rose-300'} data-testid={`expert-nucleus-sd-${k}`}>
+                              <td className="pr-3 font-bold">{k}</td>
+                              <td className="pr-3">{sd}</td>
+                              <td className="pr-3 text-slate-500">≤ {thr}</td>
+                              <td>{ok ? '✓ stabile' : '✕ instabile'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* PROBLEMA B — per-formant plausibility range (ref ± 3·SD) */}
+              {diagnostics.plausibility_range_hz && Object.keys(diagnostics.plausibility_range_hz).length > 0 && (
+                <div data-testid="expert-plausibility-range">
+                  <p className="text-slate-500 mb-1">Range plausibilità (|misura − rif| ≤ 3·SD):</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="text-slate-600">
+                        <tr><th className="pr-3">form.</th><th className="pr-3">rif.</th><th className="pr-3">SD</th><th className="pr-3">range (Hz)</th><th>fonte SD</th></tr>
+                      </thead>
+                      <tbody>
+                        {['F1', 'F2', 'F3'].filter((k) => diagnostics.plausibility_range_hz[k]).map((k) => {
+                          const r = diagnostics.plausibility_range_hz[k];
+                          return (
+                            <tr key={k} data-testid={`expert-plausibility-${k}`}>
+                              <td className="pr-3 font-bold">{k}</td>
+                              <td className="pr-3">{r.ref}</td>
+                              <td className="pr-3">{r.sd_used}</td>
+                              <td className="pr-3">{r.min} – {r.max}</td>
+                              <td className="text-slate-500">{r.sd_source}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* Retry attempts per ceiling */}
               {Array.isArray(diagnostics.attempts) && diagnostics.attempts.length > 0 && (
                 <div data-testid="expert-attempts">
@@ -162,14 +219,24 @@ export const FormantScorePanel = ({ result }) => {
       )}
 
       {/* Citation */}
-      <p className="mt-5 pt-4 border-t border-slate-800 text-[10px] text-slate-500 leading-relaxed" data-testid="formant-citation">
-        Valori di riferimento: {reference_source === 'dataset'
-          ? `${citation}${reference_group ? ` · gruppo: ${reference_group}` : ''}`
-          : citation}
-        <br />
-        Fasce ispirate ai descrittori CEFR "Sound Articulation" (Consiglio d'Europa · CEFR Companion Volume, Piccardo 2016).
-        Metodologia Vocal Fitness — non è una certificazione CEFR ufficiale.
-      </p>
+      <div className="mt-5 pt-4 border-t border-slate-800 text-[10px] text-slate-500 leading-relaxed" data-testid="formant-citation">
+        <p>
+          Valori di riferimento: {reference_source === 'dataset'
+            ? `${citation}${reference_group ? ` · gruppo: ${reference_group}` : ''}`
+            : citation}
+        </p>
+        <p className="mt-1" data-testid="formant-dispersion-note">
+          {result.dispersion_source === 'published'
+            ? 'Dispersione (SD): Hillenbrand et al. (1995), per fonema e gruppo.'
+            : result.dispersion_source === 'teacher'
+              ? 'Riferimento: campione del Prof. Dapper (Fase 1) — sanity check, non dato accademico.'
+              : 'Dispersione (SD): stima interna Vocal Fitness (pooled ~F1 12% · F2 10% · F3 8%), non le SD pubblicate.'}
+        </p>
+        <p className="mt-1">
+          Fasce ispirate ai descrittori CEFR "Sound Articulation" (Consiglio d'Europa · CEFR Companion Volume, Piccardo 2016).
+          Metodologia Vocal Fitness — non è una certificazione CEFR ufficiale.
+        </p>
+      </div>
     </div>
   );
 };
