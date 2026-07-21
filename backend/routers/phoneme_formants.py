@@ -422,6 +422,205 @@ _MSG_UNSTABLE = (
 )
 
 
+# --------------------------------------------------------------------------- #
+# Reusable module-level scoring core (shared by the authenticated
+# /phonemes/analyze-formants endpoint AND the public /level-test/score
+# endpoint). Kept at module scope so it is import-friendly and picklable-safe.
+# --------------------------------------------------------------------------- #
+async def find_reference(db, phoneme_ipa: str, dialect: str) -> list[dict]:
+    candidates = _EQUIV.get(phoneme_ipa, [phoneme_ipa])
+    if phoneme_ipa not in candidates:
+        candidates = [phoneme_ipa] + candidates
+    for cand in candidates:
+        rows = await db.formant_references.find(
+            {"phoneme_ipa": cand, "dialect": dialect}, {"_id": 0}
+        ).to_list(length=10)
+        if rows:
+            return rows
+    return []
+
+
+async def fetch_and_extract(url: str) -> Optional[dict]:
+    """Download a (possibly relative) reference clip and extract its formants."""
+    full = f"http://localhost:8001{url}" if url.startswith("/") else url
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20) as client:
+            resp = await client.get(full)
+            resp.raise_for_status()
+            data = resp.content
+    except Exception:  # noqa: BLE001
+        return None
+    if not data:
+        return None
+    is_mp3 = full.lower().split("?")[0].endswith(".mp3")
+    src_ext = ".mp3" if is_mp3 else ".wav"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=src_ext) as tf:
+        tf.write(data)
+        src_path = tf.name
+    wav_path = None
+    try:
+        if is_mp3:
+            try:
+                snd = parselmouth.Sound(src_path)
+                wav_path = src_path + ".wav"
+                snd.save(wav_path, parselmouth.SoundFileFormat.WAV)
+                return _extract_formants(wav_path)
+            except Exception:  # noqa: BLE001
+                return _extract_formants(src_path)
+        return _extract_formants(src_path)
+    finally:
+        for p in (src_path, wav_path):
+            if p:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+
+
+def compute_formant_score(
+    meas: dict,
+    refs: list[dict],
+    phoneme_ipa: str,
+    dialect: str,
+    teacher_ref: Optional[dict] = None,
+) -> dict:
+    """Pure scoring core: given an already-computed measurement (`meas`), the
+    dataset reference rows (`refs`, may be empty) and an optional teacher clip
+    reference, resolve the speaker group, build plausibility ranges, select the
+    reliable window and score F1/F2/F3. Raises HTTPException on failure so both
+    callers surface identical, actionable errors."""
+    f0 = meas["f0_global"]
+    ref_source = None
+    ref_group = None
+    citation = ""
+    best = None
+    ranges: dict = {}
+    group_method = None
+    groups_available: list = []
+    group_refs: dict = {}
+
+    def _range(name, ref, sd_real, source):
+        if sd_real:
+            sd_used, sd_source = round(float(sd_real), 1), source
+        else:
+            sd_used, sd_source = round(ref * SD_EST_PCT[name], 1), "estimated_pct"
+        span = PLAUSIBILITY_SD_MULT * sd_used
+        return {"ref": ref, "sd_used": sd_used, "sd_source": sd_source,
+                "min": ref - span, "max": ref + span}
+
+    if refs:
+        def group_distance(r):
+            rough = next((c["windows"][0] for c in meas["ceilings"] if c["windows"]), {})
+            d, n = 0.0, 0
+            for k in ("F1", "F2", "F3"):
+                m, s = r.get(f"{k}_mean"), rough.get(k)
+                if m and s:
+                    d += abs(s - m) / m
+                    n += 1
+            return d / n if n else 9e9
+
+        if f0:
+            label = "men" if f0 < 165 else ("women" if f0 <= 255 else "children")
+            avail = {r["speaker_group"]: r for r in refs}
+            prefs = {
+                "men": ["men", "male"],
+                "women": ["women", "female"],
+                "children": ["children", "female", "women"],
+            }[label]
+            best = next((avail[g] for g in prefs if g in avail), None) or min(refs, key=group_distance)
+            group_method = "f0_threshold"
+        else:
+            best = min(refs, key=group_distance)
+            group_method = "formant_distance"
+        ref_group = best["speaker_group"]
+        citation = best["source_citation"]
+        ref_source = "dataset"
+        groups_available = [r["speaker_group"] for r in refs]
+        group_refs = {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs}
+        row_sd_source = best.get("sd_source", "estimated_pooled")
+        for k in ("F1", "F2", "F3"):
+            m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
+            if m:
+                ranges[k] = _range(k, m, sd, row_sd_source)
+    elif teacher_ref:
+        ref_source = "teacher_sample"
+        citation = "Campione di riferimento Prof. Dapper (Fase 1)"
+        for k in ("F1", "F2", "F3"):
+            m = teacher_ref.get(k)
+            if m:
+                ranges[k] = _range(k, m, None, "teacher_estimate")
+    else:
+        raise HTTPException(status_code=422, detail="Nessun riferimento disponibile per questo bersaglio.")
+
+    if not ranges:
+        raise HTTPException(status_code=422, detail="Confronto formanti non disponibile.")
+
+    sel = _select_measurement(meas["ceilings"], ranges)
+    if sel["status"] != "ok":
+        diag = _build_diagnostics(meas, ranges, sel, False)
+        reason = sel["status"]
+        logging.warning("compute_formant_score: REJECTED (%s) phoneme=%s dialect=%s expert=%s",
+                        reason, phoneme_ipa, dialect, diag)
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": _MSG_IMPLAUSIBLE if reason == "implausible" else _MSG_UNSTABLE,
+                "reason": reason,
+                "offenders": sel.get("offenders", []),
+                "expert": diag,
+            },
+        )
+
+    win = sel["window"]
+    student = {"F1": win["F1"], "F2": win["F2"], "F3": win["F3"], "F0": f0, "reliable": True}
+    diagnostics = _build_diagnostics(meas, ranges, sel, True)
+
+    per_formant = []
+    dispersion_sources = set()
+    for k in ("F1", "F2", "F3"):
+        r = ranges.get(k)
+        meas_v = student.get(k)
+        if r and meas_v:
+            per_formant.append({
+                "name": k, "measured": meas_v, "reference": r["ref"],
+                "score": _score_gaussian(meas_v, r["ref"], r["sd_used"]),
+                "hint": _direction_hint(k, meas_v, r["ref"]),
+            })
+            dispersion_sources.add(r["sd_source"])
+
+    if not per_formant:
+        raise HTTPException(status_code=422, detail="Confronto formanti non disponibile.")
+
+    weights = _formant_weights(phoneme_ipa, {p["name"] for p in per_formant})
+    composite = _weighted_composite(per_formant, phoneme_ipa)
+    diagnostics["scoring_curve"] = {"model": "gaussian", "k": GAUSSIAN_K}
+    diagnostics["formant_weights"] = {p["name"]: weights.get(p["name"]) for p in per_formant}
+    diagnostics["rhotic"] = phoneme_ipa in RHOTIC_IPA
+    if ref_source == "teacher_sample":
+        dispersion_source = "teacher"
+    elif dispersion_sources and all(s in ("published",) for s in dispersion_sources if s):
+        dispersion_source = "published"
+    else:
+        dispersion_source = "estimated"
+
+    return {
+        "phoneme_ipa": phoneme_ipa,
+        "dialect": dialect,
+        "student_formants": student,
+        "reference_source": ref_source,
+        "reference_group": ref_group,
+        "citation": citation,
+        "dispersion_source": dispersion_source,
+        "per_formant": per_formant,
+        "composite_score": composite,
+        "cefr": _cefr_band(composite),
+        "high_impact": phoneme_ipa in HIGH_IMPACT_IPA,
+        "diagnostics": diagnostics,
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+
 def build_phoneme_formants_router(
     db,
     get_current_user: Callable,

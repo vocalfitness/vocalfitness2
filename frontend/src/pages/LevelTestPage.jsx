@@ -27,6 +27,7 @@ export default function LevelTestPage() {
   const [auralPick, setAuralPick] = useState(null);
   const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
+  const [scores, setScores] = useState({ isolated: null, phrase: null });
   const [verdict, setVerdict] = useState(
     STEPS[initialStep] === 'verdict' ? computeVerdict() : null
   );
@@ -221,7 +222,13 @@ export default function LevelTestPage() {
             <>
               <StepHeader title={S.isolated.title} jarvis={S.isolated.jarvis.text} speaking={speaking} onReplay={replayJarvis} />
               <div className="mt-8">
-                <MockRecorder label="Pronuncia il suono" target={`/${ISOLATED_TARGET.ipa}/`} testid="lt-isolated-recorder" />
+                <MockRecorder
+                  label="Pronuncia il suono"
+                  target={`/${ISOLATED_TARGET.ipa}/`}
+                  phonemeIpa={ISOLATED_TARGET.ipa}
+                  testid="lt-isolated-recorder"
+                  onDone={(r) => setScores((s) => ({ ...s, isolated: r }))}
+                />
               </div>
             </>
           )}
@@ -234,7 +241,13 @@ export default function LevelTestPage() {
                 <p className="text-lg text-cyan-100 font-medium leading-relaxed">"{PHRASE_TARGET.text}"</p>
               </div>
               <div className="mt-8">
-                <MockRecorder label="Leggi la frase" target={`/${PHRASE_TARGET.keyPhoneme}/`} testid="lt-phrase-recorder" />
+                <MockRecorder
+                  label="Leggi la frase"
+                  target={`/${PHRASE_TARGET.keyPhoneme}/`}
+                  phonemeIpa={PHRASE_TARGET.keyPhoneme}
+                  testid="lt-phrase-recorder"
+                  onDone={(r) => setScores((s) => ({ ...s, phrase: r }))}
+                />
               </div>
             </>
           )}

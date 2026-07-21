@@ -9,6 +9,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2 — Punto 1: Scoring formanti REALE — DONE ✅ (backend verificato via curl)
+
+- **Endpoint pubblico** `POST /api/level-test/score` (`routers/level_test.py`): stateless, anonimo, **nessun salvataggio audio** (analisi transitoria, privacy-friendly). Riusa il core di scoring Fase-2 (Gaussian + pesi F1/F2/F3) estratto in `phoneme_formants.compute_formant_score` / `find_reference` / `fetch_and_extract` (endpoint autenticato lasciato INTATTO → zero regressione).
+- **Vincoli architetturali (Emergent Support) applicati**: (1) Parselmouth in **ProcessPoolExecutor** (`mp_context=spawn`, `LEVEL_TEST_POOL_WORKERS=2`), mai nel handler async; (2) endpoint **stateless**, nessuno stato server in memoria (la persistenza andrà in Mongo al punto 5).
+- **Bidialettale**: valuta il clip contro RP+AmE, ritorna `by_dialect`/`best_dialect`/`composite_score`/`cefr`. Verificato con fixture `vowel_i.wav` → RP 73.4 (B1) / AmE 60.7.
+- **Frontend** (`MockRecorder.jsx`): MediaRecorder reale → `blobToWav` → POST → punteggio+CEFR reale + gestione errori (mic negato / 422) con retry. `LevelTestPage` cattura `scores.{isolated,phrase}` per il verdetto (punto 5).
+- **Verifica**: curl OK; 65/65 test scoring passati (2 fail = timeout rete, non regressioni); `/level-test` 200. ⚠️ Flusso microfono LIVE non testabile headless.
+- **NEXT**: punto 2 camera/mic reali · punto 3 audio Jarvis · punto 4 quiz reale · punto 5 persistenza lead.
+
 ### Backlog / vincoli (aggiornato 21/07/2026)
 - **CTA home orfane (P1 · NON eseguire ora)**: spostare le CTA della home da `LevelTestModal.jsx` a `/level-test` SOLO quando si decide di ritirare il vecchio modal. Finché il nuovo funnel non è pubblico, le CTA restano sul modal esistente.
 - **Pulsante "Condividi il livello" (milestone dedicata, NON in M2)**: da fare solo DOPO che il motore reale (M2) funziona. VINCOLO badge: deve dire **"Livello di pronuncia Vocal Fitness"**, MAI "CEFR B2" secco — gira pubblico su LinkedIn davanti a chi non ha fatto il test, quindi il claim disciplinato è critico.
