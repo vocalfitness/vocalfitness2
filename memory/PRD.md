@@ -9,6 +9,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.3 · Passo 1+2 — Audio-da-imitare: inventario + struttura (NESSUNA generazione) — CHECKPOINT ⏳
+
+- **Decisioni utente**: audio-da-imitare = la **PAROLA** (law/bird/cat) pronunciata dal prof, un solo gesto (no fonema puro, no "entrambi"); **fonte unica** = nuovo campo sulle card `audio.{dialect}.wordExample`, due slot separati per dialetto (per la divergenza BIRD RP↔US); nessuna copia dedicata; CMS backend Jarvis = M3; generazione ElevenLabs = milestone separata post-ok.
+- **Passo 1 (inventario)**: clip esistenti sono FONEMI puri (SSML), non parole, su object storage Emergent (`/api/uploads/elevenlabs/...`, serviti da `GET /api/uploads/{path}`). Solo /æ/ RP+US avevano clip-fonema; nessuna clip-parola esiste → 6 slot tutti da generare. Copy Jarvis vive in `frontend/src/data/levelTestContent.js` (config locale, 8 battute, tutte `audio:null`).
+- **Passo 2 (struttura, ZERO generazione)**: creato `backend/data/level_test_word_examples.py` (mapping canonico dei 6 slot + `ensure_level_test_word_example_slots` seed idempotente + `get_word_example_slots` resolver). Seed agganciato allo startup (dopo phoneme cards). IPA per-dialetto codificato: LAW `lɔː`/`lɔ`, BIRD `bɜːd`(RP non-rotico)/`bɝd`(US r-colored), TRAP `kæt`/`kæt`. Endpoint: `GET /api/level-test/word-examples` (resolver, stato ready|da_generare) + `POST /api/level-test/admin/word-examples/generate` (**PREDISPOSTO ma MAI eseguito**, riusa `synthesize_and_store` con SSML `<phoneme ph=ipa>`, admin-only). `build_level_test_router(db, get_admin_user, emergent_put, UPLOADS_DIR)`.
+- Verificato: seed `created:6 missing_card:[]`; resolver → 6 slot tutti `da_generare`, url vuoto; backend 200. Jarvis NON toccato. Nessuna chiamata ElevenLabs.
+- **NEXT (in attesa utente)**: copy Jarvis definitiva (poi migro nel content store) + ok voci/reference → milestone GENERAZIONE (eseguire `generate` sui 6 slot, verificare divergenza BIRD) → poi wiring nel level test (bottone "Ascolta il Prof." nello step isolato, sostituisce lo stub "RIASCOLTA (DEMO)").
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2.2d — Fix A (Top-Ceiling Gate rilassato) + SCOPE V2 documentato
 
 - **Diagnosi corretta dai log post-fix** (le voci `loo→A1` erano codice VECCHIO, reload impiantato fino al restart pulito): il lessico è a posto (loo/lu/low/La/Law tutti `lexical=correct`; palestra/gym→A1). L'"A1" su "law" ben detto NON era cap lessicale ma: (1) punteggio formantico ~33 (banda A1 <45) e soprattutto (2) la presa migliore (F1=389, vicina al rif RP 415) veniva **RIFIUTATA dal Top-Ceiling Gate** perché a 5500Hz F2 era spurio (2776) pur essendo perfetta a 5000Hz.

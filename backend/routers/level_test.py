@@ -24,7 +24,7 @@ import difflib
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 
@@ -232,8 +232,56 @@ def _phrase_accuracy(transcript: str | None, expected: str) -> dict:
     return {"status": "ok", "accuracy": round(ratio, 3), "transcript": transcript}
 
 
-def build_level_test_router(db) -> APIRouter:
+def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_dir=None) -> APIRouter:
     router = APIRouter(prefix="/level-test", tags=["level-test"])
+
+    # ------------------------------------------------------------------ #
+    # M2.3 · Audio-da-imitare (word-example) — resolver + admin generator.
+    # Reads/writes the CANONICAL store on the phoneme cards
+    # (audio.{dialect}.wordExample). Generation is PREDISPOSED but is NEVER
+    # invoked automatically — an admin must call it explicitly, per slot.
+    # ------------------------------------------------------------------ #
+    @router.get("/word-examples")
+    async def word_examples():
+        """The 6 word-example slots (LAW/BIRD/TRAP × RP/US) with live state
+        (ready | da_generare), from the single canonical card store."""
+        from data.level_test_word_examples import get_word_example_slots
+        return {"slots": await get_word_example_slots(db)}
+
+    @router.post("/admin/word-examples/generate")
+    async def generate_word_example(
+        payload: dict = Body(...),
+        admin: dict = Depends(get_admin_user) if get_admin_user else None,
+    ):
+        """PREDISPOSED (not auto-run): synthesise ONE word-example clip with
+        ElevenLabs and persist its URL into the canonical card store.
+
+        Body: {phoneme, dialect}. Uses SSML <phoneme ph=slot.ipa> so the single
+        cloned voice yields the dialect-correct pronunciation (RP non-rhotic vs
+        US r-coloured). Reuses the shared ``synthesize_and_store`` pipeline."""
+        if not (emergent_put and uploads_dir):
+            raise HTTPException(status_code=503, detail="Generazione audio non configurata")
+        from data.level_test_word_examples import LEVEL_TEST_WORD_EXAMPLES
+        from routers.elevenlabs import synthesize_and_store
+        phoneme = (payload or {}).get("phoneme")
+        dialect = (payload or {}).get("dialect")
+        slot = next((s for s in LEVEL_TEST_WORD_EXAMPLES
+                     if s["phoneme"] == phoneme and s["dialect"] == dialect), None)
+        if not slot:
+            raise HTTPException(status_code=404, detail="Slot parola-esempio inesistente")
+        res = synthesize_and_store(
+            slot["word"], os.environ.get("ELEVENLABS_DEFAULT_VOICE_ID", ""),
+            emergent_put=emergent_put, uploads_dir=uploads_dir,
+            filename_hint=f"leveltest_word_{slot['label']}_{dialect}",
+            ipa_phoneme=slot["ipa"],
+        )
+        url = res.get("relative_url") or res.get("url", "")
+        await db.phoneme_cards.update_one(
+            {"id": slot["card_id"]},
+            {"$set": {f"audio.{dialect}.wordExample": {
+                "word": slot["word"], "ipa": slot["ipa"], "url": url}}},
+        )
+        return {"phoneme": phoneme, "dialect": dialect, "url": url, "state": "ready"}
 
     @router.post("/score")
     async def score(
