@@ -253,29 +253,36 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         payload: dict = Body(...),
         admin: dict = Depends(get_admin_user) if get_admin_user else None,
     ):
-        """PREDISPOSED (not auto-run): synthesise ONE word-example clip with
-        ElevenLabs and persist its URL into the canonical card store.
+        """PREDISPOSED (not auto-run): persist ONE word-example clip URL into the
+        canonical card store. The reference is the WHOLE WORD ("law"/"bird"/"cat")
+        in a NATURAL voice — NOT an SSML-forced isolated phoneme. ``slot['ipa']``
+        stays a DATA field only (verdict / expert detail), never a synthesis input.
 
-        Body: {phoneme, dialect}. Uses SSML <phoneme ph=slot.ipa> so the single
-        cloned voice yields the dialect-correct pronunciation (RP non-rhotic vs
-        US r-coloured). Reuses the shared ``synthesize_and_store`` pipeline."""
+        NOTE ON SOURCE (pending decision): the strongest asset for a lead magnet
+        selling the Prof.'s method is a REAL recording of the Prof. saying the word
+        in each accent — upload it via ``/admin/elevenlabs/upload-audio`` then patch
+        its URL here. ElevenLabs synthesis with a SINGLE cloned voice CANNOT produce
+        an authentic RP↔US divergence for BIRD (same voice, plain word = same output);
+        it is kept here only as a fallback and synthesises the plain word text."""
         if not (emergent_put and uploads_dir):
             raise HTTPException(status_code=503, detail="Generazione audio non configurata")
         from data.level_test_word_examples import LEVEL_TEST_WORD_EXAMPLES
-        from routers.elevenlabs import synthesize_and_store
         phoneme = (payload or {}).get("phoneme")
         dialect = (payload or {}).get("dialect")
+        url = (payload or {}).get("url")  # manual upload path: attach a real recording
         slot = next((s for s in LEVEL_TEST_WORD_EXAMPLES
                      if s["phoneme"] == phoneme and s["dialect"] == dialect), None)
         if not slot:
             raise HTTPException(status_code=404, detail="Slot parola-esempio inesistente")
-        res = synthesize_and_store(
-            slot["word"], os.environ.get("ELEVENLABS_DEFAULT_VOICE_ID", ""),
-            emergent_put=emergent_put, uploads_dir=uploads_dir,
-            filename_hint=f"leveltest_word_{slot['label']}_{dialect}",
-            ipa_phoneme=slot["ipa"],
-        )
-        url = res.get("relative_url") or res.get("url", "")
+        if not url:
+            # Fallback synthesis: PLAIN WORD, natural voice (no SSML phoneme).
+            from routers.elevenlabs import synthesize_and_store
+            res = synthesize_and_store(
+                slot["word"], os.environ.get("ELEVENLABS_DEFAULT_VOICE_ID", ""),
+                emergent_put=emergent_put, uploads_dir=uploads_dir,
+                filename_hint=f"leveltest_word_{slot['label']}_{dialect}",
+            )
+            url = res.get("relative_url") or res.get("url", "")
         await db.phoneme_cards.update_one(
             {"id": slot["card_id"]},
             {"$set": {f"audio.{dialect}.wordExample": {
