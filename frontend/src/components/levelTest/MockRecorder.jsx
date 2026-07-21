@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Check, Loader2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Mic, Square, Check, Loader2, RotateCcw, AlertTriangle, Play } from 'lucide-react';
 import { blobToWav } from '../../lib/blobToWav';
 import { BACKEND_URL } from '../../lib/backend';
 
@@ -12,19 +12,22 @@ import { BACKEND_URL } from '../../lib/backend';
  * `onDone(result)` receives the full scoring payload so the parent can build
  * the verdict later.
  */
-export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone }) => {
+export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, mode = 'score' }) => {
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [playbackUrl, setPlaybackUrl] = useState(null);
   const mediaRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const autoStopRef = useRef(null);
+  const playbackRef = useRef(null);
 
   useEffect(() => () => {
     clearTimeout(autoStopRef.current);
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-  }, []);
+    if (playbackUrl) URL.revokeObjectURL(playbackUrl);
+  }, []); // eslint-disable-line
 
   const stopStream = () => {
     if (streamRef.current) {
@@ -62,9 +65,23 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone }) => {
   };
 
   const analyse = async () => {
+    const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
+
+    // EXPERIENCE mode (phrase, v1): NO formant scoring on a whole phrase — the
+    // engine has no forced alignment (Charsiu = v2), so a phrase-level score
+    // would be disconnected from what the user says. Instead we let the user
+    // hear themselves. The verdict score is built from the ISOLATED phoneme(s).
+    if (mode === 'experience') {
+      const url = URL.createObjectURL(blob);
+      setPlaybackUrl(url);
+      setPhase('done');
+      onDone && onDone({ experience: true });
+      stopStream();
+      return;
+    }
+
     setPhase('analysing');
     try {
-      const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
       const wav = await blobToWav(blob);
       const fd = new FormData();
       fd.append('file', wav, 'take.wav');
@@ -89,7 +106,14 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone }) => {
     }
   };
 
-  const reset = () => { setPhase('idle'); setResult(null); setErrorMsg(''); };
+  const reset = () => {
+    if (playbackUrl) { URL.revokeObjectURL(playbackUrl); setPlaybackUrl(null); }
+    setPhase('idle'); setResult(null); setErrorMsg('');
+  };
+
+  const playBack = () => {
+    if (playbackUrl) { playbackRef.current = new Audio(playbackUrl); playbackRef.current.play(); }
+  };
 
   const active = phase === 'recording' || phase === 'analysing';
 
@@ -141,7 +165,29 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone }) => {
           <Loader2 size={18} className="animate-spin" /> Analisi…
         </div>
       )}
-      {phase === 'done' && result && (
+      {phase === 'done' && mode === 'experience' && (
+        <div className="flex flex-col items-center gap-3" data-testid={`${testid}-result`}>
+          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider">
+            <Check size={18} /> Registrata
+          </div>
+          <button
+            type="button" onClick={playBack} data-testid={`${testid}-playback`}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-cyan-500/20 border border-cyan-400/50 hover:border-orange-400 text-cyan-100 font-bold uppercase tracking-wider text-xs transition-all"
+          >
+            <Play size={15} /> Riascoltati
+          </button>
+          <p className="text-[11px] text-slate-500 max-w-xs">
+            La frase serve ad ascoltare la tua voce. Il punteggio del verdetto si basa sul suono isolato.
+          </p>
+          <button
+            type="button" onClick={reset} data-testid={`${testid}-retry`}
+            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-slate-400 hover:text-cyan-300 transition-colors"
+          >
+            <RotateCcw size={13} /> Registra di nuovo
+          </button>
+        </div>
+      )}
+      {phase === 'done' && mode !== 'experience' && result && (
         <div className="flex flex-col items-center gap-3" data-testid={`${testid}-result`}>
           <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider">
             <Check size={18} /> Acquisito

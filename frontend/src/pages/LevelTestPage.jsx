@@ -246,6 +246,7 @@ export default function LevelTestPage() {
                   target={`/${PHRASE_TARGET.keyPhoneme}/`}
                   phonemeIpa={PHRASE_TARGET.keyPhoneme}
                   testid="lt-phrase-recorder"
+                  mode="experience"
                   onDone={(r) => setScores((s) => ({ ...s, phrase: r }))}
                 />
               </div>

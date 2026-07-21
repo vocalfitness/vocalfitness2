@@ -42,9 +42,12 @@ export function evaluatePhoneme() {
   return { score: 61, ipa: ISOLATED_TARGET.ipa };
 }
 
-// Returns a mock phrase evaluation.
+// PHRASE (v1): experiential only — NO scoring on a whole phrase (the formant
+// engine has no forced alignment; that's Charsiu = v2). The user reads, records
+// and hears themselves; the verdict score comes from the ISOLATED phoneme(s).
+// This stub stays as the replaceable interface for the v2 aligned scorer.
 export function evaluatePhrase() {
-  return { score: 58, keyPhoneme: PHRASE_TARGET.keyPhoneme };
+  return { experience: true, keyPhoneme: PHRASE_TARGET.keyPhoneme };
 }
 
 /**

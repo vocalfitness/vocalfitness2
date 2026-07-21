@@ -18,6 +18,8 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - **Verifica**: curl OK; 65/65 test scoring passati (2 fail = timeout rete, non regressioni); `/level-test` 200. ⚠️ Flusso microfono LIVE non testabile headless.
 - **NEXT**: punto 2 camera/mic reali · punto 3 audio Jarvis · punto 4 quiz reale · punto 5 persistenza lead.
 
+- **FIX 21/07 (post-review utente)**: lo scoring della frase sull'INTERA registrazione dava verdetto falso (C1 fisso, scollegato dal parlato) perché il motore formanti, senza forced alignment, misurava una finestra spuria. Opzione 2 adottata: la frase è ora **esperienziale** (`mode="experience"` in `MockRecorder`) — registra + riascolto, **nessun punteggio**; il verdetto si basa SOLO sui fonemi isolati. Scoring reale della frase → v2 (Charsiu). `evaluatePhrase()` resta interfaccia sostituibile.
+
 ### Backlog / vincoli (aggiornato 21/07/2026)
 - **CTA home orfane (P1 · NON eseguire ora)**: spostare le CTA della home da `LevelTestModal.jsx` a `/level-test` SOLO quando si decide di ritirare il vecchio modal. Finché il nuovo funnel non è pubblico, le CTA restano sul modal esistente.
 - **Pulsante "Condividi il livello" (milestone dedicata, NON in M2)**: da fare solo DOPO che il motore reale (M2) funziona. VINCOLO badge: deve dire **"Livello di pronuncia Vocal Fitness"**, MAI "CEFR B2" secco — gira pubblico su LinkedIn davanti a chi non ha fatto il test, quindi il claim disciplinato è critico.
