@@ -23,8 +23,12 @@ export const AURAL_QUESTION = {
   prompt: 'ship / sheep',
 };
 
-// ---- ISOLATED phoneme target -------------------------------------------
-export const ISOLATED_TARGET = { ipa: 'iː', hint: 'come in "sheep"' };
+// ---- ISOLATED phoneme targets (v1 = core of the verdict: 3 vowels) --------
+export const ISOLATED_TARGETS = [
+  { ipa: 'iː', label: 'FLEECE', hint: 'come in "sheep"' },
+  { ipa: 'æ',  label: 'TRAP',   hint: 'come in "cat"' },
+  { ipa: 'ʊ',  label: 'FOOT',   hint: 'come in "book"' },
+];
 
 // ---- PHRASE target ------------------------------------------------------
 export const PHRASE_TARGET = {
@@ -39,7 +43,7 @@ export function evaluateAural(selected) {
 
 // Returns a mock formant-style score 0..100 for the isolated phoneme.
 export function evaluatePhoneme() {
-  return { score: 61, ipa: ISOLATED_TARGET.ipa };
+  return { score: 61, ipa: ISOLATED_TARGETS[0].ipa };
 }
 
 // PHRASE (v1): experiential only — NO scoring on a whole phrase (the formant
@@ -50,21 +54,68 @@ export function evaluatePhrase() {
   return { experience: true, keyPhoneme: PHRASE_TARGET.keyPhoneme };
 }
 
+// ---- CEFR mapping (mirrors backend _cefr_band thresholds) ---------------
+function cefrFromComposite(c) {
+  if (c >= 90) return { band: 'C1–C2', label: 'Articolazione molto chiara e precisa' };
+  if (c >= 75) return { band: 'B2', label: 'Pronuncia chiara e naturale' };
+  if (c >= 60) return { band: 'B1', label: 'Generalmente intelligibile' };
+  if (c >= 45) return { band: 'A2', label: 'Intelligibile con qualche sforzo' };
+  return { band: 'A1', label: 'Pronuncia da consolidare' };
+}
+
+const _labelOf = (ipa) => (ISOLATED_TARGETS.find((t) => t.ipa === ipa) || {}).label || ipa;
+
+// Worst-scoring formant hint from the best-dialect result of a phoneme.
+function _worstHint(r) {
+  const best = r.by_dialect && r.by_dialect[r.best_dialect];
+  const pf = (best && best.per_formant) || [];
+  if (!pf.length) return 'da allenare';
+  const worst = pf.reduce((a, b) => (b.score < a.score ? b : a));
+  return worst.hint || 'da allenare';
+}
+
 /**
- * Aggregates everything into the partial + full verdict.
- * MOCK: fixed but plausible numbers so the layout is reviewable.
+ * REAL verdict built from the 3 isolated phoneme scores (v1). Each score is a
+ * response from /api/level-test/score: {by_dialect:{RP,AmE}, best_dialect,
+ * composite_score, cefr}. NO phrase scoring (Charsiu = v2).
  */
-export function computeVerdict() {
+export function computeVerdict(isolatedScores) {
+  const entries = Object.entries(isolatedScores || {}).filter(([, r]) => r && r.composite_score != null);
+  if (!entries.length) return null;
+
+  const bests = entries.map(([, r]) => r.composite_score);
+  const overall = Math.round(bests.reduce((a, b) => a + b, 0) / bests.length);
+  const band = cefrFromComposite(overall);
+
+  const rpVals = entries.map(([, r]) => r.by_dialect?.RP?.composite_score).filter((v) => v != null);
+  const ameVals = entries.map(([, r]) => r.by_dialect?.AmE?.composite_score).filter((v) => v != null);
+  const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0);
+
+  const focusPhonemes = entries
+    .map(([ipa, r]) => ({ ipa, label: _labelOf(ipa), score: r.composite_score, note: _worstHint(r) }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
+
+  return {
+    scorePercent: overall,
+    cefrBand: band.band,
+    cefrLabel: band.label,
+    bidialect: { ame: avg(ameVals), rp: avg(rpVals) },
+    focusPhonemes,
+  };
+}
+
+// Demo verdict for deep-link review (?step=verdict) when no real scores exist.
+export function demoVerdict() {
   return {
     scorePercent: 62,
     cefrBand: 'B1',
-    // How close the accent leans to each standard (0..100).
+    cefrLabel: 'Generalmente intelligibile',
     bidialect: { ame: 54, rp: 71 },
-    // The three phonemes to work on first (mock).
     focusPhonemes: [
-      { ipa: 'iː', label: 'FLEECE', note: 'vocale non abbastanza lunga e tesa' },
-      { ipa: 'ʊ', label: 'FOOT', note: 'confusa con /uː/' },
-      { ipa: 'θ', label: 'THINK', note: 'resa come /t/ o /f/' },
+      { ipa: 'ʊ', label: 'FOOT', note: 'F2 troppo alto = lingua troppo avanzata' },
+      { ipa: 'æ', label: 'TRAP', note: 'F1 troppo basso = bocca troppo chiusa' },
+      { ipa: 'iː', label: 'FLEECE', note: 'vocale non abbastanza tesa' },
     ],
   };
 }

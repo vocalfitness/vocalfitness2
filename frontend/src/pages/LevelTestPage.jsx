@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { getLevelTestContent, LEVEL_TEST_SEGMENTS } from '../data/levelTestContent';
 import {
-  AURAL_QUESTION, ISOLATED_TARGET, PHRASE_TARGET,
-  evaluateAural, computeVerdict,
+  AURAL_QUESTION, ISOLATED_TARGETS, PHRASE_TARGET,
+  evaluateAural, computeVerdict, demoVerdict,
 } from '../lib/levelTestEngine';
 import JarvisOrb from '../components/levelTest/JarvisOrb';
 import MockRecorder from '../components/levelTest/MockRecorder';
@@ -27,9 +27,10 @@ export default function LevelTestPage() {
   const [auralPick, setAuralPick] = useState(null);
   const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
-  const [scores, setScores] = useState({ isolated: null, phrase: null });
+  const [scores, setScores] = useState({ isolated: {}, phrase: null });
+  const [isoIdx, setIsoIdx] = useState(0);
   const [verdict, setVerdict] = useState(
-    STEPS[initialStep] === 'verdict' ? computeVerdict() : null
+    STEPS[initialStep] === 'verdict' ? demoVerdict() : null
   );
   const speakTimer = useRef(null);
 
@@ -52,7 +53,7 @@ export default function LevelTestPage() {
   const branch = LEVEL_TEST_SEGMENTS.find((s) => s.value === lead.segment)?.branch || 'A';
 
   const handleGateSubmit = () => {
-    setVerdict(computeVerdict());
+    setVerdict(computeVerdict(scores.isolated) || demoVerdict());
     jumpTo('verdict');
   };
 
@@ -217,21 +218,66 @@ export default function LevelTestPage() {
             </>
           )}
 
-          {/* ============ ISOLATED ============ */}
-          {stepKey === 'isolated' && (
-            <>
-              <StepHeader title={S.isolated.title} jarvis={S.isolated.jarvis.text} speaking={speaking} onReplay={replayJarvis} />
-              <div className="mt-8">
-                <MockRecorder
-                  label="Pronuncia il suono"
-                  target={`/${ISOLATED_TARGET.ipa}/`}
-                  phonemeIpa={ISOLATED_TARGET.ipa}
-                  testid="lt-isolated-recorder"
-                  onDone={(r) => setScores((s) => ({ ...s, isolated: r }))}
-                />
-              </div>
-            </>
-          )}
+          {/* ============ ISOLATED (3 phonemes = core of verdict) ============ */}
+          {stepKey === 'isolated' && (() => {
+            const targets = ISOLATED_TARGETS;
+            const doneCount = Object.keys(scores.isolated).length;
+            const current = targets[Math.min(isoIdx, targets.length - 1)];
+            const currentDone = !!scores.isolated[current.ipa];
+            const allDone = doneCount >= targets.length;
+            return (
+              <>
+                <StepHeader title={S.isolated.title} jarvis={S.isolated.jarvis.text} speaking={speaking} onReplay={replayJarvis} />
+
+                {/* progress dots for the 3 target vowels */}
+                <div className="mt-6 flex items-center justify-center gap-3" data-testid="lt-isolated-progress">
+                  {targets.map((t, i) => {
+                    const scored = !!scores.isolated[t.ipa];
+                    const isCur = i === isoIdx && !allDone;
+                    return (
+                      <div key={t.ipa} className="flex flex-col items-center gap-1">
+                        <span className={`font-mono text-lg transition-colors ${scored ? 'text-emerald-400' : isCur ? 'text-orange-400' : 'text-slate-600'}`}>/{t.ipa}/</span>
+                        <span className={`w-8 h-1 rounded-full transition-colors ${scored ? 'bg-emerald-400' : isCur ? 'bg-orange-400' : 'bg-slate-700'}`} />
+                        <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">{t.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!allDone ? (
+                  <div className="mt-8">
+                    <MockRecorder
+                      key={current.ipa}
+                      label={`Pronuncia ${current.label}`}
+                      target={`/${current.ipa}/`}
+                      phonemeIpa={current.ipa}
+                      testid="lt-isolated-recorder"
+                      mode="score"
+                      onDone={(r) => {
+                        if (r && r.composite_score != null) {
+                          setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
+                        }
+                      }}
+                    />
+                    {currentDone && isoIdx < targets.length - 1 && (
+                      <button
+                        onClick={() => setIsoIdx((i) => i + 1)}
+                        data-testid="lt-isolated-next-phoneme"
+                        className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.5)]"
+                      >
+                        Prossimo suono <ArrowRight size={17} />
+                      </button>
+                    )}
+                    {currentDone && isoIdx === targets.length - 1 && (
+                      <p className="mt-6 text-xs uppercase tracking-widest font-bold text-emerald-400">Tutti e 3 i suoni acquisiti ✓ — premi Avanti</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-8 text-sm uppercase tracking-widest font-bold text-emerald-400" data-testid="lt-isolated-complete">Tutti e 3 i suoni acquisiti ✓</p>
+                )}
+              </>
+            );
+          })()}
 
           {/* ============ PHRASE ============ */}
           {stepKey === 'phrase' && (
@@ -466,7 +512,7 @@ export default function LevelTestPage() {
             {stepKey !== 'gate' && stepKey !== 'partial' && (
               <button
                 onClick={() => go(1)}
-                disabled={stepKey === 'aural' && !auralPick}
+                disabled={(stepKey === 'aural' && !auralPick) || (stepKey === 'isolated' && Object.keys(scores.isolated).length < 3)}
                 data-testid="lt-next-btn"
                 className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-cyan-500/20 border border-cyan-400/50 hover:border-orange-400 hover:bg-orange-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-cyan-100 font-bold uppercase tracking-wider text-xs transition-all"
               >

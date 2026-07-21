@@ -16,9 +16,11 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 - **Bidialettale**: valuta il clip contro RP+AmE, ritorna `by_dialect`/`best_dialect`/`composite_score`/`cefr`. Verificato con fixture `vowel_i.wav` → RP 73.4 (B1) / AmE 60.7.
 - **Frontend** (`MockRecorder.jsx`): MediaRecorder reale → `blobToWav` → POST → punteggio+CEFR reale + gestione errori (mic negato / 422) con retry. `LevelTestPage` cattura `scores.{isolated,phrase}` per il verdetto (punto 5).
 - **Verifica**: curl OK; 65/65 test scoring passati (2 fail = timeout rete, non regressioni); `/level-test` 200. ⚠️ Flusso microfono LIVE non testabile headless.
+- **FIX 21/07 (post-review utente) — frase esperienziale + verdetto su 3 fonemi**: lo scoring della frase sull'INTERA registrazione dava verdetto falso (C1 fisso) perché senza forced alignment il motore misura una finestra spuria. Correzioni:
+  - Frase → **esperienziale** (`mode="experience"` in `MockRecorder`): registra + riascolto, nessun punteggio. `evaluatePhrase()` interfaccia per Charsiu v2.
+  - Verdetto costruito su **3 fonemi isolati reali** (`ISOLATED_TARGETS`: /iː/ FLEECE, /æ/ TRAP, /ʊ/ FOOT — riferimenti presenti RP+AmE). Lo step isolato itera i 3 target (progress dots + "Prossimo suono"); Avanti gated finché i 3 non sono acquisiti.
+  - `computeVerdict(isolatedScores)` ora è **reale**: composito medio dei 3 → fascia CEFR (soglie identiche al backend `_cefr_band`), bidialettale = media compositi RP vs AmE dei 3, "3 suoni su cui lavorare" = i 3 ordinati dal peggiore con hint dalla formante peggiore. `demoVerdict()` solo per review deep-link.
 - **NEXT**: punto 2 camera/mic reali · punto 3 audio Jarvis · punto 4 quiz reale · punto 5 persistenza lead.
-
-- **FIX 21/07 (post-review utente)**: lo scoring della frase sull'INTERA registrazione dava verdetto falso (C1 fisso, scollegato dal parlato) perché il motore formanti, senza forced alignment, misurava una finestra spuria. Opzione 2 adottata: la frase è ora **esperienziale** (`mode="experience"` in `MockRecorder`) — registra + riascolto, **nessun punteggio**; il verdetto si basa SOLO sui fonemi isolati. Scoring reale della frase → v2 (Charsiu). `evaluatePhrase()` resta interfaccia sostituibile.
 
 ### Backlog / vincoli (aggiornato 21/07/2026)
 - **CTA home orfane (P1 · NON eseguire ora)**: spostare le CTA della home da `LevelTestModal.jsx` a `/level-test` SOLO quando si decide di ritirare il vecchio modal. Finché il nuovo funnel non è pubblico, le CTA restano sul modal esistente.
