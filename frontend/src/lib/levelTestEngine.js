@@ -23,17 +23,21 @@ export const AURAL_QUESTION = {
   prompt: 'ship / sheep',
 };
 
-// ---- ISOLATED phoneme targets (v1 = core of the verdict: 3 vowels) --------
+// ---- ISOLATED phoneme targets (v2 = core of the verdict: 3 vowels) --------
+// LAW /ɔː/, BIRD /ɜː/, TRAP /æ/ — references verified RP + AmE (AmE /ɜː/→/ɝ/
+// rhotic, lowered F3). `word` is sent to Whisper as the expected lexical target.
 export const ISOLATED_TARGETS = [
-  { ipa: 'iː', label: 'FLEECE', word: 'sheep', hint: 'la vocale lunga di "sheep"' },
-  { ipa: 'æ',  label: 'TRAP',   word: 'cat',   hint: 'la vocale aperta di "cat"' },
-  { ipa: 'ʊ',  label: 'FOOT',   word: 'foot',  hint: 'la vocale breve di "foot"' },
+  { ipa: 'ɔː', label: 'LAW',  word: 'law',  hint: 'la vocale lunga e arrotondata di "law"' },
+  { ipa: 'ɜː', label: 'BIRD', word: 'bird', hint: 'la vocale centrale lunga di "bird"' },
+  { ipa: 'æ',  label: 'TRAP', word: 'cat',  hint: 'la vocale aperta di "cat"' },
 ];
 
 // ---- PHRASE target ------------------------------------------------------
+// Covers the 3 target vowels: tall/wall /ɔː/, bird /ɜː/, sat /æ/. In v2 the
+// phrase is scored by Whisper for LEXICAL accuracy (weight 0.4), not acoustics.
 export const PHRASE_TARGET = {
-  text: 'Please keep the green sheep asleep.',
-  keyPhoneme: 'iː',
+  text: 'The tall bird sat on the wall.',
+  keyPhoneme: 'ɔː',
 };
 
 // ---- MOCK evaluators (M2 swaps these) -----------------------------------
@@ -106,16 +110,18 @@ export function computeVerdict(isolatedScores) {
 }
 
 // Demo verdict for deep-link review (?step=verdict) when no real scores exist.
+// Mirrors the backend /verdict response shape (SINGLE SOURCE OF TRUTH in real flow).
 export function demoVerdict() {
   return {
     scorePercent: 62,
-    cefrBand: 'B1',
-    cefrLabel: 'Generalmente intelligibile',
-    bidialect: { ame: 54, rp: 71 },
-    focusPhonemes: [
-      { ipa: 'ʊ', label: 'FOOT', note: 'F2 troppo alto = lingua troppo avanzata' },
-      { ipa: 'æ', label: 'TRAP', note: 'F1 troppo basso = bocca troppo chiusa' },
-      { ipa: 'iː', label: 'FLEECE', note: 'vocale non abbastanza tesa' },
+    cefr: { band: 'B1', label: 'Generalmente intelligibile' },
+    iso_mean: 62,
+    phrase_score: 70,
+    bidialect: { ame: 54, rp: 71, insufficient: false },
+    focus: [
+      { ipa: 'ɜː', label: 'BIRD', score: 48, wrong_word: false },
+      { ipa: 'æ',  label: 'TRAP', score: 61, wrong_word: false },
+      { ipa: 'ɔː', label: 'LAW',  score: 72, wrong_word: false },
     ],
   };
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Camera, CameraOff, Sparkles, Lock,
@@ -8,7 +8,7 @@ import { getLevelTestContent, LEVEL_TEST_SEGMENTS } from '../data/levelTestConte
 import { BACKEND_URL } from '../lib/backend';
 import {
   AURAL_QUESTION, ISOLATED_TARGETS, PHRASE_TARGET,
-  evaluateAural, computeVerdict, demoVerdict,
+  evaluateAural, demoVerdict,
 } from '../lib/levelTestEngine';
 import JarvisOrb from '../components/levelTest/JarvisOrb';
 import MockRecorder from '../components/levelTest/MockRecorder';
@@ -28,19 +28,16 @@ export default function LevelTestPage() {
   const [auralPick, setAuralPick] = useState(null);
   const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
-  const [scores, setScores] = useState({ isolated: {} });
+  const [scores, setScores] = useState({ isolated: {}, phrase: null });
   const [isoIdx, setIsoIdx] = useState(0);
 
-  // SINGLE SOURCE OF TRUTH for the verdict: derived ONLY from the 3 isolated
-  // phonemes. The phrase is experiential and is NEVER part of this. Partial
-  // (teaser) and complete (post-gate) read the SAME object — the gate only
-  // UNLOCKS detail, it never recomputes or adds measures.
+  // SINGLE SOURCE OF TRUTH for the verdict: the backend /verdict endpoint.
+  // Both 'partial' (teaser band) and 'verdict' (full detail) read the SAME
+  // object fetched once — the email gate only UNLOCKS detail, it never
+  // recomputes. This eliminates any partial↔complete divergence at the root.
   const reviewMode = STEPS.indexOf(searchParams.get('step')) >= 0;
-  const verdict = useMemo(() => {
-    const v = computeVerdict(scores.isolated);
-    if (v) return v;
-    return reviewMode ? demoVerdict() : null;
-  }, [scores.isolated, reviewMode]);
+  const [verdict, setVerdict] = useState(reviewMode ? demoVerdict() : null);
+  const [verdictLoading, setVerdictLoading] = useState(false);
   const speakTimer = useRef(null);
 
   const stepKey = STEPS[stepIdx];
@@ -55,6 +52,46 @@ export default function LevelTestPage() {
     }
     return () => clearTimeout(speakTimer.current);
   }, [stepIdx]); // eslint-disable-line
+
+  // Fetch the aggregated verdict from the backend when the user reaches the
+  // teaser/verdict. Built from the 3 isolated takes (incl. A1-capped wrong
+  // words) + the phrase's LEXICAL accuracy (Whisper, weight 0.4).
+  useEffect(() => {
+    if (reviewMode) return;
+    if (stepKey !== 'partial' && stepKey !== 'verdict') return;
+    const iso = ISOLATED_TARGETS
+      .map((t) => scores.isolated[t.ipa])
+      .filter((r) => r && r.target_score != null)
+      .map((r) => ({
+        ipa: r.phoneme_ipa,
+        label: (ISOLATED_TARGETS.find((t) => t.ipa === r.phoneme_ipa) || {}).label || r.phoneme_ipa,
+        target_score: r.target_score,
+        lexical_ok: r.lexical?.status !== 'wrong',
+        by_dialect: {
+          RP: r.by_dialect?.RP?.composite_score ?? null,
+          AmE: r.by_dialect?.AmE?.composite_score ?? null,
+        },
+      }));
+    if (iso.length < ISOLATED_TARGETS.length) return; // wait for all 3 valid takes
+    let cancelled = false;
+    setVerdictLoading(true);
+    (async () => {
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/level-test/verdict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isolated: iso, phrase_score: scores.phrase?.phrase_score ?? null }),
+        });
+        const data = await resp.json();
+        if (!cancelled && resp.ok) setVerdict(data);
+      } catch (e) {
+        /* keep previous verdict; the UI shows the loading/placeholder state */
+      } finally {
+        if (!cancelled) setVerdictLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [stepKey, scores.isolated, scores.phrase, reviewMode]); // eslint-disable-line
 
   const go = (n) => setStepIdx((i) => Math.min(Math.max(i + n, 0), STEPS.length - 1));
   const jumpTo = (key) => setStepIdx(STEPS.indexOf(key));
@@ -271,10 +308,14 @@ export default function LevelTestPage() {
                       label={`Pronuncia ${current.label}`}
                       target={`/${current.ipa}/`}
                       phonemeIpa={current.ipa}
+                      expected={current.word}
+                      kind="word"
                       testid="lt-isolated-recorder"
-                      mode="score"
                       onDone={(r) => {
-                        if (r && r.composite_score != null) {
+                        // Store the take if it produced a score — INCLUDING a
+                        // wrong-word take (backend caps it at A1). A wrong word
+                        // is a valid, low result: it must COUNT, not be dropped.
+                        if (r && r.target_score != null) {
                           setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
                         }
                       }}
@@ -322,9 +363,17 @@ export default function LevelTestPage() {
                   label="Leggi la frase"
                   target={`/${PHRASE_TARGET.keyPhoneme}/`}
                   phonemeIpa={PHRASE_TARGET.keyPhoneme}
+                  expected={PHRASE_TARGET.text}
+                  kind="phrase"
                   testid="lt-phrase-recorder"
-                  mode="experience"
-                  onDone={() => { /* experiential only — never affects the verdict */ }}
+                  onDone={(r) => {
+                    // Phrase = LEXICAL accuracy via Whisper (weight 0.4 in the
+                    // backend verdict), NOT acoustic quality. Read with an
+                    // Italian accent → poor transcription → lower band.
+                    if (r && r.kind === 'phrase') {
+                      setScores((s) => ({ ...s, phrase: r }));
+                    }
+                  }}
                 />
               </div>
             </>
@@ -343,7 +392,7 @@ export default function LevelTestPage() {
                 <div className="flex items-center justify-between mb-5">
                   <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Livello Vocal Fitness</span>
                   <span className="text-3xl font-black text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.5)]" data-testid="lt-partial-band">
-                    {verdict ? verdict.cefrBand : '—'}
+                    {verdict ? verdict.cefr.band : (verdictLoading ? '…' : '—')}
                   </span>
                 </div>
                 <div className="relative">
@@ -453,7 +502,7 @@ export default function LevelTestPage() {
               <div className="mt-8 max-w-md mx-auto rounded-2xl border border-cyan-500/25 bg-slate-900/60 p-6" data-testid="lt-verdict-score">
                 <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">{S.verdict.cefrLabelPrefix}</div>
                 <div className="mt-1 flex items-end justify-center gap-3">
-                  <span className="text-5xl font-black text-orange-400 drop-shadow-[0_0_16px_rgba(251,146,60,0.5)]">{verdict.cefrBand}</span>
+                  <span className="text-5xl font-black text-orange-400 drop-shadow-[0_0_16px_rgba(251,146,60,0.5)]">{verdict.cefr.band}</span>
                   <span className="text-lg text-cyan-200 font-bold mb-1">{verdict.scorePercent}/100</span>
                 </div>
               </div>
@@ -467,25 +516,38 @@ export default function LevelTestPage() {
                 ].map((d) => (
                   <div key={d.label} className="mb-4 last:mb-0">
                     <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                      <span>{d.flag} {d.label}</span><span className="font-bold text-orange-400">{d.val}%</span>
+                      <span>{d.flag} {d.label}</span>
+                      <span className="font-bold text-orange-400">{d.val != null ? `${d.val}%` : '—'}</span>
                     </div>
                     <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-cyan-400 to-orange-400 transition-all duration-700" style={{ width: `${d.val}%` }} />
+                      <div className="h-full bg-gradient-to-r from-cyan-400 to-orange-400 transition-all duration-700" style={{ width: `${d.val || 0}%` }} />
                     </div>
                   </div>
                 ))}
+                {verdict.bidialect.insufficient && (
+                  <p className="text-[11px] text-slate-500 mt-1" data-testid="lt-verdict-bidialect-insufficient">
+                    Dati insufficienti per un confronto AmE/RP affidabile (servono almeno 2 suoni pronunciati correttamente).
+                  </p>
+                )}
               </div>
 
               {/* Focus phonemes */}
               <div className="mt-6 max-w-md mx-auto text-left" data-testid="lt-verdict-focus">
                 <div className="text-sm font-bold text-cyan-100 mb-3">{S.verdict.focusHeading}</div>
                 <div className="space-y-2">
-                  {verdict.focusPhonemes.map((p) => (
+                  {verdict.focus.map((p) => (
                     <div key={p.ipa} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/60 border border-cyan-500/20">
                       <span className="font-mono text-xl text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.4)]">/{p.ipa}/</span>
-                      <div>
-                        <div className="text-xs uppercase tracking-widest font-bold text-cyan-200">{p.label}</div>
-                        <div className="text-xs text-slate-400">{p.note}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-widest font-bold text-cyan-200">{p.label}</span>
+                          <span className="text-xs font-bold text-orange-400">{p.score != null ? `${Math.round(p.score)}/100` : '—'}</span>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {p.wrong_word
+                            ? 'Parola non riconosciuta — riprova pronunciando la parola giusta'
+                            : 'Suono da allenare per primo'}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -528,6 +590,12 @@ export default function LevelTestPage() {
 
               <p className="mt-8 text-[11px] text-slate-600 max-w-md mx-auto leading-relaxed">{content.meta.disclaimer}</p>
             </>
+          )}
+
+          {stepKey === 'verdict' && !verdict && (
+            <div className="py-20 text-center text-slate-400" data-testid="lt-verdict-loading">
+              <div className="text-sm uppercase tracking-widest font-bold">Sto calcolando il tuo verdetto…</div>
+            </div>
           )}
         </div>
       </main>

@@ -9,6 +9,18 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.2 — Integrazione frontend V2 (Whisper ASR + verdetto backend) — IN VERIFICA UTENTE ⏳ (mic test richiesto)
+
+- **Scelte utente confermate**: 1a (la frase entra nel verdetto con peso 0.4 come **accuratezza lessicale Whisper**, NON qualità acustica) + 2a (`POST /api/level-test/verdict` = **sorgente unica di verità**, niente calcolo client-side).
+- **Target aggiornati** (`levelTestEngine.js` `ISOLATED_TARGETS`): **LAW /ɔː/ (law), BIRD /ɜː/ (bird), TRAP /æ/ (cat)**. Riferimenti formantici verificati in DB: /æ/ RP+AmE ✓; /ɔː/ RP (Deterding 415/828) + AmE via `_EQUIV ɔː→ɔ` ✓; /ɜː/ RP (478/1436) + AmE via `_EQUIV ɜː→ɝ` con **F3=1710(men)/1929(women)** → roticità /ɝ/ corretta (F3 abbassato). Nessun riferimento inventato.
+- **Frase**: `PHRASE_TARGET` = "The tall bird sat on the wall." (copre ɔː/ɜː/æ). `MockRecorder` frase ora `kind="phrase"` + `expected` → cattura `phrase_score` (accuratezza ASR).
+- **Step isolato** (`LevelTestPage.jsx`): `MockRecorder` ora passa `expected={current.word}` + `kind="word"` → il backend fa il check lessicale Whisper. `onDone` salva il take se `target_score != null` (INCLUSA la parola sbagliata capped ad A1: conta come risultato basso, non viene scartata).
+- **Verdetto**: rimosso `computeVerdict` client-side (useMemo). Nuovo `useEffect` su step `partial`/`verdict` che POSTa a `/api/level-test/verdict` `{isolated:[{ipa,label,target_score,lexical_ok,by_dialect:{RP,AmE}}], phrase_score}` e salva la risposta in stato. Partial (teaser banda) e verdict (dettaglio) leggono lo STESSO oggetto → zero divergenza parziale/completo. `demoVerdict()` aggiornato alla shape backend per il deep-link review.
+- **UI verdetto**: consuma `verdict.cefr.band`, `scorePercent`, `bidialect.{ame,rp,insufficient}` (gestisce null + nota "dati insufficienti"), `focus[]` con score/100 + badge "parola non riconosciuta". Loading state `lt-verdict-loading`.
+- **Verifica fatta**: `/verdict` curl OK (44.0/A1 con 1 parola sbagliata + frase 40); screenshot review `?step=verdict` (B1 62/100, bidialettale, focus LAW/BIRD/TRAP) e `?step=isolated` (prompt "law" /ɔː/) OK, 0 errori console.
+- **⚠️ NON verificabile headless**: flusso microfono reale (Whisper + formanti). RICHIESTO TEST UTENTE in **Preview** con tabella casi: (1) parola giusta → riconosciuta + punteggio reale; (2) parola sbagliata/minimal pair (es. "low"/"far" per LAW, "bad" per BIRD, "cut" per TRAP) → "Parola diversa" + cap A1; (3) **frase all'italiana → accuratezza ASR bassa → verdetto verso A2 (test decisivo V2)**.
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2 — Punto 1: Scoring formanti REALE — DONE ✅ (backend verificato via curl)
 
 - **Endpoint pubblico** `POST /api/level-test/score` (`routers/level_test.py`): stateless, anonimo, **nessun salvataggio audio** (analisi transitoria, privacy-friendly). Riusa il core di scoring Fase-2 (Gaussian + pesi F1/F2/F3) estratto in `phoneme_formants.compute_formant_score` / `find_reference` / `fetch_and_extract` (endpoint autenticato lasciato INTATTO → zero regressione).
