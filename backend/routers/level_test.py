@@ -23,6 +23,7 @@ import logging
 import tempfile
 import difflib
 import multiprocessing as mp
+from datetime import datetime, timezone
 from concurrent.futures import ProcessPoolExecutor
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
@@ -30,8 +31,26 @@ from pydantic import BaseModel
 
 
 class VerdictIn(BaseModel):
-    isolated: list  # [{ipa,label,target_score,lexical_ok,by_dialect:{RP,AmE}}]
+    # Two ways to feed the verdict:
+    #  1. session_id → SERVER-TRUTH: the verdict is rebuilt from the BEST attempt
+    #     per phoneme stored in Mongo (the client cannot inflate it).
+    #  2. isolated[] → direct (demo / deep-link review) when there is no session.
+    isolated: list = []  # [{ipa,label,target_score,lexical_ok,by_dialect:{RP,AmE}}]
     phrase_score: float | None = None
+    session_id: str | None = None
+
+
+class AttemptIn(BaseModel):
+    """One recorded take for a phoneme in a Level-Test session. Persisted so the
+    server (not the client) owns the FIRST-cold vs BEST selection and the verdict."""
+    session_id: str
+    phoneme_ipa: str
+    label: str | None = None
+    target_score: float | None = None
+    lexical_ok: bool = True
+    lexical_status: str | None = None
+    cefr: dict | None = None
+    by_dialect: dict | None = None  # {RP: score|None, AmE: score|None}
 
 from routers.phoneme_formants import (
     _measure_all_ceilings,
@@ -55,6 +74,13 @@ _W_ISO = float(os.environ.get("LEVEL_TEST_W_ISO", "0.6"))
 _W_PHRASE = float(os.environ.get("LEVEL_TEST_W_PHRASE", "0.4"))
 _LEXICAL_VARIANT_MODE = os.environ.get("LEVEL_TEST_LEXICAL_VARIANT_MODE", "plural")  # strict|plural|plural+typo
 _ASR_MIN_CHARS = int(os.environ.get("LEVEL_TEST_ASR_MIN_CHARS", "2"))
+# M2.4 — "Errore-che-insegna" (teachable moment) TUNABLES.
+# The correction moment OPENS when a take is wrong-word OR scores below this
+# threshold. It gates only the COACHING UI — it NEVER changes the vote (the vote
+# is always the BEST of the attempts). Exposed via /config for tuning (like the
+# formant curve/weights), never hardcoded in the frontend.
+_TEACHABLE_THRESHOLD = float(os.environ.get("LEVEL_TEST_TEACHABLE_THRESHOLD", "60"))
+_MAX_ATTEMPTS = int(os.environ.get("LEVEL_TEST_MAX_ATTEMPTS", "3"))  # first + up to 2 retries
 # Whisper key: prefer the Emergent universal key (works for whisper-1); fall back
 # to a real OpenAI key if the user later swaps in their own. The placeholder means
 # "not set" → ASR stays off (graceful degrade).
@@ -233,9 +259,50 @@ def _phrase_accuracy(transcript: str | None, expected: str) -> dict:
     return {"status": "ok", "accuracy": round(ratio, 3), "transcript": transcript}
 
 
+def _compute_verdict(iso: list, phrase_score: float | None) -> dict:
+    """SINGLE calculator of the final CEFR verdict — reused by BOTH the
+    session-truth path and the direct/demo path so they can never diverge."""
+    iso_scores = [i.get("target_score", 0) or 0 for i in iso]
+    iso_mean = sum(iso_scores) / len(iso_scores)
+    if phrase_score is not None:
+        overall = _W_ISO * iso_mean + _W_PHRASE * phrase_score
+    else:
+        overall = iso_mean  # phrase excluded if unavailable
+    overall = round(overall, 1)
+
+    # Bidialect: only phonemes said correctly (a wrong word is meaningless).
+    rp_vals, ame_vals = [], []
+    for i in iso:
+        if i.get("lexical_ok"):
+            bd = i.get("by_dialect") or {}
+            if bd.get("RP") is not None:
+                rp_vals.append(bd["RP"])
+            if bd.get("AmE") is not None:
+                ame_vals.append(bd["AmE"])
+    avg = lambda a: round(sum(a) / len(a)) if a else None
+    bidialect = {"rp": avg(rp_vals), "ame": avg(ame_vals),
+                 "insufficient": (len(rp_vals) < 2 and len(ame_vals) < 2)}
+
+    focus = sorted(iso, key=lambda i: i.get("target_score", 0) or 0)[:3]
+    focus_out = [{
+        "ipa": f.get("ipa"), "label": f.get("label"),
+        "score": f.get("target_score"),
+        "wrong_word": not f.get("lexical_ok", True),
+    } for f in focus]
+
+    return {
+        "scorePercent": overall,
+        "cefr": _cefr_band(overall),
+        "iso_mean": round(iso_mean, 1),
+        "phrase_score": phrase_score,
+        "bidialect": bidialect,
+        "focus": focus_out,
+        "weights": {"w_iso": _W_ISO, "w_phrase": _W_PHRASE},
+    }
+
+
 def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_dir=None) -> APIRouter:
     router = APIRouter(prefix="/level-test", tags=["level-test"])
-
     # ------------------------------------------------------------------ #
     # M2.3 · Audio-da-imitare (word-example) — resolver + admin generator.
     # Reads/writes the CANONICAL store on the phoneme cards
@@ -350,6 +417,8 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             "approved": approved, "ready_count": ready, "total": total,
             "can_publish": ready == total,           # prerequisite for the toggle
             "published": approved and ready == total,  # public gate condition
+            "teachable_threshold": _TEACHABLE_THRESHOLD,  # M2.4 tunable
+            "max_attempts": _MAX_ATTEMPTS,                 # M2.4 tunable
         }
 
     @router.post("/admin/config")
@@ -508,45 +577,106 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
     @router.post("/verdict")
     async def verdict(body: VerdictIn = Body(...)):
         iso = body.isolated or []
+        # SERVER-TRUTH path: rebuild the isolated list from the BEST attempt per
+        # phoneme stored in the session — the client cannot inflate the vote.
+        if body.session_id:
+            doc = await db.level_test_sessions.find_one(
+                {"session_id": body.session_id}, {"_id": 0})
+            if doc:
+                iso = []
+                for ipa, p in (doc.get("phonemes") or {}).items():
+                    m = p.get("migliore")
+                    if m and m.get("target_score") is not None:
+                        iso.append({
+                            "ipa": ipa, "label": p.get("label") or ipa,
+                            "target_score": m["target_score"],
+                            "lexical_ok": m.get("lexical_ok", True),
+                            "by_dialect": m.get("by_dialect") or {},
+                        })
         if not iso:
             raise HTTPException(status_code=400, detail="Nessun fonema valutato")
-        iso_scores = [i.get("target_score", 0) or 0 for i in iso]
-        iso_mean = sum(iso_scores) / len(iso_scores)
+        return _compute_verdict(iso, body.phrase_score)
 
-        if body.phrase_score is not None:
-            overall = _W_ISO * iso_mean + _W_PHRASE * body.phrase_score
-        else:
-            overall = iso_mean  # phrase excluded if unavailable
-        overall = round(overall, 1)
-
-        # Bidialect: only phonemes said correctly (a wrong word is meaningless).
-        rp_vals, ame_vals = [], []
-        for i in iso:
-            if i.get("lexical_ok"):
-                bd = i.get("by_dialect") or {}
-                if bd.get("RP") is not None:
-                    rp_vals.append(bd["RP"])
-                if bd.get("AmE") is not None:
-                    ame_vals.append(bd["AmE"])
-        avg = lambda a: round(sum(a) / len(a)) if a else None
-        bidialect = {"rp": avg(rp_vals), "ame": avg(ame_vals),
-                     "insufficient": (len(rp_vals) < 2 and len(ame_vals) < 2)}
-
-        focus = sorted(iso, key=lambda i: i.get("target_score", 0) or 0)[:3]
-        focus_out = [{
-            "ipa": f.get("ipa"), "label": f.get("label"),
-            "score": f.get("target_score"),
-            "wrong_word": not f.get("lexical_ok", True),
-        } for f in focus]
-
-        return {
-            "scorePercent": overall,
-            "cefr": _cefr_band(overall),
-            "iso_mean": round(iso_mean, 1),
-            "phrase_score": body.phrase_score,
-            "bidialect": bidialect,
-            "focus": focus_out,
-            "weights": {"w_iso": _W_ISO, "w_phrase": _W_PHRASE},
+    # =================== M2.4 · SESSION (attempts) =========================
+    # Anonymous, MongoDB-backed (never in-memory — safe across replicas). The
+    # server owns the FIRST-cold vs BEST selection. ``lead_id`` is predisposed
+    # (stays None) so M2.5 can attach the email-gate lead without restructuring.
+    @router.post("/session/attempt")
+    async def session_attempt(body: AttemptIn = Body(...)):
+        sid = (body.session_id or "").strip()
+        if not sid:
+            raise HTTPException(status_code=400, detail="session_id mancante")
+        ipa = body.phoneme_ipa
+        if not ipa:
+            raise HTTPException(status_code=400, detail="phoneme_ipa mancante")
+        # HARDENING (M2.4): only a MEASURED take may enter the session. Every
+        # legitimate /score result carries a target_score (a wrong word gets the
+        # A1 cap). A 422 (unmeasurable — noise/mic/mistracking) has NO score, so
+        # it must NEVER become primo_a_freddo nor consume one of the 3 attempts.
+        # The client is expected not to POST on 422; this guard enforces it too.
+        if body.target_score is None:
+            raise HTTPException(status_code=400, detail={
+                "message": "Presa non misurabile: non registrata come tentativo.",
+                "reason": "unmeasured_take"})
+        now = datetime.now(timezone.utc).isoformat()
+        attempt = {
+            "target_score": body.target_score,
+            "lexical_ok": bool(body.lexical_ok),
+            "lexical_status": body.lexical_status,
+            "cefr": body.cefr,
+            "by_dialect": body.by_dialect or {},
+            "recorded_at": now,
         }
+        # Teachable moment gate (does NOT affect the vote): wrong word OR below
+        # the tunable formant threshold. A 422-rejected take never reaches here.
+        teachable = (body.lexical_status == "wrong") or (
+            body.target_score is not None and body.target_score < _TEACHABLE_THRESHOLD
+        )
+
+        doc = await db.level_test_sessions.find_one({"session_id": sid}, {"_id": 0})
+        if not doc:
+            doc = {"session_id": sid, "lead_id": None, "phonemes": {},
+                   "created_at": now, "updated_at": now}
+        phonemes = doc.get("phonemes") or {}
+        ph = phonemes.get(ipa) or {
+            "label": body.label, "primo_a_freddo": None,
+            "migliore": None, "tentativi": [], "count": 0,
+        }
+        max_reached = ph["count"] >= _MAX_ATTEMPTS
+        if not max_reached:
+            ph["tentativi"].append(attempt)
+            ph["count"] += 1
+            if ph["primo_a_freddo"] is None:
+                ph["primo_a_freddo"] = attempt  # cold baseline — immutable
+            _sc = lambda a: a.get("target_score") if a.get("target_score") is not None else -1
+            if ph["migliore"] is None or _sc(attempt) > _sc(ph["migliore"]):
+                ph["migliore"] = attempt
+        if body.label and not ph.get("label"):
+            ph["label"] = body.label
+        phonemes[ipa] = ph
+        doc["phonemes"] = phonemes
+        doc["updated_at"] = now
+        await db.level_test_sessions.update_one(
+            {"session_id": sid}, {"$set": doc}, upsert=True)
+
+        logger.info("level-test/session ATTEMPT sid=%s ipa=%s count=%s score=%s "
+                    "lexical=%s teachable=%s max_reached=%s",
+                    sid, ipa, ph["count"], body.target_score,
+                    body.lexical_status, teachable, ph["count"] >= _MAX_ATTEMPTS)
+        return {
+            "session_id": sid, "phoneme_ipa": ipa, "count": ph["count"],
+            "max_attempts": _MAX_ATTEMPTS,
+            "max_reached": ph["count"] >= _MAX_ATTEMPTS,
+            "teachable": teachable, "teachable_threshold": _TEACHABLE_THRESHOLD,
+            "primo_a_freddo": ph["primo_a_freddo"], "migliore": ph["migliore"],
+        }
+
+    @router.get("/session/{session_id}")
+    async def get_session(session_id: str):
+        doc = await db.level_test_sessions.find_one(
+            {"session_id": session_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Sessione inesistente")
+        return doc
 
     return router

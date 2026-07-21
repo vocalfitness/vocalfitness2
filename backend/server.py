@@ -131,7 +131,11 @@ async def create_indexes():
         await db.messages.create_index([("conversation_id", 1), ("created_at", 1)])
         await db.messages.create_index("sender_id")
         await db.messages.create_index("recipient_id")
-        
+
+        # Level Test sessions (M2.4 — anonymous attempts, first-cold vs best)
+        await db.level_test_sessions.create_index("session_id", unique=True)
+        await db.level_test_sessions.create_index("created_at")
+
         logging.info("MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
