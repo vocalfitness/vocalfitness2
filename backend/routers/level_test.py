@@ -37,6 +37,7 @@ from routers.phoneme_formants import (
     find_reference,
     fetch_and_extract,
     compute_formant_score,
+    score_against_reference,
     _cefr_band,
 )
 
@@ -53,8 +54,13 @@ _W_ISO = float(os.environ.get("LEVEL_TEST_W_ISO", "0.6"))
 _W_PHRASE = float(os.environ.get("LEVEL_TEST_W_PHRASE", "0.4"))
 _LEXICAL_VARIANT_MODE = os.environ.get("LEVEL_TEST_LEXICAL_VARIANT_MODE", "plural")  # strict|plural|plural+typo
 _ASR_MIN_CHARS = int(os.environ.get("LEVEL_TEST_ASR_MIN_CHARS", "2"))
+# Whisper key: prefer the Emergent universal key (works for whisper-1); fall back
+# to a real OpenAI key if the user later swaps in their own. The placeholder means
+# "not set" → ASR stays off (graceful degrade).
+_EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 _OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
-_ASR_READY = bool(OpenAISpeechToText) and _OPENAI_KEY and _OPENAI_KEY != "REPLACE_IN_PANEL"
+_ASR_KEY = _EMERGENT_KEY or (_OPENAI_KEY if _OPENAI_KEY and _OPENAI_KEY != "REPLACE_IN_PANEL" else "")
+_ASR_READY = bool(OpenAISpeechToText) and bool(_ASR_KEY)
 
 _MAX_WORKERS = int(os.environ.get("LEVEL_TEST_POOL_WORKERS", "2"))
 _pool: ProcessPoolExecutor | None = None
@@ -146,8 +152,12 @@ async def _transcribe(raw: bytes) -> str | None:
         tf.write(raw)
         path = tf.name
     try:
-        stt = OpenAISpeechToText(api_key=_OPENAI_KEY)
-        resp = await stt.transcribe(file=path, model="whisper-1", language="en", temperature=0)
+        stt = OpenAISpeechToText(api_key=_ASR_KEY)
+        with open(path, "rb") as fh:
+            resp = await stt.transcribe(
+                file=fh, model="whisper-1", language="en",
+                temperature=0, response_format="json",
+            )
         text = getattr(resp, "text", None)
         if text is None and isinstance(resp, dict):
             text = resp.get("text")
@@ -222,7 +232,37 @@ def build_level_test_router(db) -> APIRouter:
             return {"kind": "phrase", "lexical": acc, "phrase_score": phrase_score,
                     "asr_available": _ASR_READY}
 
-        # ============== Signal B: formant measurement (V1) ==================
+        # ---- Signal A: lexical check (transcript computed above) -----------
+        lexical = _lexical_word(transcript, expected) if expected else {"status": "unavailable", "transcript": transcript}
+        if lexical["status"] == "uncertain":
+            raise HTTPException(status_code=422, detail={
+                "message": f"Non ho sentito chiaramente. Riprova pronunciando \"{expected}\".",
+                "reason": "asr_uncertain"})
+
+        # Option-1: the SHOWN dialect (what the card presents) is the PRIMARY score.
+        # The other dialect is scored on the SAME measurement window (single window)
+        # purely for the verdict's bidialectal comparison — never to inflate the
+        # primary score. Default shown = RP (isolated cards are presented in RP).
+        shown = dialect if dialect in {"AmE", "RP"} else "RP"
+        other = "AmE" if shown == "RP" else "RP"
+
+        def _wrong_word_result(by_dialect, primary_composite):
+            return {
+                "kind": "word", "phoneme_ipa": phoneme_ipa, "shown_dialect": shown,
+                "lexical": lexical, "by_dialect": by_dialect,
+                "best_dialect": shown if by_dialect else None,
+                "composite_score": primary_composite, "target_score": _WRONG_WORD_CAP,
+                "cefr": _cefr_band(_WRONG_WORD_CAP), "asr_available": _ASR_READY,
+            }
+
+        # Wrong WORD (said clearly, but not the target) → capped at A1 regardless of
+        # vowel quality. Short-circuit: no need to measure formants.
+        if lexical["status"] == "wrong":
+            logger.info("level-test/score WRONG-WORD phoneme=%s expected=%r transcript=%r -> A1",
+                        phoneme_ipa, expected, transcript)
+            return _wrong_word_result({}, None)
+
+        # ============== Signal B: formant measurement ======================
         loop = asyncio.get_running_loop()
         try:
             meas = await loop.run_in_executor(_get_pool(), _measure_from_bytes, raw)
@@ -235,74 +275,63 @@ def build_level_test_router(db) -> APIRouter:
                 detail="Impossibile estrarre le formanti. Registra di nuovo in un ambiente silenzioso.",
             )
 
-        # Lexical check for the isolated word.
-        lexical = _lexical_word(transcript, expected) if expected else {"status": "unavailable", "transcript": transcript}
-        # Uncertain (no speech captured) → ask to re-record (like the formant gate).
-        if lexical["status"] == "uncertain":
+        refs_shown = await find_reference(db, phoneme_ipa, shown)
+        teacher_ref = None
+        if not refs_shown and reference_url:
+            teacher_ref = await fetch_and_extract(reference_url)
+        if not refs_shown and not teacher_ref:
             raise HTTPException(status_code=422, detail={
-                "message": f"Non ho sentito chiaramente. Riprova pronunciando \"{expected}\".",
-                "reason": "asr_uncertain"})
+                "message": "Riferimento non disponibile per questo suono.", "reason": "no_reference"})
 
-        # Score against both standards (bidialectal) unless a specific dialect
-        # is requested. This feeds the verdict's AmE↔RP comparison honestly.
-        dialects = [dialect] if dialect in {"AmE", "RP"} else ["RP", "AmE"]
-        results: dict = {}
-        errors: dict = {}
-        for d in dialects:
-            refs = await find_reference(db, phoneme_ipa, d)
-            teacher_ref = None
-            if not refs and reference_url:
-                teacher_ref = await fetch_and_extract(reference_url)
-            if not refs and not teacher_ref:
-                errors[d] = "no_reference"
-                continue
-            try:
-                r = compute_formant_score(meas, refs, phoneme_ipa, d, teacher_ref)
-            except HTTPException as exc:
-                errors[d] = exc.detail if isinstance(exc.detail, str) else (exc.detail or {}).get("reason")
-                continue
-            diag = r.get("diagnostics", {})
-            logger.info(
-                "level-test/score DIAG phoneme=%s dialect=%s f0=%s group=%s composite=%s "
-                "coherence=%s attempts=%s lexical=%s transcript=%r",
-                phoneme_ipa, d, r["student_formants"].get("F0"), r.get("reference_group"),
-                r["composite_score"], _coherence_ok(r),
-                [(a.get("ceiling_hz"), a.get("F1"), a.get("F2"), a.get("plausible")) for a in diag.get("attempts", [])],
-                lexical["status"], transcript,
-            )
-            if not _coherence_ok(r):
-                errors[d] = {"reason": "vowel_incoherence"}
-                continue
-            results[d] = r
-
-        # ---- Combine A + B into the target_score --------------------------
-        if lexical["status"] == "wrong":
-            # Wrong WORD → crashes to A1 regardless of vowel quality. We do NOT
-            # 422 here (the word was said clearly, just wrong) — it counts, low.
-            best_d = max(results, key=lambda k: results[k]["composite_score"]) if results else None
-            return {
-                "kind": "word", "phoneme_ipa": phoneme_ipa,
-                "lexical": lexical, "by_dialect": results, "best_dialect": best_d,
-                "composite_score": results[best_d]["composite_score"] if best_d else None,
-                "target_score": _WRONG_WORD_CAP,
-                "cefr": _cefr_band(_WRONG_WORD_CAP), "asr_available": _ASR_READY,
-            }
-
-        # Correct (or ASR unavailable) → need a valid formant measurement.
-        if not results:
+        def _incoherent_error(reason):
             word = expected or _EXAMPLE_WORD.get(phoneme_ipa, "")
             hint = f" Riprova pronunciando \"{word}\"." if word else " Riprova, tenendo il suono fermo 1-2 secondi."
-            raise HTTPException(status_code=422, detail={
+            return HTTPException(status_code=422, detail={
                 "message": f"Non ho riconosciuto chiaramente il suono.{hint}",
-                "reason": "vowel_incoherence", "errors": errors})
+                "reason": reason or "vowel_incoherence"})
 
-        best_d = max(results, key=lambda k: results[k]["composite_score"])
-        composite = results[best_d]["composite_score"]
+        # PRIMARY = shown dialect: this call selects the SINGLE LPC window + gate.
+        try:
+            primary = compute_formant_score(meas, refs_shown, phoneme_ipa, shown, teacher_ref)
+        except HTTPException as exc:
+            reason = exc.detail if isinstance(exc.detail, str) else (exc.detail or {}).get("reason")
+            raise _incoherent_error(reason)
+
+        diag = primary.get("diagnostics", {})
+        logger.info(
+            "level-test/score DIAG phoneme=%s shown=%s f0=%s group=%s composite=%s "
+            "coherence=%s attempts=%s lexical=%s transcript=%r",
+            phoneme_ipa, shown, primary["student_formants"].get("F0"), primary.get("reference_group"),
+            primary["composite_score"], _coherence_ok(primary),
+            [(a.get("ceiling_hz"), a.get("F1"), a.get("F2"), a.get("plausible")) for a in diag.get("attempts", [])],
+            lexical["status"], transcript,
+        )
+        if not _coherence_ok(primary):
+            raise _incoherent_error("vowel_incoherence")
+
+        # Same-window bidialectal comparison (verdict only — NEVER inflates primary).
+        student = primary["student_formants"]
+        f0 = meas.get("f0_global")
+
+        def _pack(res):
+            return {"composite_score": res["composite_score"], "cefr": res["cefr"],
+                    "per_formant": res["per_formant"], "reference_group": res.get("reference_group")}
+
+        by_dialect = {shown: _pack(primary)}
+        refs_other = await find_reference(db, phoneme_ipa, other)
+        o = score_against_reference(student, f0, refs_other, phoneme_ipa, other) if refs_other else None
+        if o:
+            by_dialect[other] = _pack(o)
+        logger.info("level-test/score BIDIALECT phoneme=%s shown=%s(%s) other=%s(%s)",
+                    phoneme_ipa, shown, primary["composite_score"], other,
+                    o["composite_score"] if o else None)
+
         return {
-            "kind": "word", "phoneme_ipa": phoneme_ipa,
-            "lexical": lexical, "by_dialect": results, "best_dialect": best_d,
-            "composite_score": composite, "target_score": composite,
-            "cefr": results[best_d]["cefr"], "asr_available": _ASR_READY,
+            "kind": "word", "phoneme_ipa": phoneme_ipa, "shown_dialect": shown,
+            "lexical": lexical, "by_dialect": by_dialect, "best_dialect": shown,
+            "composite_score": primary["composite_score"],
+            "target_score": primary["composite_score"],
+            "cefr": primary["cefr"], "asr_available": _ASR_READY,
         }
 
     # ======================= COMBINED VERDICT ==============================

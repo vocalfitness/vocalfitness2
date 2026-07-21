@@ -310,6 +310,7 @@ export default function LevelTestPage() {
                       phonemeIpa={current.ipa}
                       expected={current.word}
                       kind="word"
+                      dialect="RP"
                       testid="lt-isolated-recorder"
                       onDone={(r) => {
                         // Store the take if it produced a score — INCLUDING a

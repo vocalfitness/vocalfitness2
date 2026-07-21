@@ -620,6 +620,60 @@ def compute_formant_score(
     }
 
 
+def score_against_reference(
+    student: dict,
+    f0: Optional[float],
+    refs: list[dict],
+    phoneme_ipa: str,
+    dialect: str,
+) -> Optional[dict]:
+    """Score an ALREADY-MEASURED formant vector (`student` = {F1,F2,F3}) against a
+    dialect's dataset reference — WITHOUT re-selecting an LPC window. Used for the
+    bidialectal comparison in the Level Test: the shown dialect selects the single
+    measurement window (via ``compute_formant_score``); the OTHER dialect is scored
+    on that SAME window here, so RP and AmE are compared on identical acoustics
+    (no per-dialect window flattery). Returns None if no reference formant applies."""
+    if not refs:
+        return None
+    if f0:
+        label = "men" if f0 < 165 else ("women" if f0 <= 255 else "children")
+        avail = {r["speaker_group"]: r for r in refs}
+        prefs = {
+            "men": ["men", "male"],
+            "women": ["women", "female"],
+            "children": ["children", "female", "women"],
+        }[label]
+        best = next((avail[g] for g in prefs if g in avail), None) or refs[0]
+    else:
+        best = refs[0]
+    row_sd_source = best.get("sd_source", "estimated_pooled")
+    per_formant = []
+    for k in ("F1", "F2", "F3"):
+        m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
+        mv = student.get(k)
+        if not (m and mv):
+            continue
+        sd_used = round(float(sd), 1) if sd else round(m * SD_EST_PCT[k], 1)
+        per_formant.append({
+            "name": k, "measured": mv, "reference": m,
+            "score": _score_gaussian(mv, m, sd_used),
+            "hint": _direction_hint(k, mv, m),
+        })
+    if not per_formant:
+        return None
+    composite = _weighted_composite(per_formant, phoneme_ipa)
+    return {
+        "phoneme_ipa": phoneme_ipa,
+        "dialect": dialect,
+        "reference_group": best["speaker_group"],
+        "per_formant": per_formant,
+        "composite_score": composite,
+        "cefr": _cefr_band(composite),
+        "same_window": True,
+    }
+
+
+
 
 def build_phoneme_formants_router(
     db,

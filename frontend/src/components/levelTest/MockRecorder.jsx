@@ -11,7 +11,7 @@ import { BACKEND_URL } from '../../lib/backend';
  * kind="phrase": returns phrase_score (lexical accuracy only).
  * 422 (mistracking OR ASR-uncertain) → onError → invalidate + retry.
  */
-export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word', testid, onDone, onError }) => {
+export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word', dialect = '', testid, onDone, onError }) => {
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -65,6 +65,7 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
       fd.append('phoneme_ipa', phonemeIpa || '');
       fd.append('expected', expected || '');
       fd.append('kind', kind);
+      fd.append('dialect', dialect || '');
       const resp = await fetch(`${BACKEND_URL}/api/level-test/score`, { method: 'POST', body: fd });
       const data = await resp.json();
       if (!resp.ok) {

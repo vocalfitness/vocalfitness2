@@ -9,6 +9,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.2b — Whisper ACCESO + fix BUG1 (finestra-unica/opzione-1) — IN RETEST UTENTE ⏳
+
+- **Scoperta critica dal test utente**: i log mostravano `lexical=unavailable transcript=None` su OGNI take → **Whisper era SPENTO**. Causa: la chiave OpenAI del pannello NON è sopravvissuta al fork (`.env` = `REPLACE_IN_PANEL`, processo senza `OPENAI_API_KEY`). Quindi i risultati del test utente erano V1 (senza segnale lessicale), non V2.
+- **Fix Whisper (scelta utente 1a)**: aggiunta `EMERGENT_LLM_KEY` al `.env`; `level_test.py` ora usa la **chiave universale Emergent** per whisper-1 (`_ASR_KEY = EMERGENT_LLM_KEY or OPENAI_API_KEY`). `_transcribe` corretto per passare un **file handle** (non un path) + `response_format=json`. Verificato: `_ASR_READY=True`, transcript reale restituito ('E' su vocale isolato). Backlog: passaggio alla chiave OpenAI dell'utente pre go-live.
+- **BUG 1 (dialetto "invertito") — causa reale**: NON inversione riferimenti (verificati corretti). Era **flattery della finestra**: ogni dialetto riselezionava una finestra LPC diversa sulla stessa clip e l'app mostrava il MAX. Prova log 17:45:09 BIRD: stessa clip → RP=41.5 (win 5500) vs AmE=84.0 (win 5000) → mostrava 84.
+- **Fix BUG 1 (scelta utente opzione 1 + finestra-unica)**: `/score` word ora (a) il dialetto **MOSTRATO** (`dialect` form field, default RP) è il PRIMARIO → `target_score` = suo composite (mai più il max); (b) l'altro dialetto è valutato sulla **STESSA finestra** via nuovo helper `score_against_reference()` in `phoneme_formants.py` (nessuna riselezione) → `by_dialect` onesto per il verdetto bidialettale. Frontend: `MockRecorder` invia `dialect`; step isolato passa `dialect="RP"`. Verificato: TEST C /iː/ → `shown_dialect=RP target_score=73.4`, `by_dialect{RP:73.4, AmE:60.7}` stessa finestra (log `BIDIALECT`).
+- **BUG 2 (TRAP salta validazione) — causa**: era conseguenza di Whisper spento (nessun check lessicale) + /æ/ acusticamente permissivo. Con Whisper acceso il cap parola-sbagliata ora scatta (short-circuit A1 su `lexical=wrong`, prima ancora di misurare le formanti). Da riverificare nel retest.
+- **⚠️ RETEST UTENTE richiesto** (matrice completa, ora con Whisper attivo). Attenzione caso 4 (parola giusta mal detta): se Whisper trascrive comunque "law" → punteggio basso (giusto); se la trascrive come parola diversa → A1 (patch tolleranza fonetica pronta se serve).
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2.2 — Integrazione frontend V2 (Whisper ASR + verdetto backend) — IN VERIFICA UTENTE ⏳ (mic test richiesto)
 
 - **Scelte utente confermate**: 1a (la frase entra nel verdetto con peso 0.4 come **accuratezza lessicale Whisper**, NON qualità acustica) + 2a (`POST /api/level-test/verdict` = **sorgente unica di verità**, niente calcolo client-side).
