@@ -114,7 +114,7 @@ export const AdminLevelTestAudioTab = ({ backendUrl, token, showToast }) => {
               <span className={`text-sm font-bold ${config.can_publish ? 'text-emerald-400' : 'text-amber-400'}`} data-testid="leveltest-ready-count">
                 {config.ready_count}/{config.total} clip pronte
               </span>
-              <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${config.published ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}`} data-testid="leveltest-publish-state">
+              <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${config.published ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'}`} data-testid="leveltest-publish-state">
                 {config.published ? 'PUBBLICATO' : 'BOZZA'}
               </span>
             </div>

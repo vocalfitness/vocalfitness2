@@ -9,6 +9,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.3 — Wiring "Ascolta il Prof." + gate pubblicazione — FATTO e VERIFICATO ✅ (test in BOZZA)
+
+- **Verifica clip (utente ha caricato le 6)**: resolver 6/6 `ready`, URL validi, 6 md5 distinti. **BIRD divergenza confermata oggettivamente** (F3 = marker roticità): RP F3≈2556Hz (non-rotico) vs US F3≈1750Hz (r-colored) → gap −806Hz, inequivocabile. Tutte MP3 (MPEG-1 Layer III) → mobile-safe (iOS Safari + Android Chrome).
+- **A. "Ascolta il Prof." (opzione A-a, solo RP)**: nuovo bottone nella card prompt dello step isolato, riproduce la clip-parola RP del fonema corrente **pescata dal resolver** (fonte unica `audio.{dialect}.wordExample`, mai copia locale). NB: lo stub "RIASCOLTA (DEMO)" in `JarvisOrb` è il replay della NARRAZIONE Jarvis (pezzo separato, copy pendente) — lasciato com'è. Gancio BIRD RP/US **predisposto nel VERDETTO** (`lt-bird-divergence`: due bottoni 🇬🇧/🇺🇸, render solo se entrambe le clip esistono) per la dimostrazione della divergenza.
+- **B. Gate pubblicazione (draft-not-publish)**: nuovo `db.level_test_config {approved}`. `GET /api/level-test/config` → {approved, ready_count, total, can_publish=(6/6), published=(approved AND 6/6)}. `POST /api/level-test/admin/config` (admin) → 409 se si prova a pubblicare senza 6/6. Regola: **6/6 è solo il prerequisito che ABILITA il toggle; la pubblicazione richiede `approved=true` messo A MANO**. Toggle OFF di default anche a 6/6 — il sistema non pubblica da solo.
+- **Comportamento pubblico**: `/level-test` (senza query) → **redirect a home** se `!published` (opzione B-b). **Fail-closed**: anche su errore di rete config → redirect home (mai servire senza audio). Deep-link `?step=` (admin preview) bypassa il gate.
+- **Pannello admin**: barra pubblicazione con indicatore `6/6 clip pronte`, badge stato **BOZZA** (ambra), toggle **"Approva e pubblica"** (abilitato solo a 6/6, OFF di default).
+- **Verificato (testing_agent iteration_40, frontend 100%)**: redirect pubblico → home; `?step=isolated` bypassa e mostra "Ascolta il Prof."; pannello 6/6 + BOZZA + toggle abilitato NON cliccato; config post-test ancora `published=false`. **Test resta in BOZZA — nessuna pubblicazione attivata** (come richiesto).
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2.3 · Mini-pannello admin Audio-da-imitare — FATTO e VERIFICATO ✅ (nessuna generazione)
 
 - **Correzione generatore (feedback utente)**: NIENTE SSML `<phoneme ph=ipa>` (forzerebbe un fonema isolato). Il reference è la **PAROLA intera** in voce naturale; l'IPA resta solo DATO (verdetto/dettaglio esperto). Il generatore ora sintetizza la parola in chiaro (fallback) **oppure** accetta un `url` per allegare una registrazione reale.

@@ -55,7 +55,11 @@ export default function LevelTestPage() {
         const res = await fetch(`${BACKEND_URL}/api/level-test/config`);
         const cfg = await res.json();
         if (!cancelled && !cfg.published) navigate('/', { replace: true });
-      } catch (e) { /* on error, do not hard-block */ }
+      } catch (e) {
+        // Fail CLOSED: if we can't confirm publication (backend outage), send the
+        // public visitor home — never risk serving the test without its audio.
+        if (!cancelled) navigate('/', { replace: true });
+      }
     })();
     return () => { cancelled = true; };
   }, [reviewMode, navigate]);
