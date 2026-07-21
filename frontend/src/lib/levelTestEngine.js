@@ -27,9 +27,12 @@ export const AURAL_QUESTION = {
 // LAW /ɔː/, BIRD /ɜː/, TRAP /æ/ — references verified RP + AmE (AmE /ɜː/→/ɝ/
 // rhotic, lowered F3). `word` is sent to Whisper as the expected lexical target.
 export const ISOLATED_TARGETS = [
-  { ipa: 'ɔː', label: 'LAW',  word: 'law',  hint: 'la vocale lunga e arrotondata di "law"' },
-  { ipa: 'ɜː', label: 'BIRD', word: 'bird', hint: 'la vocale centrale lunga di "bird"' },
-  { ipa: 'æ',  label: 'TRAP', word: 'cat',  hint: 'la vocale aperta di "cat"' },
+  { ipa: 'ɔː', label: 'LAW',  word: 'law',  hint: 'la vocale lunga e arrotondata di "law"',
+    teach: 'Arrotonda bene le labbra e abbassa la mandibola: /ɔː/ è lungo e cupo, non la "o" italiana di "no". Pensa a un "oooo" spinto indietro in gola.' },
+  { ipa: 'ɜː', label: 'BIRD', word: 'bird', hint: 'la vocale centrale lunga di "bird"',
+    teach: 'Bocca rilassata, lingua al centro, nessun arrotondamento: /ɜː/ è un suono neutro e lungo. Non dire "berd" né "bird" all\'italiana — è a metà, come un lungo "eeuh".' },
+  { ipa: 'æ',  label: 'TRAP', word: 'cat',  hint: 'la vocale aperta di "cat"',
+    teach: 'Apri la bocca in orizzontale come in un sorriso ampio: /æ/ è più aperto della "e" italiana. Abbassa la lingua e allarga, non chiudere verso "cet".' },
 ];
 
 // ---- PHRASE target ------------------------------------------------------

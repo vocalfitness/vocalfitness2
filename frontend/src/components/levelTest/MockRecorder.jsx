@@ -11,7 +11,7 @@ import { BACKEND_URL } from '../../lib/backend';
  * kind="phrase": returns phrase_score (lexical accuracy only).
  * 422 (mistracking OR ASR-uncertain) → onError → invalidate + retry.
  */
-export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word', dialect = '', testid, onDone, onError }) => {
+export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word', dialect = '', testid, onDone, onError, hideOutcome = false }) => {
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -128,7 +128,7 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
       )}
       {phase === 'done' && result && (
         <div className="flex flex-col items-center gap-3" data-testid={`${testid}-result`}>
-          {kind === 'phrase' ? (
+          {hideOutcome ? null : kind === 'phrase' ? (
             <>
               <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider"><Check size={18} /> Frase acquisita</div>
               <div className="text-xs text-slate-400">Bravo — hai sentito la tua voce. Questo passo è esperienziale.</div>
@@ -152,11 +152,15 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
       )}
       {phase === 'error' && (
         <div className="flex flex-col items-center gap-3" data-testid={`${testid}-error`}>
-          <div className="flex items-center gap-2 text-amber-400 text-sm max-w-xs"><AlertTriangle size={18} /> <span>{errorMsg}</span></div>
-          <button type="button" onClick={reset} data-testid={`${testid}-retry`}
-            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-xs transition-all">
-            <RotateCcw size={14} /> Riprova
-          </button>
+          {hideOutcome ? null : (
+            <>
+              <div className="flex items-center gap-2 text-amber-400 text-sm max-w-xs"><AlertTriangle size={18} /> <span>{errorMsg}</span></div>
+              <button type="button" onClick={reset} data-testid={`${testid}-retry`}
+                className="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-xs transition-all">
+                <RotateCcw size={14} /> Riprova
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

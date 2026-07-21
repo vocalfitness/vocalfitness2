@@ -59,19 +59,25 @@ async def ensure_level_test_word_example_slots(db) -> dict:
 
 async def get_word_example_slots(db) -> list:
     """Resolver — the 6 slots with their live state, read from the canonical
-    card store (single source of truth). ``state`` ∈ {ready, da_generare}."""
+    card store (single source of truth). ``state`` ∈ {ready, da_generare}.
+    Also surfaces the card's ``assets.frontView`` (frontal view of the Prof.)
+    for the M2.4 teachable moment — SAME single source, never a copy."""
     out = []
     for slot in LEVEL_TEST_WORD_EXAMPLES:
         card = await db.phoneme_cards.find_one(
-            {"id": slot["card_id"]}, {"_id": 0, "audio": 1}
+            {"id": slot["card_id"]}, {"_id": 0, "audio": 1, "assets": 1}
         )
         we = {}
+        assets = {}
         if card:
             we = ((card.get("audio") or {}).get(slot["dialect"]) or {}).get("wordExample") or {}
+            assets = card.get("assets") or {}
         url = we.get("url", "")
         out.append({
             "phoneme": slot["phoneme"], "label": slot["label"], "word": slot["word"],
             "dialect": slot["dialect"], "card_id": slot["card_id"], "ipa": slot["ipa"],
             "url": url, "state": "ready" if url else "da_generare",
+            "front_view": assets.get("frontView", ""),
+            "front_view_clean": assets.get("frontViewClean", ""),
         })
     return out

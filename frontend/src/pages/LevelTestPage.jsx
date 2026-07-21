@@ -12,6 +12,7 @@ import {
 } from '../lib/levelTestEngine';
 import JarvisOrb from '../components/levelTest/JarvisOrb';
 import MockRecorder from '../components/levelTest/MockRecorder';
+import IsolatedStep from '../components/levelTest/IsolatedStep';
 
 const STEPS = ['welcome', 'mirror', 'aural', 'isolated', 'phrase', 'partial', 'gate', 'verdict'];
 
@@ -29,7 +30,8 @@ export default function LevelTestPage() {
   const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
   const [scores, setScores] = useState({ isolated: {}, phrase: null });
-  const [isoIdx, setIsoIdx] = useState(0);
+  // Stable anonymous session id — the server keys first-cold/best + verdict on it.
+  const [sessionId] = useState(() => `lt-${(typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`);
 
   // SINGLE SOURCE OF TRUTH for the verdict: the backend /verdict endpoint.
   // Both 'partial' (teaser band) and 'verdict' (full detail) read the SAME
@@ -42,6 +44,8 @@ export default function LevelTestPage() {
   // Pulled from the resolver (SINGLE SOURCE: audio.{dialect}.wordExample) so a
   // re-recorded clip is followed automatically — never a hardcoded local copy.
   const [wordAudio, setWordAudio] = useState({});
+  // Prof. frontal view per phoneme (assets.frontView) for the teachable moment.
+  const [frontViews, setFrontViews] = useState({});
   const speakTimer = useRef(null);
 
   // Publication gate: fetch config; if the test is not published (approved by an
@@ -72,11 +76,14 @@ export default function LevelTestPage() {
         const res = await fetch(`${BACKEND_URL}/api/level-test/word-examples`);
         const data = await res.json();
         const map = {};
+        const fv = {};
         (data.slots || []).forEach((s) => {
           map[s.phoneme] = map[s.phoneme] || {};
           map[s.phoneme][s.dialect] = s.url;
+          // Teachable moment uses the RP card's frontal view (evaluated dialect).
+          if (s.dialect === 'RP' && s.front_view) fv[s.phoneme] = s.front_view;
         });
-        if (!cancelled) setWordAudio(map);
+        if (!cancelled) { setWordAudio(map); setFrontViews(fv); }
       } catch (e) { /* button will no-op if unavailable */ }
     })();
     return () => { cancelled = true; };
@@ -107,28 +114,20 @@ export default function LevelTestPage() {
   useEffect(() => {
     if (reviewMode) return;
     if (stepKey !== 'partial' && stepKey !== 'verdict') return;
-    const iso = ISOLATED_TARGETS
-      .map((t) => scores.isolated[t.ipa])
-      .filter((r) => r && r.target_score != null)
-      .map((r) => ({
-        ipa: r.phoneme_ipa,
-        label: (ISOLATED_TARGETS.find((t) => t.ipa === r.phoneme_ipa) || {}).label || r.phoneme_ipa,
-        target_score: r.target_score,
-        lexical_ok: r.lexical?.status !== 'wrong',
-        by_dialect: {
-          RP: r.by_dialect?.RP?.composite_score ?? null,
-          AmE: r.by_dialect?.AmE?.composite_score ?? null,
-        },
-      }));
-    if (iso.length < ISOLATED_TARGETS.length) return; // wait for all 3 valid takes
+    // Wait until all 3 phonemes have reached a DONE state (scores.isolated is
+    // populated only when a phoneme is finalised by IsolatedStep).
+    const doneCount = ISOLATED_TARGETS.filter((t) => scores.isolated[t.ipa]).length;
+    if (doneCount < ISOLATED_TARGETS.length) return;
     let cancelled = false;
     setVerdictLoading(true);
     (async () => {
       try {
+        // SERVER-TRUTH: the verdict is rebuilt from the BEST attempt per phoneme
+        // stored server-side against this session — the client cannot inflate it.
         const resp = await fetch(`${BACKEND_URL}/api/level-test/verdict`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isolated: iso, phrase_score: null }),
+          body: JSON.stringify({ session_id: sessionId, phrase_score: null }),
         });
         const data = await resp.json();
         if (!cancelled && resp.ok) setVerdict(data);
@@ -314,97 +313,21 @@ export default function LevelTestPage() {
           )}
 
           {/* ============ ISOLATED (3 phonemes = core of verdict) ============ */}
-          {stepKey === 'isolated' && (() => {
-            const targets = ISOLATED_TARGETS;
-            const doneCount = Object.keys(scores.isolated).length;
-            const current = targets[Math.min(isoIdx, targets.length - 1)];
-            const currentDone = !!scores.isolated[current.ipa];
-            const allDone = doneCount >= targets.length;
-            return (
-              <>
-                <StepHeader title={S.isolated.title} jarvis={S.isolated.jarvis.text} speaking={speaking} onReplay={replayJarvis} />
-
-                {/* progress dots for the 3 target vowels */}
-                <div className="mt-6 flex items-center justify-center gap-3" data-testid="lt-isolated-progress">
-                  {targets.map((t, i) => {
-                    const scored = !!scores.isolated[t.ipa];
-                    const isCur = i === isoIdx && !allDone;
-                    return (
-                      <div key={t.ipa} className="flex flex-col items-center gap-1">
-                        <span className={`font-mono text-lg transition-colors ${scored ? 'text-emerald-400' : isCur ? 'text-orange-400' : 'text-slate-600'}`}>/{t.ipa}/</span>
-                        <span className={`w-8 h-1 rounded-full transition-colors ${scored ? 'bg-emerald-400' : isCur ? 'bg-orange-400' : 'bg-slate-700'}`} />
-                        <span className="text-[9px] uppercase tracking-widest font-bold text-slate-500">{t.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-8">
-                  {/* Clear instruction (mitigates wrong-word sabotage): the
-                      big word to say + the target vowel + how to pronounce it. */}
-                  <div className="max-w-md mx-auto mb-6 rounded-2xl border border-orange-500/25 bg-slate-900/50 px-6 py-5" data-testid="lt-isolated-prompt">
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-300/70 font-bold mb-2">Pronuncia la parola</p>
-                    <div className="text-4xl sm:text-5xl font-black text-white leading-none">{current.word}</div>
-                    <div className="mt-3 flex items-center justify-center gap-3 text-sm">
-                      <span className="text-orange-400 font-mono text-xl drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">/{current.ipa}/</span>
-                      <span className="text-slate-400">{current.hint}</span>
-                    </div>
-                    {wordAudio[current.ipa]?.RP && (
-                      <button
-                        type="button"
-                        onClick={() => playClip(wordAudio[current.ipa].RP)}
-                        data-testid="lt-listen-prof"
-                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm uppercase tracking-wider transition-all hover:scale-105"
-                      >
-                        <Volume2 size={17} /> Ascolta il Prof. — "{current.word}" 🇬🇧
-                      </button>
-                    )}
-                  </div>
-                  <MockRecorder
-                    key={current.ipa}
-                    label={`Pronuncia ${current.label}`}
-                    target={`/${current.ipa}/`}
-                    phonemeIpa={current.ipa}
-                    expected={current.word}
-                    kind="word"
-                    dialect="RP"
-                    testid="lt-isolated-recorder"
-                    onDone={(r) => {
-                      // Store the take if it produced a score — INCLUDING a
-                      // wrong-word take (backend caps it at A1). A wrong word
-                      // is a valid, low result: it must COUNT, not be dropped.
-                      if (r && r.target_score != null) {
-                        setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
-                      }
-                    }}
-                    onError={() => {
-                      // Rejected (422) or failed take → this phoneme is NOT
-                      // acquired. Remove any previous score so it can never
-                      // enter the verdict and the flow blocks until a valid take.
-                      setScores((s) => {
-                        if (!s.isolated[current.ipa]) return s;
-                        const next = { ...s.isolated };
-                        delete next[current.ipa];
-                        return { ...s, isolated: next };
-                      });
-                    }}
-                  />
-                  {currentDone && isoIdx < targets.length - 1 && (
-                    <button
-                      onClick={() => setIsoIdx((i) => i + 1)}
-                      data-testid="lt-isolated-next-phoneme"
-                      className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.5)]"
-                    >
-                      Prossimo suono <ArrowRight size={17} />
-                    </button>
-                  )}
-                  {currentDone && isoIdx === targets.length - 1 && (
-                    <p className="mt-6 text-xs uppercase tracking-widest font-bold text-emerald-400" data-testid="lt-isolated-complete">Tutti e 3 i suoni acquisiti ✓ — premi Avanti</p>
-                  )}
-                </div>
-              </>
-            );
-          })()}
+          {stepKey === 'isolated' && (
+            <>
+              <StepHeader title={S.isolated.title} jarvis={S.isolated.jarvis.text} speaking={speaking} onReplay={replayJarvis} />
+              <IsolatedStep
+                sessionId={sessionId}
+                targets={ISOLATED_TARGETS}
+                wordAudio={wordAudio}
+                frontViews={frontViews}
+                playClip={playClip}
+                onPhonemeDone={(ipa, migliore) => {
+                  setScores((s) => ({ ...s, isolated: { ...s.isolated, [ipa]: migliore || { done: true } } }));
+                }}
+              />
+            </>
+          )}
 
           {/* ============ PHRASE ============ */}
           {stepKey === 'phrase' && (
