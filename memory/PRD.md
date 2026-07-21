@@ -9,7 +9,10 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
-## Core Requirements
+### Backlog / vincoli (aggiornato 21/07/2026)
+- **CTA home orfane (P1 · NON eseguire ora)**: spostare le CTA della home da `LevelTestModal.jsx` a `/level-test` SOLO quando si decide di ritirare il vecchio modal. Finché il nuovo funnel non è pubblico, le CTA restano sul modal esistente.
+- **Pulsante "Condividi il livello" (milestone dedicata, NON in M2)**: da fare solo DOPO che il motore reale (M2) funziona. VINCOLO badge: deve dire **"Livello di pronuncia Vocal Fitness"**, MAI "CEFR B2" secco — gira pubblico su LinkedIn davanti a chi non ha fatto il test, quindi il claim disciplinato è critico.
+
 
 
 ### 21/07/2026 · LEAD MAGNET · Level Test — Milestone 1 (skeleton UI navigabile, tutto MOCKATO) — DONE ✅ (screenshot verificato)
