@@ -76,8 +76,13 @@ _RELIABLE_CEILINGS = set(
     int(x) for x in os.environ.get("LEVEL_TEST_RELIABLE_CEILINGS_HZ", "5500,5000").split(",")
     if x.strip().isdigit()
 )
-# Default gate rule: require plausibility at the TOP tested ceiling.
-_GATE_TOP_CEILING_ONLY = os.environ.get("LEVEL_TEST_GATE_TOP_CEILING_ONLY", "true").lower() != "false"
+# Gate rule: accept a take if the target is plausible at ANY RELIABLE ceiling
+# (5500 OR 5000). Relaxed from "top ceiling only" because back rounded vowels
+# (e.g. /ɔː/ LAW) legitimately mistrack at 5500Hz (spurious high F2) while
+# tracking cleanly at 5000Hz — the strict top-ceiling rule was REJECTING correct
+# pronunciations. The wrong-word sabotage vector is now covered by the Whisper
+# lexical gate, so we no longer need the top-ceiling rule to catch it.
+_GATE_TOP_CEILING_ONLY = os.environ.get("LEVEL_TEST_GATE_TOP_CEILING_ONLY", "false").lower() != "false"
 
 # Actionable, non-technical rejection copy: example word per target vowel.
 _EXAMPLE_WORD = {
