@@ -5,6 +5,7 @@ import {
   Volume2, Award, Target, Check, Mail, ChevronRight,
 } from 'lucide-react';
 import { getLevelTestContent, LEVEL_TEST_SEGMENTS } from '../data/levelTestContent';
+import { BACKEND_URL } from '../lib/backend';
 import {
   AURAL_QUESTION, ISOLATED_TARGETS, PHRASE_TARGET,
   evaluateAural, computeVerdict, demoVerdict,

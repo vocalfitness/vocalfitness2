@@ -1,55 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Check, Loader2, RotateCcw, AlertTriangle, Play } from 'lucide-react';
+import { Mic, Square, Check, Loader2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { blobToWav } from '../../lib/blobToWav';
 import { BACKEND_URL } from '../../lib/backend';
 
 /**
- * PhonemeRecorder (M2 · real) — record → WAV → /api/level-test/score.
- *
- * Real MediaRecorder capture, converted client-side to 16-bit mono WAV, POSTed
- * to the PUBLIC stateless scoring endpoint (Parselmouth in a process pool).
- * The audio is analysed transiently server-side and NOT persisted.
- * `onDone(result)` receives the full scoring payload so the parent can build
- * the verdict later.
+ * PhonemeRecorder (V2) — record → WAV → /api/level-test/score.
+ * Real MediaRecorder (browser DSP OFF for formant accuracy) → transient
+ * server analysis (formants + Whisper ASR, audio NOT persisted).
+ * kind="word": returns composite + lexical (correct/wrong) + target_score.
+ * kind="phrase": returns phrase_score (lexical accuracy only).
+ * 422 (mistracking OR ASR-uncertain) → onError → invalidate + retry.
  */
-export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onError, mode = 'score' }) => {
+export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word', testid, onDone, onError }) => {
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [playbackUrl, setPlaybackUrl] = useState(null);
   const mediaRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const autoStopRef = useRef(null);
-  const playbackRef = useRef(null);
 
   useEffect(() => () => {
     clearTimeout(autoStopRef.current);
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-    if (playbackUrl) URL.revokeObjectURL(playbackUrl);
-  }, []); // eslint-disable-line
+  }, []);
 
   const stopStream = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
+    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
   };
 
   const start = async () => {
-    setErrorMsg('');
-    setResult(null);
+    setErrorMsg(''); setResult(null);
     try {
-      // Formant-grade capture: DISABLE browser DSP (AGC / noise suppression /
-      // echo cancellation) — these distort the low-frequency region and bias
-      // F1. This is the correct constraint for acoustic/formant analysis.
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 1,
-        },
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
       });
       streamRef.current = stream;
       chunksRef.current = [];
@@ -59,8 +43,7 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onErro
       mr.onstop = () => analyse();
       mr.start();
       setPhase('recording');
-      // Safety auto-stop at 6s.
-      autoStopRef.current = setTimeout(() => stop(), 6000);
+      autoStopRef.current = setTimeout(() => stop(), kind === 'phrase' ? 9000 : 6000);
     } catch (err) {
       setErrorMsg('Non riusciamo ad accedere al microfono. Consenti l\u2019accesso e riprova.');
       setPhase('error');
@@ -69,42 +52,26 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onErro
 
   const stop = () => {
     clearTimeout(autoStopRef.current);
-    if (mediaRef.current && mediaRef.current.state !== 'inactive') {
-      mediaRef.current.stop();
-    }
+    if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop();
   };
 
   const analyse = async () => {
-    const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
-
-    // EXPERIENCE mode (phrase, v1): NO formant scoring on a whole phrase — the
-    // engine has no forced alignment (Charsiu = v2), so a phrase-level score
-    // would be disconnected from what the user says. Instead we let the user
-    // hear themselves. The verdict score is built from the ISOLATED phoneme(s).
-    if (mode === 'experience') {
-      const url = URL.createObjectURL(blob);
-      setPlaybackUrl(url);
-      setPhase('done');
-      onDone && onDone({ experience: true });
-      stopStream();
-      return;
-    }
-
     setPhase('analysing');
     try {
+      const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
       const wav = await blobToWav(blob);
       const fd = new FormData();
       fd.append('file', wav, 'take.wav');
-      fd.append('phoneme_ipa', phonemeIpa);
+      fd.append('phoneme_ipa', phonemeIpa || '');
+      fd.append('expected', expected || '');
+      fd.append('kind', kind);
       const resp = await fetch(`${BACKEND_URL}/api/level-test/score`, { method: 'POST', body: fd });
       const data = await resp.json();
       if (!resp.ok) {
         const msg = (data && data.detail && (data.detail.message || data.detail)) ||
-          'Non siamo riusciti a misurare la registrazione. Tieni il suono fermo 1-2 secondi e riprova.';
+          'Non siamo riusciti a misurare la registrazione. Riprova.';
         setErrorMsg(typeof msg === 'string' ? msg : 'Misura non affidabile. Riprova.');
         setPhase('error');
-        // A rejected take MUST invalidate this phoneme so it can never count
-        // toward the verdict (clears any previous valid score too).
         onError && onError({ phonemeIpa, status: resp.status, detail: data && data.detail });
       } else {
         setResult(data);
@@ -114,63 +81,42 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onErro
     } catch (err) {
       setErrorMsg('Errore durante l\u2019analisi. Riprova.');
       setPhase('error');
-      onError && onError({ phonemeIpa, status: 0, detail: 'network' });
+      onError && onError({ phonemeIpa, status: 0 });
     } finally {
       stopStream();
     }
   };
 
-  const reset = () => {
-    if (playbackUrl) { URL.revokeObjectURL(playbackUrl); setPlaybackUrl(null); }
-    setPhase('idle'); setResult(null); setErrorMsg('');
-  };
-
-  const playBack = () => {
-    if (playbackUrl) { playbackRef.current = new Audio(playbackUrl); playbackRef.current.play(); }
-  };
-
+  const reset = () => { setPhase('idle'); setResult(null); setErrorMsg(''); };
   const active = phase === 'recording' || phase === 'analysing';
+  const wrongWord = result && result.lexical && result.lexical.status === 'wrong';
 
   return (
     <div className="w-full max-w-md mx-auto text-center" data-testid={testid}>
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/70 border border-cyan-500/25 mb-6">
         <span className="text-[10px] uppercase tracking-widest text-cyan-300/70 font-bold">{label}</span>
-        <span className="text-orange-400 font-mono text-lg drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">{target}</span>
+        {target && <span className="text-orange-400 font-mono text-lg drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">{target}</span>}
       </div>
 
       <div className="h-20 flex items-center justify-center gap-1 mb-6">
         {Array.from({ length: 28 }).map((_, i) => {
           const h = active ? 20 + Math.abs(Math.sin(i * 0.9)) * 70 : phase === 'done' ? 14 + Math.abs(Math.sin(i)) * 40 : 8;
           return (
-            <span
-              key={i}
-              className={`w-1.5 rounded-full transition-all duration-300 ${
-                active ? 'bg-orange-400' : phase === 'done' ? 'bg-cyan-400/70' : 'bg-slate-600/60'
-              }`}
-              style={{
-                height: `${h}%`,
-                boxShadow: active ? '0 0 8px rgba(251,146,60,0.7)' : 'none',
-                animation: active ? `ltBar 0.6s ease-in-out infinite` : 'none',
-                animationDelay: `${i * 0.04}s`,
-              }}
-            />
+            <span key={i} className={`w-1.5 rounded-full transition-all duration-300 ${active ? 'bg-orange-400' : phase === 'done' ? 'bg-cyan-400/70' : 'bg-slate-600/60'}`}
+              style={{ height: `${h}%`, boxShadow: active ? '0 0 8px rgba(251,146,60,0.7)' : 'none', animation: active ? 'ltBar 0.6s ease-in-out infinite' : 'none', animationDelay: `${i * 0.04}s` }} />
           );
         })}
       </div>
 
       {phase === 'idle' && (
-        <button
-          type="button" onClick={start} data-testid={`${testid}-start`}
-          className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all duration-300 hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.55)]"
-        >
+        <button type="button" onClick={start} data-testid={`${testid}-start`}
+          className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all duration-300 hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.55)]">
           <Mic size={18} /> Registra
         </button>
       )}
       {phase === 'recording' && (
-        <button
-          type="button" onClick={stop} data-testid={`${testid}-stop`}
-          className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-red-600/90 hover:bg-red-600 text-white font-bold uppercase tracking-wider text-sm animate-pulse"
-        >
+        <button type="button" onClick={stop} data-testid={`${testid}-stop`}
+          className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-red-600/90 hover:bg-red-600 text-white font-bold uppercase tracking-wider text-sm animate-pulse">
           <Square size={16} /> Ferma
         </button>
       )}
@@ -179,54 +125,35 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onErro
           <Loader2 size={18} className="animate-spin" /> Analisi…
         </div>
       )}
-      {phase === 'done' && mode === 'experience' && (
+      {phase === 'done' && result && (
         <div className="flex flex-col items-center gap-3" data-testid={`${testid}-result`}>
-          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider">
-            <Check size={18} /> Registrata
-          </div>
-          <button
-            type="button" onClick={playBack} data-testid={`${testid}-playback`}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-cyan-500/20 border border-cyan-400/50 hover:border-orange-400 text-cyan-100 font-bold uppercase tracking-wider text-xs transition-all"
-          >
-            <Play size={15} /> Riascoltati
-          </button>
-          <p className="text-[11px] text-slate-500 max-w-xs">
-            La frase serve ad ascoltare la tua voce. Il punteggio del verdetto si basa sul suono isolato.
-          </p>
-          <button
-            type="button" onClick={reset} data-testid={`${testid}-retry`}
-            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-slate-400 hover:text-cyan-300 transition-colors"
-          >
-            <RotateCcw size={13} /> Registra di nuovo
-          </button>
-        </div>
-      )}
-      {phase === 'done' && mode !== 'experience' && result && (
-        <div className="flex flex-col items-center gap-3" data-testid={`${testid}-result`}>
-          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider">
-            <Check size={18} /> Acquisito
-          </div>
-          <div className="text-sm text-slate-300">
-            Punteggio suono <span className="text-orange-400 font-bold text-lg">{result.composite_score}/100</span>
-            <span className="ml-2 text-cyan-300 font-bold">{result.cefr?.band}</span>
-          </div>
-          <button
-            type="button" onClick={reset} data-testid={`${testid}-retry`}
-            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-slate-400 hover:text-cyan-300 transition-colors"
-          >
+          {kind === 'phrase' ? (
+            <>
+              <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider"><Check size={18} /> Frase acquisita</div>
+              {result.phrase_score != null && <div className="text-sm text-slate-300">Accuratezza <span className="text-orange-400 font-bold text-lg">{result.phrase_score}%</span></div>}
+            </>
+          ) : wrongWord ? (
+            <>
+              <div className="inline-flex items-center gap-2 text-amber-400 font-bold text-sm uppercase tracking-wider"><AlertTriangle size={18} /> Parola diversa</div>
+              <div className="text-xs text-slate-400">Ho sentito <span className="text-amber-300 font-semibold">"{result.lexical.transcript}"</span> — atteso <span className="text-cyan-300 font-semibold">"{expected}"</span> → A1</div>
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider"><Check size={18} /> Acquisito</div>
+              <div className="text-sm text-slate-300">Punteggio <span className="text-orange-400 font-bold text-lg">{result.target_score}/100</span> <span className="text-cyan-300 font-bold">{result.cefr?.band}</span></div>
+            </>
+          )}
+          <button type="button" onClick={reset} data-testid={`${testid}-retry`}
+            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-slate-400 hover:text-cyan-300 transition-colors">
             <RotateCcw size={13} /> Registra di nuovo
           </button>
         </div>
       )}
       {phase === 'error' && (
         <div className="flex flex-col items-center gap-3" data-testid={`${testid}-error`}>
-          <div className="flex items-center gap-2 text-amber-400 text-sm max-w-xs">
-            <AlertTriangle size={18} /> <span>{errorMsg}</span>
-          </div>
-          <button
-            type="button" onClick={reset} data-testid={`${testid}-retry`}
-            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-xs transition-all"
-          >
+          <div className="flex items-center gap-2 text-amber-400 text-sm max-w-xs"><AlertTriangle size={18} /> <span>{errorMsg}</span></div>
+          <button type="button" onClick={reset} data-testid={`${testid}-retry`}
+            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-xs transition-all">
             <RotateCcw size={14} /> Riprova
           </button>
         </div>
