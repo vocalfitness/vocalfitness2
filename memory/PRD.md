@@ -9,6 +9,16 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.3 · Mini-pannello admin Audio-da-imitare — FATTO e VERIFICATO ✅ (nessuna generazione)
+
+- **Correzione generatore (feedback utente)**: NIENTE SSML `<phoneme ph=ipa>` (forzerebbe un fonema isolato). Il reference è la **PAROLA intera** in voce naturale; l'IPA resta solo DATO (verdetto/dettaglio esperto). Il generatore ora sintetizza la parola in chiaro (fallback) **oppure** accetta un `url` per allegare una registrazione reale.
+- **Fonte (scelta utente): (a) registrazioni reali del Prof.** preferite. ⚠️ Con UNA sola voce clonata + parola in chiaro, ElevenLabs NON può produrre la divergenza BIRD RP↔US autentica → per BIRD serve la voce reale del prof. Impegno: dopo la generazione verifico che RP `bɜːd` (non-rotico) e US `bɝd` (r-colored) suonino percepibilmente diversi, altrimenti segnalo.
+- **Mini-pannello admin** (`AdminLevelTestAudioTab.jsx`, tab `tab-leveltest-audio` in `AdminPage.jsx`): mostra i 6 slot (LAW/BIRD/TRAP × RP/US) con stato, player, e per ciascuno **Carica audio** (upload reale) o **Genera EL** (ElevenLabs). L'admin sceglie per slot.
+- **Backend**: `GET /api/level-test/word-examples` (resolver), `POST /api/level-test/admin/word-examples/upload` (allega registrazione reale → `/api/uploads/leveltest/...` + card store), `POST /api/level-test/admin/word-examples/generate` (ElevenLabs parola in chiaro o attach url). Admin-only. Fonte unica = card store (`audio.{dialect}.wordExample`).
+- **Verificato (testing_agent, frontend 100%, iteration_39)**: login admin → tab → 6 slot tutti `DA GENERARE`, parole+IPA corretti (LAW /lɔː/-/lɔ/, BIRD /bɜːd/-/bɝd/, TRAP /kæt/), controlli upload+genera presenti; resolver 200 con 6 slot `da_generare`; NESSUNA generazione/upload eseguita.
+- **NEXT (in attesa utente)**: (1) copy Jarvis definitiva; (2) l'utente carica le registrazioni del prof (o genera EL per LAW/TRAP se la qualità basta) dal pannello → poi verifico divergenza BIRD; (3) wiring bottone "Ascolta il Prof." nello step isolato del level test (sostituisce lo stub "RIASCOLTA (DEMO)").
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2.3 · Passo 1+2 — Audio-da-imitare: inventario + struttura (NESSUNA generazione) — CHECKPOINT ⏳
 
 - **Decisioni utente**: audio-da-imitare = la **PAROLA** (law/bird/cat) pronunciata dal prof, un solo gesto (no fonema puro, no "entrambi"); **fonte unica** = nuovo campo sulle card `audio.{dialect}.wordExample`, due slot separati per dialetto (per la divergenza BIRD RP↔US); nessuna copia dedicata; CMS backend Jarvis = M3; generazione ElevenLabs = milestone separata post-ok.
