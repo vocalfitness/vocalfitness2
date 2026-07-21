@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import asyncio
 import logging
 import tempfile
@@ -283,6 +284,48 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
                 filename_hint=f"leveltest_word_{slot['label']}_{dialect}",
             )
             url = res.get("relative_url") or res.get("url", "")
+        await db.phoneme_cards.update_one(
+            {"id": slot["card_id"]},
+            {"$set": {f"audio.{dialect}.wordExample": {
+                "word": slot["word"], "ipa": slot["ipa"], "url": url}}},
+        )
+        return {"phoneme": phoneme, "dialect": dialect, "url": url, "state": "ready"}
+
+    @router.post("/admin/word-examples/upload")
+    async def upload_word_example(
+        file: UploadFile = File(...),
+        phoneme: str = Form(...),
+        dialect: str = Form(...),
+        admin: dict = Depends(get_admin_user) if get_admin_user else None,
+    ):
+        """Attach a REAL recording (the Prof.'s voice) to a word-example slot.
+        Stored under /api/uploads/leveltest/ and written into the canonical card
+        store (single source of truth, reusable by lessons)."""
+        if not emergent_put:
+            raise HTTPException(status_code=503, detail="Storage non configurato")
+        from data.level_test_word_examples import LEVEL_TEST_WORD_EXAMPLES
+        slot = next((s for s in LEVEL_TEST_WORD_EXAMPLES
+                     if s["phoneme"] == phoneme and s["dialect"] == dialect), None)
+        if not slot:
+            raise HTTPException(status_code=404, detail="Slot parola-esempio inesistente")
+        raw = await file.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="File vuoto")
+        if len(raw) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File troppo grande (max 5 MB)")
+        orig = file.filename or "clip.mp3"
+        ext = orig.rsplit(".", 1)[-1].lower() if "." in orig else "mp3"
+        if ext not in {"mp3", "wav", "ogg", "m4a", "flac", "aac"}:
+            raise HTTPException(status_code=415, detail=f"Estensione non supportata: .{ext}")
+        ctype = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
+                 "m4a": "audio/mp4", "flac": "audio/flac", "aac": "audio/aac"}.get(ext, "audio/mpeg")
+        filename = f"leveltest/{slot['label']}_{dialect}_{int(time.time())}.{ext}"
+        ok = emergent_put(filename, raw, ctype)
+        if not ok and uploads_dir:
+            p = uploads_dir / filename
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(raw)
+        url = f"/api/uploads/{filename}"
         await db.phoneme_cards.update_one(
             {"id": slot["card_id"]},
             {"$set": {f"audio.{dialect}.wordExample": {

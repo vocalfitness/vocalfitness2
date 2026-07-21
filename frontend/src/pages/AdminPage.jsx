@@ -23,6 +23,7 @@ import { AdminContentTab } from './admin/AdminContentTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminYouTubeTab } from './admin/AdminYouTubeTab';
 import { AdminMessagingTab } from './admin/AdminMessagingTab';
+import { AdminLevelTestAudioTab } from './admin/AdminLevelTestAudioTab';
 import { AdminEditorModal } from './admin/AdminEditorModal';
 import { useAdminState } from './admin/useAdminState';
 
@@ -130,6 +131,9 @@ const AdminPage = () => {
           <Button onClick={() => setActiveTab('audio-studio')} className={activeTab === 'audio-studio' ? 'bg-gradient-to-r from-fuchsia-500 to-amber-500' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-audio-studio">
             <AudioLines className="w-4 h-4 mr-2" /> Voice Lab
           </Button>
+          <Button onClick={() => setActiveTab('leveltest-audio')} className={activeTab === 'leveltest-audio' ? 'bg-gradient-to-r from-cyan-500 to-emerald-500' : 'bg-slate-700 hover:bg-slate-600'} data-testid="tab-leveltest-audio">
+            <AudioLines className="w-4 h-4 mr-2" /> Level Test Audio
+          </Button>
           <Button onClick={() => navigate('/admin/phonemes')} className="bg-gradient-to-r from-cyan-600 to-orange-500 hover:from-cyan-500 hover:to-orange-400 text-white font-bold" data-testid="tab-phonemes-cms">
             <Mic className="w-4 h-4 mr-2" /> Phoneme CMS
           </Button>
@@ -225,6 +229,14 @@ const AdminPage = () => {
         {/* ===================== LEAD INBOX TAB ===================== */}
         {activeTab === 'audio-studio' && (
           <ElevenLabsStudio token={token} language={language} />
+        )}
+
+        {activeTab === 'leveltest-audio' && (
+          <AdminLevelTestAudioTab
+            backendUrl={backendUrl}
+            token={token}
+            showToast={showToast}
+          />
         )}
 
         {activeTab === 'leads' && (
