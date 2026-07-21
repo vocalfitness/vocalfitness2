@@ -40,7 +40,17 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onErro
     setErrorMsg('');
     setResult(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Formant-grade capture: DISABLE browser DSP (AGC / noise suppression /
+      // echo cancellation) — these distort the low-frequency region and bias
+      // F1. This is the correct constraint for acoustic/formant analysis.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+        },
+      });
       streamRef.current = stream;
       chunksRef.current = [];
       const mr = new MediaRecorder(stream);

@@ -134,7 +134,20 @@ def build_level_test_router(db) -> APIRouter:
                 r = compute_formant_score(meas, refs, phoneme_ipa, d, teacher_ref)
             except HTTPException as exc:
                 errors[d] = exc.detail
+                logger.info("level-test/score DIAG phoneme=%s dialect=%s REJECTED_BY_ENGINE detail=%s",
+                            phoneme_ipa, d, exc.detail if isinstance(exc.detail, str) else (exc.detail or {}).get("reason"))
                 continue
+            # DIAGNOSTIC: log the actual measured formants vs reference so we can
+            # verify real-voice behaviour (F1 bias, group, ceiling) from logs.
+            diag = r.get("diagnostics", {})
+            logger.info(
+                "level-test/score DIAG phoneme=%s dialect=%s f0=%s group=%s student=%s "
+                "per_formant=%s composite=%s coherence=%s ceiling_selected=%s attempts=%s",
+                phoneme_ipa, d, r["student_formants"].get("F0"), r.get("reference_group"),
+                r["student_formants"], [(p["name"], p["measured"], p["reference"], p["score"]) for p in r["per_formant"]],
+                r["composite_score"], _coherence_ok(r), diag.get("ceiling_selected_hz"),
+                [(a.get("ceiling_hz"), a.get("F1"), a.get("F2"), a.get("plausible")) for a in diag.get("attempts", [])],
+            )
             # Vowel-coherence gate: only accept if the target is plausible at a
             # reliable ceiling (otherwise it's a mistracked / wrong vowel).
             if not _coherence_ok(r):
