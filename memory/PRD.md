@@ -20,6 +20,7 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
   - Frase → **esperienziale** (`mode="experience"` in `MockRecorder`): registra + riascolto, nessun punteggio. `evaluatePhrase()` interfaccia per Charsiu v2.
   - Verdetto costruito su **3 fonemi isolati reali** (`ISOLATED_TARGETS`: /iː/ FLEECE, /æ/ TRAP, /ʊ/ FOOT — riferimenti presenti RP+AmE). Lo step isolato itera i 3 target (progress dots + "Prossimo suono"); Avanti gated finché i 3 non sono acquisiti.
   - `computeVerdict(isolatedScores)` ora è **reale**: composito medio dei 3 → fascia CEFR (soglie identiche al backend `_cefr_band`), bidialettale = media compositi RP vs AmE dei 3, "3 suoni su cui lavorare" = i 3 ordinati dal peggiore con hint dalla formante peggiore. `demoVerdict()` solo per review deep-link.
+- **FIX 21/07 (2ª review) — fonte unica di verità, frase MAI nel calcolo**: il verdetto è ora **derivato** (`useMemo`) dai soli 3 fonemi isolati; parziale (teaser fascia) e completo (post-gate) leggono lo **stesso** oggetto. Il gate email **sblocca solo il dettaglio** (bidialettale + 3 suoni), non ricalcola né aggiunge misure. La frase (`mode="experience"`) ha `onDone` no-op → `scores` non contiene più `phrase`: registrarla bene o male non sposta il verdetto. Garanzia strutturale (fuori dal dependency array del memo).
 - **NEXT**: punto 2 camera/mic reali · punto 3 audio Jarvis · punto 4 quiz reale · punto 5 persistenza lead.
 
 ### Backlog / vincoli (aggiornato 21/07/2026)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Camera, CameraOff, Sparkles, Lock,
@@ -27,11 +27,19 @@ export default function LevelTestPage() {
   const [auralPick, setAuralPick] = useState(null);
   const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
-  const [scores, setScores] = useState({ isolated: {}, phrase: null });
+  const [scores, setScores] = useState({ isolated: {} });
   const [isoIdx, setIsoIdx] = useState(0);
-  const [verdict, setVerdict] = useState(
-    STEPS[initialStep] === 'verdict' ? demoVerdict() : null
-  );
+
+  // SINGLE SOURCE OF TRUTH for the verdict: derived ONLY from the 3 isolated
+  // phonemes. The phrase is experiential and is NEVER part of this. Partial
+  // (teaser) and complete (post-gate) read the SAME object — the gate only
+  // UNLOCKS detail, it never recomputes or adds measures.
+  const reviewMode = STEPS.indexOf(searchParams.get('step')) >= 0;
+  const verdict = useMemo(() => {
+    const v = computeVerdict(scores.isolated);
+    if (v) return v;
+    return reviewMode ? demoVerdict() : null;
+  }, [scores.isolated, reviewMode]);
   const speakTimer = useRef(null);
 
   const stepKey = STEPS[stepIdx];
@@ -53,7 +61,8 @@ export default function LevelTestPage() {
   const branch = LEVEL_TEST_SEGMENTS.find((s) => s.value === lead.segment)?.branch || 'A';
 
   const handleGateSubmit = () => {
-    setVerdict(computeVerdict(scores.isolated) || demoVerdict());
+    // The verdict is already derived from the 3 isolated phonemes. The gate
+    // ONLY unlocks the detailed view — it does NOT recompute or add measures.
     jumpTo('verdict');
   };
 
@@ -293,7 +302,7 @@ export default function LevelTestPage() {
                   phonemeIpa={PHRASE_TARGET.keyPhoneme}
                   testid="lt-phrase-recorder"
                   mode="experience"
-                  onDone={(r) => setScores((s) => ({ ...s, phrase: r }))}
+                  onDone={() => { /* experiential only — never affects the verdict */ }}
                 />
               </div>
             </>
@@ -307,22 +316,25 @@ export default function LevelTestPage() {
               <h2 className="mt-8 text-2xl sm:text-3xl font-black">{S.partial.teaserHeading}</h2>
               <p className="mt-5 text-sm sm:text-base text-slate-300/90 leading-relaxed max-w-xl mx-auto">{S.partial.jarvis.text}</p>
 
-              {/* Blurred teaser of the verdict */}
+              {/* Teaser: the REAL band (same verdict object), detail locked */}
               <div className="relative mt-8 max-w-md mx-auto rounded-2xl border border-cyan-500/20 bg-slate-900/50 p-6 overflow-hidden">
-                <div className="blur-sm select-none pointer-events-none">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Livello Vocal Fitness</span>
-                    <span className="text-2xl font-black text-orange-400">B?</span>
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Livello Vocal Fitness</span>
+                  <span className="text-3xl font-black text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.5)]" data-testid="lt-partial-band">
+                    {verdict ? verdict.cefrBand : '—'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="blur-sm select-none pointer-events-none space-y-2">
+                    <div className="h-3 rounded-full bg-slate-700/60" />
+                    <div className="h-3 rounded-full bg-slate-700/60 w-4/5" />
+                    <div className="h-3 rounded-full bg-slate-700/60 w-3/5" />
                   </div>
-                  <div className="space-y-2">
-                    {['iː FLEECE', 'ʊ FOOT', 'θ THINK'].map((x) => (
-                      <div key={x} className="h-3 rounded-full bg-slate-700/60" />
-                    ))}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Lock className="text-orange-400/80" size={26} />
                   </div>
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Lock className="text-orange-400/80" size={30} />
-                </div>
+                <p className="mt-3 text-[11px] text-slate-500">Sblocca il dettaglio: accento AmE/RP e i 3 suoni su cui lavorare.</p>
               </div>
 
               <button
