@@ -12,6 +12,24 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 ## Core Requirements
 
 
+### 21/07/2026 · LEAD MAGNET · Level Test — Milestone 1 (skeleton UI navigabile, tutto MOCKATO) — DONE ✅ (screenshot verificato)
+
+- **Scopo**: nuovo funnel `/level-test` (alias `/scopri-il-tuo-livello`) a 8 step per qualificare i lead prima di catturarne email/dati. M1 = skeleton frontend navigabile, nessuna API reale.
+- **Design**: EREDITATO dalla scheda fonetica (`/lms/phoneme/...`), NON dal vecchio modal. Dark slate profondo (`bg-slate-950`) + accento **ARANCIONE** come colore-segnale (`#fb923c`, glow `rgba(251,146,60,...)`), ciano strutturale/secondario. Mobile-first, transizioni CSS (Framer Motion NON installato, scelta utente 1a).
+- **8 step**: welcome → mirror (camera MOCK, nessun getUserMedia) → aural (quiz minimal-pair, clip mock) → isolated (registrazione fonema MOCK) → phrase (registrazione frase MOCK) → partial (teaser blurrato + gate) → gate (email/segmento/CEFR + doppio consenso GDPR) → verdict (banda CEFR + barre bidialettali AmE/RP + 3 fonemi focus + routing branch A/B).
+- **File nuovi**:
+  - `frontend/src/pages/LevelTestPage.jsx` — orchestratore 8 step + progress bar + deep-link `?step=` per review.
+  - `frontend/src/components/levelTest/JarvisOrb.jsx` — orb audio-reattivo placeholder (arancione quando "speaking", ciano idle). Prop `speaking` = contratto per M2 (Web Audio amplitude).
+  - `frontend/src/components/levelTest/MockRecorder.jsx` — loop record→analyse→score MOCK (contratto `onDone(score)` per M2 = MediaRecorder + /analyze-formants).
+  - `frontend/src/lib/levelTestEngine.js` — interfaccia evaluators MOCK (`evaluateAural`, `evaluatePhoneme`, `evaluatePhrase`, `computeVerdict`) → M2 sostituisce i body senza toccare la UI.
+  - `frontend/src/data/levelTestContent.js` — copy già popolata (mappata a slot audio Jarvis, `audio:null` = stub M1).
+- **Routing**: `App.js` → `/level-test` + `/scopri-il-tuo-livello`.
+- **NON fatto in M1 (rimandato)**: ElevenLabs TTS reale, scoring formanti reale, salvataggio lead backend, camera/mic reali.
+- **Verifica**: screenshot welcome/mirror/gate/verdict OK (desktop+mobile), 0 errori JS console. Flusso navigabile end-to-end.
+- **NEXT (M2)**: collegare asset reali (audio Jarvis pre-generati, scoring engine, aural quiz) + persistenza lead. **Issue P1 aperta**: sostituire le CTA della home che aprono `LevelTestModal.jsx` con navigazione a `/level-test` (dopo approvazione M1).
+
+
+
 ### 17/07/2026 · FASE 2 · Expert Mode diagnostica FormantPath (solo diagnostica) — DONE ✅ (testing agent 45/45)
 
 - **Scopo**: capire perché il tracker oscilla tra regimi di misura su /æ/ identici (F1 573-897, F3 2160-3273). Nessuna modifica a scoring/riferimenti/UI di scoring.

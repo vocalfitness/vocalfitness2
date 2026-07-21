@@ -164,3 +164,4 @@ frontend/node_modules/.cache/default-development/5.pack
 *.env
 credentials.json
 *.key
+frontend/node_modules/.cache/default-development/15.pack

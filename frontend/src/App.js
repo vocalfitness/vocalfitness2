@@ -17,6 +17,7 @@ import LoginPage from "./pages/LoginPage";
 import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
 import SettingsPage from "./pages/SettingsPage";
+import LevelTestPage from "./pages/LevelTestPage";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -46,6 +47,8 @@ function App() {
               <Route path="/admin/help/phoneme-cms" element={<PhonemeCmsHelpPage />} />
               <Route path="/admin/audio-studio" element={<PhonemeAudioStudioPage />} />
               <Route path="/impostazioni" element={<SettingsPage />} />
+              <Route path="/level-test" element={<LevelTestPage />} />
+              <Route path="/scopri-il-tuo-livello" element={<LevelTestPage />} />
             </Routes>
           </BrowserRouter>
         </LanguageProvider>
