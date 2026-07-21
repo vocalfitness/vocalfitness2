@@ -333,6 +333,44 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         )
         return {"phoneme": phoneme, "dialect": dialect, "url": url, "state": "ready"}
 
+    # ------------------------------------------------------------------ #
+    # Publication gate. DRAFT-NOT-PUBLISH: 6/6 ready is only the PREREQUISITE
+    # that ENABLES the toggle. The system NEVER auto-publishes — an admin must
+    # explicitly set approved=true after listening to the clips.
+    # ------------------------------------------------------------------ #
+    @router.get("/config")
+    async def level_test_config():
+        from data.level_test_word_examples import get_word_example_slots
+        slots = await get_word_example_slots(db)
+        ready = sum(1 for s in slots if s["state"] == "ready")
+        total = len(slots)
+        cfg = await db.level_test_config.find_one({"key": "config"}, {"_id": 0}) or {}
+        approved = bool(cfg.get("approved", False))
+        return {
+            "approved": approved, "ready_count": ready, "total": total,
+            "can_publish": ready == total,           # prerequisite for the toggle
+            "published": approved and ready == total,  # public gate condition
+        }
+
+    @router.post("/admin/config")
+    async def set_level_test_config(
+        payload: dict = Body(...),
+        admin: dict = Depends(get_admin_user) if get_admin_user else None,
+    ):
+        approved = bool((payload or {}).get("approved", False))
+        if approved:
+            from data.level_test_word_examples import get_word_example_slots
+            slots = await get_word_example_slots(db)
+            if any(s["state"] != "ready" for s in slots):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Non puoi pubblicare: servono tutte e 6 le clip audio pronte.",
+                )
+        await db.level_test_config.update_one(
+            {"key": "config"}, {"$set": {"key": "config", "approved": approved}}, upsert=True
+        )
+        return {"approved": approved}
+
     @router.post("/score")
     async def score(
         file: UploadFile = File(...),

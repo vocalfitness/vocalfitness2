@@ -38,7 +38,51 @@ export default function LevelTestPage() {
   const reviewMode = STEPS.indexOf(searchParams.get('step')) >= 0;
   const [verdict, setVerdict] = useState(reviewMode ? demoVerdict() : null);
   const [verdictLoading, setVerdictLoading] = useState(false);
+  // Prof. reference clips (audio-da-imitare), keyed by phoneme → {RP,AmE} URL.
+  // Pulled from the resolver (SINGLE SOURCE: audio.{dialect}.wordExample) so a
+  // re-recorded clip is followed automatically — never a hardcoded local copy.
+  const [wordAudio, setWordAudio] = useState({});
   const speakTimer = useRef(null);
+
+  // Publication gate: fetch config; if the test is not published (approved by an
+  // admin AND 6/6 clips ready) and we're not in admin preview (?step=), send the
+  // public visitor to the home page. Draft-not-publish — never serve without audio.
+  useEffect(() => {
+    if (reviewMode) return; // admin/design preview bypasses the gate
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/level-test/config`);
+        const cfg = await res.json();
+        if (!cancelled && !cfg.published) navigate('/', { replace: true });
+      } catch (e) { /* on error, do not hard-block */ }
+    })();
+    return () => { cancelled = true; };
+  }, [reviewMode, navigate]);
+
+  // Load the Prof. reference clips once.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/level-test/word-examples`);
+        const data = await res.json();
+        const map = {};
+        (data.slots || []).forEach((s) => {
+          map[s.phoneme] = map[s.phoneme] || {};
+          map[s.phoneme][s.dialect] = s.url;
+        });
+        if (!cancelled) setWordAudio(map);
+      } catch (e) { /* button will no-op if unavailable */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const playClip = (url) => {
+    if (!url) return;
+    const full = url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+    try { new Audio(full).play(); } catch (e) { /* ignore */ }
+  };
 
   const stepKey = STEPS[stepIdx];
   const progress = Math.round(((stepIdx + 1) / STEPS.length) * 100);
@@ -301,6 +345,16 @@ export default function LevelTestPage() {
                       <span className="text-orange-400 font-mono text-xl drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">/{current.ipa}/</span>
                       <span className="text-slate-400">{current.hint}</span>
                     </div>
+                    {wordAudio[current.ipa]?.RP && (
+                      <button
+                        type="button"
+                        onClick={() => playClip(wordAudio[current.ipa].RP)}
+                        data-testid="lt-listen-prof"
+                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm uppercase tracking-wider transition-all hover:scale-105"
+                      >
+                        <Volume2 size={17} /> Ascolta il Prof. — "{current.word}" 🇬🇧
+                      </button>
+                    )}
                   </div>
                   <MockRecorder
                     key={current.ipa}
@@ -549,6 +603,26 @@ export default function LevelTestPage() {
                   ))}
                 </div>
               </div>
+
+              {/* BIRD bidialect divergence demo (hook): let the user HEAR the
+                  RP non-rhotic vs US r-coloured contrast. Pulled from the
+                  canonical resolver; renders only when both clips exist. */}
+              {wordAudio['ɜː']?.RP && wordAudio['ɜː']?.AmE && (
+                <div className="mt-6 max-w-md mx-auto rounded-2xl border border-cyan-500/25 bg-slate-900/50 p-5" data-testid="lt-bird-divergence">
+                  <div className="text-xs font-bold uppercase tracking-widest text-cyan-200 mb-1">Senti la differenza · BIRD</div>
+                  <div className="text-xs text-slate-400 mb-3">Lo stesso suono, due mondi: il britannico non arrota la "r", l'americano sì.</div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => playClip(wordAudio['ɜː'].RP)} data-testid="lt-bird-rp"
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm transition-all">
+                      <Volume2 size={16} /> 🇬🇧 Britannico
+                    </button>
+                    <button type="button" onClick={() => playClip(wordAudio['ɜː'].AmE)} data-testid="lt-bird-us"
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-orange-500/15 border border-orange-400/40 text-orange-200 hover:bg-orange-500/25 hover:text-white font-bold text-sm transition-all">
+                      <Volume2 size={16} /> 🇺🇸 Americano
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Branch routing */}
               {branch === 'B' ? (

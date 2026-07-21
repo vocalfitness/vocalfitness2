@@ -1,0 +1,26 @@
+{
+  "summary": "Verified publication gate + admin publish bar for VocalFitness Level Test. All 4 requested scenarios pass. Public /level-test correctly redirects to '/' since config.published=false; ?step=isolated preview bypasses the gate and shows the 'ASCOLTA IL PROF.' cyan button; admin Level Test Audio tab shows '6/6 clip pronte', 'BOZZA' state badge, and ENABLED 'Approva e pubblica' button (NOT clicked — test remains in DRAFT as confirmed by post-test GET /api/level-test/config).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: the publish bar bg badge for BOZZA (bg-slate-700 text-slate-300) has acceptable contrast but relatively low emphasis; consider using amber for stronger DRAFT visual state. Non-blocking.",
+    "LevelTestPage.jsx line 58: silent catch on config fetch failure means a backend outage would render the DRAFT test to the public. Consider defaulting to redirect-to-home on network error too, to preserve the 'never serve without audio' invariant."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "100%"},
+  "test_credentials": "admin / VocalFitness2026! (from /app/memory/test_credentials.md) — used for admin panel test",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Level test publication gate is live. Backend GET /api/level-test/config returns {approved:false, ready_count:6, total:6, can_publish:true, published:false}. The public gate in LevelTestPage.jsx uses reviewMode = STEPS.indexOf(searchParams.get('step')) >= 0 to bypass — any valid step name in ?step= works as admin preview. To publish for future E2E of the full 8-step public flow, click leveltest-approve-toggle in Admin → Level Test Audio (currently intentionally NOT clicked).",
+  "rca of the issue": "N/A — no issues found. Verified: (1) /level-test redirects to '/', 8-step UI NOT rendered; (2) /level-test?step=isolated stays on preview URL, isolated step + lt-listen-prof button rendered with label 'Ascolta il Prof. — \"law\" 🇬🇧'; (3) Admin publish bar shows leveltest-ready-count='6/6 clip pronte', leveltest-publish-state='BOZZA', leveltest-approve-toggle='Approva e pubblica' ENABLED; (4) All 6 slot cards in state PRONTO with audio players. Post-test config re-fetched: still DRAFT — no accidental publish."
+}

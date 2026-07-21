@@ -11,6 +11,7 @@ import { Upload, Sparkles, RefreshCw, CheckCircle2, Circle } from 'lucide-react'
  */
 export const AdminLevelTestAudioTab = ({ backendUrl, token, showToast }) => {
   const [slots, setSlots] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
 
@@ -21,8 +22,12 @@ export const AdminLevelTestAudioTab = ({ backendUrl, token, showToast }) => {
   const fetchSlots = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/level-test/word-examples`);
-      setSlots(res.data.slots || []);
+      const [slotsRes, cfgRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/level-test/word-examples`),
+        axios.get(`${backendUrl}/api/level-test/config`),
+      ]);
+      setSlots(slotsRes.data.slots || []);
+      setConfig(cfgRes.data);
     } catch (e) {
       showToast?.('Errore nel caricamento degli slot', 'error');
     } finally {
@@ -31,6 +36,24 @@ export const AdminLevelTestAudioTab = ({ backendUrl, token, showToast }) => {
   }, [backendUrl, showToast]);
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
+
+  const handleToggleApprove = async () => {
+    if (!config) return;
+    setBusy('publish');
+    try {
+      await axios.post(
+        `${backendUrl}/api/level-test/admin/config`,
+        { approved: !config.approved },
+        authHeaders,
+      );
+      showToast?.(!config.approved ? 'Test PUBBLICATO' : 'Test messo in bozza', 'success');
+      fetchSlots();
+    } catch (e) {
+      showToast?.(e?.response?.data?.detail || 'Operazione fallita', 'error');
+    } finally {
+      setBusy('');
+    }
+  };
 
   const handleUpload = async (slot, file) => {
     if (!file) return;
@@ -83,6 +106,34 @@ export const AdminLevelTestAudioTab = ({ backendUrl, token, showToast }) => {
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Aggiorna
         </Button>
       </div>
+
+      {config && (
+        <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-testid="leveltest-publish-bar">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${config.can_publish ? 'text-emerald-400' : 'text-amber-400'}`} data-testid="leveltest-ready-count">
+                {config.ready_count}/{config.total} clip pronte
+              </span>
+              <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${config.published ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}`} data-testid="leveltest-publish-state">
+                {config.published ? 'PUBBLICATO' : 'BOZZA'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {config.can_publish
+                ? 'Ascolta le clip, poi attiva la pubblicazione. Il sistema non pubblica da solo.'
+                : 'Completa tutte e 6 le clip per abilitare la pubblicazione.'}
+            </p>
+          </div>
+          <button
+            onClick={handleToggleApprove}
+            disabled={!config.can_publish || busy === 'publish'}
+            data-testid="leveltest-approve-toggle"
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${config.approved ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+          >
+            {config.approved ? 'Metti in bozza' : 'Approva e pubblica'}
+          </button>
+        </div>
+      )}
 
       {labels.map((label) => (
         <div key={label} className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
