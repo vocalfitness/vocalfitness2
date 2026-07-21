@@ -255,6 +255,16 @@ export default function LevelTestPage() {
 
                 {!allDone ? (
                   <div className="mt-8">
+                    {/* Clear instruction (mitigates wrong-word sabotage): the
+                        big word to say + the target vowel + how to pronounce it. */}
+                    <div className="max-w-md mx-auto mb-6 rounded-2xl border border-orange-500/25 bg-slate-900/50 px-6 py-5" data-testid="lt-isolated-prompt">
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-300/70 font-bold mb-2">Pronuncia la parola</p>
+                      <div className="text-4xl sm:text-5xl font-black text-white leading-none">{current.word}</div>
+                      <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+                        <span className="text-orange-400 font-mono text-xl drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">/{current.ipa}/</span>
+                        <span className="text-slate-400">{current.hint}</span>
+                      </div>
+                    </div>
                     <MockRecorder
                       key={current.ipa}
                       label={`Pronuncia ${current.label}`}

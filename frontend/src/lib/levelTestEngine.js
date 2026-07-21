@@ -25,9 +25,9 @@ export const AURAL_QUESTION = {
 
 // ---- ISOLATED phoneme targets (v1 = core of the verdict: 3 vowels) --------
 export const ISOLATED_TARGETS = [
-  { ipa: 'iː', label: 'FLEECE', hint: 'come in "sheep"' },
-  { ipa: 'æ',  label: 'TRAP',   hint: 'come in "cat"' },
-  { ipa: 'ʊ',  label: 'FOOT',   hint: 'come in "book"' },
+  { ipa: 'iː', label: 'FLEECE', word: 'sheep', hint: 'la vocale lunga di "sheep"' },
+  { ipa: 'æ',  label: 'TRAP',   word: 'cat',   hint: 'la vocale aperta di "cat"' },
+  { ipa: 'ʊ',  label: 'FOOT',   word: 'foot',  hint: 'la vocale breve di "foot"' },
 ];
 
 // ---- PHRASE target ------------------------------------------------------

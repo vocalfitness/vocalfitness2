@@ -37,14 +37,18 @@ _MAX_WORKERS = int(os.environ.get("LEVEL_TEST_POOL_WORKERS", "2"))
 _pool: ProcessPoolExecutor | None = None
 
 # Vowel-coherence gate (option b) — TUNABLE. The Level Test is an EXAM: the user
-# may produce the WRONG vowel, so we require the target to be plausible at a
-# RELIABLE LPC ceiling (where vowel formant tracking is trustworthy). A window
-# that is plausible ONLY at a low ceiling (e.g. 4500 Hz) is mistracking → reject.
-# (Phase-2 practice endpoint keeps the generous retry; contexts differ.)
+# may produce the WRONG vowel, so we trust ONLY the HIGHEST LPC ceiling (where
+# F1 tracking is most reliable). A take that is implausible at the top ceiling
+# and only becomes "plausible" after the retry LOWERS the ceiling is mistracking
+# → reject. (Verified on real-voice logs: correct vowels are plausible at 5500;
+# the FOOT sabotage was implausible at 5500 and only fit at 5000/4500.)
+# Phase-2 practice endpoint keeps the generous retry; contexts differ.
 _RELIABLE_CEILINGS = set(
     int(x) for x in os.environ.get("LEVEL_TEST_RELIABLE_CEILINGS_HZ", "5500,5000").split(",")
     if x.strip().isdigit()
 )
+# Default gate rule: require plausibility at the TOP tested ceiling.
+_GATE_TOP_CEILING_ONLY = os.environ.get("LEVEL_TEST_GATE_TOP_CEILING_ONLY", "true").lower() != "false"
 
 # Actionable, non-technical rejection copy: example word per target vowel.
 _EXAMPLE_WORD = {
@@ -54,11 +58,17 @@ _EXAMPLE_WORD = {
 
 
 def _coherence_ok(result: dict) -> bool:
-    """True iff the target is plausible at >=1 RELIABLE ceiling. Rejects windows
-    that only fit the target at a low (mistracking-prone) ceiling."""
+    """True iff the target is plausible at the HIGHEST tested ceiling (where F1
+    tracking is most trustworthy). Rejects windows that only fit the target
+    after the retry lowered the ceiling — the mistracking signature."""
     attempts = (result.get("diagnostics") or {}).get("attempts") or []
+    if not attempts:
+        return False
+    if _GATE_TOP_CEILING_ONLY:
+        top = max(attempts, key=lambda a: int(a.get("ceiling_hz", 0) or 0))
+        return bool(top.get("plausible"))
     return any(
-        a.get("plausible") and int(a.get("ceiling_hz", 0)) in _RELIABLE_CEILINGS
+        a.get("plausible") and int(a.get("ceiling_hz", 0) or 0) in _RELIABLE_CEILINGS
         for a in attempts
     )
 
