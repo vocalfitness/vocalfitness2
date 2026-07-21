@@ -131,7 +131,7 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
           {kind === 'phrase' ? (
             <>
               <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider"><Check size={18} /> Frase acquisita</div>
-              {result.phrase_score != null && <div className="text-sm text-slate-300">Accuratezza <span className="text-orange-400 font-bold text-lg">{result.phrase_score}%</span></div>}
+              <div className="text-xs text-slate-400">Bravo — hai sentito la tua voce. Questo passo è esperienziale.</div>
             </>
           ) : wrongWord ? (
             <>

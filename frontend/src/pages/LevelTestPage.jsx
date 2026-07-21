@@ -80,7 +80,7 @@ export default function LevelTestPage() {
         const resp = await fetch(`${BACKEND_URL}/api/level-test/verdict`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isolated: iso, phrase_score: scores.phrase?.phrase_score ?? null }),
+          body: JSON.stringify({ isolated: iso, phrase_score: null }),
         });
         const data = await resp.json();
         if (!cancelled && resp.ok) setVerdict(data);
@@ -91,7 +91,7 @@ export default function LevelTestPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [stepKey, scores.isolated, scores.phrase, reviewMode]); // eslint-disable-line
+  }, [stepKey, scores.isolated, reviewMode]); // eslint-disable-line
 
   const go = (n) => setStepIdx((i) => Math.min(Math.max(i + n, 0), STEPS.length - 1));
   const jumpTo = (key) => setStepIdx(STEPS.indexOf(key));
@@ -291,63 +291,59 @@ export default function LevelTestPage() {
                   })}
                 </div>
 
-                {!allDone ? (
-                  <div className="mt-8">
-                    {/* Clear instruction (mitigates wrong-word sabotage): the
-                        big word to say + the target vowel + how to pronounce it. */}
-                    <div className="max-w-md mx-auto mb-6 rounded-2xl border border-orange-500/25 bg-slate-900/50 px-6 py-5" data-testid="lt-isolated-prompt">
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-300/70 font-bold mb-2">Pronuncia la parola</p>
-                      <div className="text-4xl sm:text-5xl font-black text-white leading-none">{current.word}</div>
-                      <div className="mt-3 flex items-center justify-center gap-3 text-sm">
-                        <span className="text-orange-400 font-mono text-xl drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">/{current.ipa}/</span>
-                        <span className="text-slate-400">{current.hint}</span>
-                      </div>
+                <div className="mt-8">
+                  {/* Clear instruction (mitigates wrong-word sabotage): the
+                      big word to say + the target vowel + how to pronounce it. */}
+                  <div className="max-w-md mx-auto mb-6 rounded-2xl border border-orange-500/25 bg-slate-900/50 px-6 py-5" data-testid="lt-isolated-prompt">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-300/70 font-bold mb-2">Pronuncia la parola</p>
+                    <div className="text-4xl sm:text-5xl font-black text-white leading-none">{current.word}</div>
+                    <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+                      <span className="text-orange-400 font-mono text-xl drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">/{current.ipa}/</span>
+                      <span className="text-slate-400">{current.hint}</span>
                     </div>
-                    <MockRecorder
-                      key={current.ipa}
-                      label={`Pronuncia ${current.label}`}
-                      target={`/${current.ipa}/`}
-                      phonemeIpa={current.ipa}
-                      expected={current.word}
-                      kind="word"
-                      dialect="RP"
-                      testid="lt-isolated-recorder"
-                      onDone={(r) => {
-                        // Store the take if it produced a score — INCLUDING a
-                        // wrong-word take (backend caps it at A1). A wrong word
-                        // is a valid, low result: it must COUNT, not be dropped.
-                        if (r && r.target_score != null) {
-                          setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
-                        }
-                      }}
-                      onError={() => {
-                        // Rejected (422) or failed take → this phoneme is NOT
-                        // acquired. Remove any previous score so it can never
-                        // enter the verdict and the flow blocks until a valid take.
-                        setScores((s) => {
-                          if (!s.isolated[current.ipa]) return s;
-                          const next = { ...s.isolated };
-                          delete next[current.ipa];
-                          return { ...s, isolated: next };
-                        });
-                      }}
-                    />
-                    {currentDone && isoIdx < targets.length - 1 && (
-                      <button
-                        onClick={() => setIsoIdx((i) => i + 1)}
-                        data-testid="lt-isolated-next-phoneme"
-                        className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.5)]"
-                      >
-                        Prossimo suono <ArrowRight size={17} />
-                      </button>
-                    )}
-                    {currentDone && isoIdx === targets.length - 1 && (
-                      <p className="mt-6 text-xs uppercase tracking-widest font-bold text-emerald-400">Tutti e 3 i suoni acquisiti ✓ — premi Avanti</p>
-                    )}
                   </div>
-                ) : (
-                  <p className="mt-8 text-sm uppercase tracking-widest font-bold text-emerald-400" data-testid="lt-isolated-complete">Tutti e 3 i suoni acquisiti ✓</p>
-                )}
+                  <MockRecorder
+                    key={current.ipa}
+                    label={`Pronuncia ${current.label}`}
+                    target={`/${current.ipa}/`}
+                    phonemeIpa={current.ipa}
+                    expected={current.word}
+                    kind="word"
+                    dialect="RP"
+                    testid="lt-isolated-recorder"
+                    onDone={(r) => {
+                      // Store the take if it produced a score — INCLUDING a
+                      // wrong-word take (backend caps it at A1). A wrong word
+                      // is a valid, low result: it must COUNT, not be dropped.
+                      if (r && r.target_score != null) {
+                        setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
+                      }
+                    }}
+                    onError={() => {
+                      // Rejected (422) or failed take → this phoneme is NOT
+                      // acquired. Remove any previous score so it can never
+                      // enter the verdict and the flow blocks until a valid take.
+                      setScores((s) => {
+                        if (!s.isolated[current.ipa]) return s;
+                        const next = { ...s.isolated };
+                        delete next[current.ipa];
+                        return { ...s, isolated: next };
+                      });
+                    }}
+                  />
+                  {currentDone && isoIdx < targets.length - 1 && (
+                    <button
+                      onClick={() => setIsoIdx((i) => i + 1)}
+                      data-testid="lt-isolated-next-phoneme"
+                      className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.5)]"
+                    >
+                      Prossimo suono <ArrowRight size={17} />
+                    </button>
+                  )}
+                  {currentDone && isoIdx === targets.length - 1 && (
+                    <p className="mt-6 text-xs uppercase tracking-widest font-bold text-emerald-400" data-testid="lt-isolated-complete">Tutti e 3 i suoni acquisiti ✓ — premi Avanti</p>
+                  )}
+                </div>
               </>
             );
           })()}
@@ -367,13 +363,12 @@ export default function LevelTestPage() {
                   expected={PHRASE_TARGET.text}
                   kind="phrase"
                   testid="lt-phrase-recorder"
-                  onDone={(r) => {
-                    // Phrase = LEXICAL accuracy via Whisper (weight 0.4 in the
-                    // backend verdict), NOT acoustic quality. Read with an
-                    // Italian accent → poor transcription → lower band.
-                    if (r && r.kind === 'phrase') {
-                      setScores((s) => ({ ...s, phrase: r }));
-                    }
+                  onDone={() => {
+                    // Phrase is EXPERIENTIAL only (V1): the user reads & records
+                    // for the felt experience. It is NEVER part of the verdict —
+                    // lexical accuracy can't measure accent (Whisper understands
+                    // non-natives too well). True per-vowel phrase scoring = v3
+                    // (Charsiu forced alignment).
                   }}
                 />
               </div>
