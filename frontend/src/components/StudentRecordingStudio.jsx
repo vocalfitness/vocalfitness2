@@ -187,7 +187,18 @@ export const StudentRecordingStudio = ({ phoneme, dialect, supportsAmE, supports
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Formant-grade capture: DISABLE browser DSP (AGC / noise suppression /
+      // echo cancellation) — they distort the low-frequency region and bias F1.
+      // Same fix applied to the Level Test recorder. Note: Safari/iOS may not
+      // fully honour these constraints.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+        },
+      });
       streamRef.current = stream;
       const mime = pickMimeType();
       mimeRef.current = mime;
