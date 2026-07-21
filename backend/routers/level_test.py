@@ -172,16 +172,45 @@ async def _transcribe(raw: bytes) -> str | None:
             pass
 
 
+def _lexical_similar(token: str, expected: str) -> bool:
+    """Coarse 'law-ish' acceptance (Option B). Whisper conflates short minimal
+    pairs (law↔low, bird↔bad) BOTH ways, so on isolated monosyllables we accept
+    the phonetic NEIGHBOURHOOD and leave the fine vowel-quality discrimination
+    (law /ɔː/ monophthong vs low /əʊ/ diphthong) to the formant engine. We reject
+    only clearly different / non-English / Italian words (different onset AND low
+    character overlap)."""
+    if not token or not expected:
+        return False
+    if token == expected:
+        return True
+    ratio = difflib.SequenceMatcher(None, token, expected).ratio()
+    same_onset = token[0] == expected[0]
+    close_len = abs(len(token) - len(expected)) <= 2
+    # Short target (≤5 chars): same onset + similar length = a mis-hearing of it.
+    if len(expected) <= 5 and same_onset and close_len:
+        return True
+    # General fallback: high character overlap (reordered / minor typos).
+    return ratio >= 0.6
+
+
 def _lexical_word(transcript: str | None, expected: str) -> dict:
-    """Signal A for an isolated word → correct | wrong | uncertain."""
+    """Signal A — COARSE lexical gate → correct | wrong | uncertain (Option B).
+    'correct' = the target word OR a plausible mis-hearing neighbour (accent-safe).
+    'wrong' = a clearly different word (Italian / unrelated) → A1 cap. Fine vowel
+    quality is judged by the formant engine, NOT here."""
     if transcript is None:
         return {"status": "unavailable", "transcript": None}
     norm = _normalize(transcript)
     if len(norm.replace(" ", "")) < _ASR_MIN_CHARS:
         return {"status": "uncertain", "transcript": transcript}
+    exp = _normalize(expected)
     accepted = _accepted_variants(expected)
-    tokens = norm.split()
-    ok = any(t in accepted for t in tokens) or norm in accepted
+    tokens = norm.split() or [norm]
+    ok = (
+        norm in accepted
+        or any(t in accepted for t in tokens)
+        or any(_lexical_similar(t, exp) for t in tokens)
+    )
     return {"status": "correct" if ok else "wrong", "transcript": transcript}
 
 

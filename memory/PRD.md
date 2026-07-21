@@ -9,6 +9,15 @@ VocalFitness è un sito web per un servizio di formazione Business English per p
 3. **Cliente pagante** - Utente con accesso all'area riservata
 4. **Admin** - Gestore del sito che può creare utenti e gestire contenuti
 
+### 21/07/2026 · LEAD MAGNET · Level Test M2.2c — 3 fix post-test utente (Whisper gate grossolano / CAT / frase esperienziale) — IN RETEST ⏳
+
+- **Problema 1 (Whisper monosillabi) → OPZIONE B (scelta utente).** Log: "law" detta bene → 'Low.'/'LoL'/'loo'/'Lu'; "bird" → 'BAD'/'Bold'/'Beard'/'Bored'. Whisper confonde le minimal pair in entrambe le direzioni → il lessico NON può fare la discriminazione fine. Ridistribuito: **Whisper = gate grossolano** (`_lexical_word` + nuovo `_lexical_similar`: accetta i "vicini" law-ish via onset+lunghezza per parole ≤5 char o ratio≥0.6; A1 solo per parola chiaramente diversa/italiana/vuota); **formanti = discriminazione fine** (law /ɔː/ vs low /əʊ/). Verificato unit: law←{Law,Low,loo,Lu,lore}=correct; bird←{Bird,BAD,Bold,Beard,Bored}=correct; cat←{Cat,Cut,Cot}=correct; palestra/gym/gatto=wrong(A1); vuoto=uncertain(re-record). NB utente ha rifiutato la frase-portante "a law" (reintrodurrebbe il mistracking multi-vocale senza forced alignment).
+- **Problema 2 (CAT/3° fonema si auto-completava) → FIX.** Causa reale (letta nel codice, non ipotizzata): il branch `{!allDone ? (recorder) : (testo "acquisiti")}` — appena il 3° take veniva salvato, `doneCount` arrivava a 3, `allDone` diventava true e il recorder (col suo risultato/retry) veniva SMONTATO e sostituito dal testo. Il 3° risultato spariva subito. Rimosso il ternario: il recorder del fonema corrente resta SEMPRE montato; il completamento è gestito da dots + footer "Avanti". (`LevelTestPage.jsx` step isolato).
+- **Problema 3 (frase 100%) → FRASE ESPERIENZIALE (V1), fuori dal verdetto.** Whisper capisce i non-nativi troppo bene: l'accuratezza lessicale NON misura l'accento. Rimosso `phrase_score` dal verdetto (`fetchVerdict` invia `phrase_score: null`; niente più `scores.phrase`). `MockRecorder` frase: onDone no-op, view mostra "Frase acquisita" senza accuratezza. La valutazione per-vocale della frase resta v3 (Charsiu forced alignment).
+- Verificato: backend 200 dopo restart pulito (reload uvicorn+ProcessPool si era impiantato → serve `supervisorctl restart backend`); frontend compila; screenshot step isolato OK (recorder montato, dots LAW/BIRD/TRAP).
+- **⚠️ RETEST UTENTE**: (1) "law" detta bene → NON A1 (Whisper accetta law-ish, formanti danno voto reale); (2) "palestra" → A1; (3) "low" per "law" → basso via formanti (dittongo); (4) CAT: dopo la registrazione DEVE restare visibile il risultato + poter rifare.
+
+
 ### 21/07/2026 · LEAD MAGNET · Level Test M2.2b — Whisper ACCESO + fix BUG1 (finestra-unica/opzione-1) — IN RETEST UTENTE ⏳
 
 - **Scoperta critica dal test utente**: i log mostravano `lexical=unavailable transcript=None` su OGNI take → **Whisper era SPENTO**. Causa: la chiave OpenAI del pannello NON è sopravvissuta al fork (`.env` = `REPLACE_IN_PANEL`, processo senza `OPENAI_API_KEY`). Quindi i risultati del test utente erano V1 (senza segnale lessicale), non V2.
