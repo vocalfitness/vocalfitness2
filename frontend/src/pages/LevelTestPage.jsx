@@ -267,6 +267,17 @@ export default function LevelTestPage() {
                           setScores((s) => ({ ...s, isolated: { ...s.isolated, [current.ipa]: r } }));
                         }
                       }}
+                      onError={() => {
+                        // Rejected (422) or failed take → this phoneme is NOT
+                        // acquired. Remove any previous score so it can never
+                        // enter the verdict and the flow blocks until a valid take.
+                        setScores((s) => {
+                          if (!s.isolated[current.ipa]) return s;
+                          const next = { ...s.isolated };
+                          delete next[current.ipa];
+                          return { ...s, isolated: next };
+                        });
+                      }}
                     />
                     {currentDone && isoIdx < targets.length - 1 && (
                       <button

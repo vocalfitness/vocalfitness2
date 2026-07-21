@@ -12,7 +12,7 @@ import { BACKEND_URL } from '../../lib/backend';
  * `onDone(result)` receives the full scoring payload so the parent can build
  * the verdict later.
  */
-export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, mode = 'score' }) => {
+export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, onError, mode = 'score' }) => {
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -93,6 +93,9 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, mode =
           'Non siamo riusciti a misurare la registrazione. Tieni il suono fermo 1-2 secondi e riprova.';
         setErrorMsg(typeof msg === 'string' ? msg : 'Misura non affidabile. Riprova.');
         setPhase('error');
+        // A rejected take MUST invalidate this phoneme so it can never count
+        // toward the verdict (clears any previous valid score too).
+        onError && onError({ phonemeIpa, status: resp.status, detail: data && data.detail });
       } else {
         setResult(data);
         setPhase('done');
@@ -101,6 +104,7 @@ export const MockRecorder = ({ label, target, phonemeIpa, testid, onDone, mode =
     } catch (err) {
       setErrorMsg('Errore durante l\u2019analisi. Riprova.');
       setPhase('error');
+      onError && onError({ phonemeIpa, status: 0, detail: 'network' });
     } finally {
       stopStream();
     }
