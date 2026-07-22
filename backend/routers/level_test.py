@@ -177,7 +177,7 @@ def _normalize(text: str) -> str:
 # Keyed by the normalised expected word. Editable at runtime via the
 # ``level_test_config.lexicon`` document (admin, M2.4c) WITHOUT code changes.
 _DEFAULT_LEXICON = {
-    "law":  {"allow": ["law", "laws"],
+    "law":  {"allow": ["law", "laws", "lao", "laua"],
              "block": ["low", "loo", "lo", "board", "bored", "lot", "luck"]},
     "bird": {"allow": ["bird", "birds", "beard"],
              "block": ["bad", "bed", "board", "bored", "burd", "berd", "baird", "bud", "bird's"]},
@@ -246,24 +246,38 @@ async def _transcribe(raw: bytes) -> str | None:
 
 
 def _lexical_word(transcript: str | None, expected: str, allow: set, block: set) -> dict:
-    """Signal A — STRICT lexical gate → correct | wrong | uncertain.
-    Whisper is accurate on these targets, so we do NOT do fuzzy similarity:
-      * BLOCKLIST (the systematic Italian errors: low/bad/board/…) → wrong → A1.
-      * ALLOW-LIST (exact word + plural + curated ASR spellings, e.g. "beard"
-        for a good RP bird) → correct → passed to the formant grader.
-      * anything else → wrong.
-    Token-aware so "a bird" (article) still matches on the "bird" token."""
+    """Signal A — THREE-TIER lexical gate (A2 architecture):
+      * BLOCKLIST → 'wrong' → A1, NEVER measured (the systematic Italian errors:
+        low/bad/board/burd/… — perentori, il test esiste per sgamarli).
+      * ALLOW-LIST → 'correct' → measured (exact + plural + curated ASR spellings).
+      * UNKNOWN (né allow né block) → 'unknown' → STILL MEASURED, so a good take
+        that Whisper spells unexpectedly (e.g. 'lao'/'laua' for /ɔː/) is saved by
+        the acoustic score instead of being A1-capped on spelling alone.
+      * ALIEN (unknown AND onset differs from the target / far from it) →
+        'wrong' → A1 without measuring (palestra/hello/you/Jim…).
+    A noisy lexical signal must not zero-out the acoustic signal without
+    consulting it — the lexicon blocks only what it KNOWS is wrong; acoustics
+    judge everything else."""
     if transcript is None:
         return {"status": "unavailable", "transcript": None}
     norm = _normalize(transcript)
     if len(norm.replace(" ", "")) < _ASR_MIN_CHARS:
         return {"status": "uncertain", "transcript": transcript}
+    exp = _normalize(expected)
     tokens = norm.split() or [norm]
-    # Explicit block wins first (the errors the test exists to catch).
+    # 1) Explicit block wins first (the errors the test exists to catch).
     if norm in block or any(t in block for t in tokens):
-        return {"status": "wrong", "transcript": transcript}
-    ok = norm in allow or any(t in allow for t in tokens)
-    return {"status": "correct" if ok else "wrong", "transcript": transcript}
+        return {"status": "wrong", "reason": "blocklist", "transcript": transcript}
+    # 2) Confirmed allow-list → correct → measured.
+    if norm in allow or any(t in allow for t in tokens):
+        return {"status": "correct", "transcript": transcript}
+    # 3) Unknown: measure ONLY if it plausibly targets the word (shares the
+    # onset consonant and isn't wildly longer). Otherwise it's an ALIEN word.
+    onset = exp[0] if exp else ""
+    plausible = any(t and t[0] == onset and len(t) <= len(exp) + 3 for t in tokens)
+    if plausible:
+        return {"status": "unknown", "transcript": transcript}
+    return {"status": "wrong", "reason": "alien", "transcript": transcript}
 
 
 def _phrase_accuracy(transcript: str | None, expected: str) -> dict:
