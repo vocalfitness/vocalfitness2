@@ -2573,3 +2573,23 @@ backend/
 
 ### Da validare: giro di test DAL VIVO con la voce del Prof. (Opt1 attivo)
 - Criterio: le pronunce RP corrette devono salire a punteggi coerenti; gli errori veri restare bassi.
+
+## [2026-06 fork] Scoring CHIUSO — Prof è GenAm, non RP. Verifica clip di riferimento
+- Rivelazione: il Prof. è parlante GenAm (+ baritenore 4 ottave → instabilità f0, session-lock giustificato).
+  Il B1 su scheda RP è il verdetto CORRETTO per un buon parlante americano. Motore/metodo/misura OK.
+- Verifica 6 clip vs canone del rispettivo dialetto (misura pipeline produzione, gruppo men):
+  * LAW_RP /ɔː/: mis (390,1058) vs RP (415,828) → F2 +230 Hz (anteriorizzata, tende all'americano). B1.
+  * BIRD_RP /ɜː/: mis (705,1609) vs RP (478,1436) → F1 +227 Hz (troppo aperta). B1.
+  * CAT_RP /æ/: mis (1136,1676) vs RP (690,1550) → F1 +446 Hz (estremamente aperta). B1.
+  * LAW_US /ɔ/: (591,857) vs AmE (652,997) → B2, buona GenAm.
+  * BIRD_US /ɝ/: (438,1597,F3 1638) vs AmE (474,1379,1710) → B2, rotica corretta (F3 basso).
+  * CAT_US /æ/: (368,1922) vs AmE (588,1952) → F1 basso (368), B1 (da rivedere).
+- Distinzione RP↔US reale su tutti: LAW ~200Hz F2, BIRD ~977Hz F3, CAT ~768Hz F1. MA la LAW ha direzione
+  invertita (RP più anteriore della US → opposto del canone).
+- **BACKLOG P1 (CONTENUTO): rifare le 3 clip RP con parlante RP nativo (o TTS voce RP validata vs canone).**
+  Le clip RP attuali sono l'approssimazione RP di un americano → insegnerebbero un bersaglio non-canonico.
+  Le clip US sono accettabili (americano nativo).
+
+## Vincolo prodotto — badge condivisibile
+- Claim OBBLIGATORIO: "Livello Vocal Fitness, ispirato ai descrittori CEFR".
+- MAI "livello CEFR" né "certificato" né "certificazione".
