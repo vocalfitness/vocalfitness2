@@ -58,10 +58,55 @@ _DET = {
     ],
 }
 
+# RP / SSBE — REAL per-vowel dispersion computed from Deterding (1997)'s
+# PUBLISHED token-level measurement files (10 speakers, ~40-70 tokens/vowel each;
+# https://videoweb.nie.edu.sg/phonetic/data/jipa-vowels/). Deterding's Table 2
+# reports means only; these SDs are computed (pooled across the 5 male / 5 female
+# speakers' individual token measurements) from HIS OWN published data — a
+# VERIFIED canonical datum, NOT an invented pooled-% estimate. F3 mean+SD are
+# also recovered from the token files (F3 IS present per-token even though it was
+# omitted from Deterding's printed Table 2). Stored for provenance + future
+# rhoticity work; F3 is deliberately NOT wired into RP scoring here (unchanged
+# F1+F2 scoring). Units: Hz.
+_DET_SD = {
+    "male": {
+        'iː': {"F1_sd": 32, "F2_sd": 245, "F3_mean": 2740, "F3_sd": 347},
+        'ɪ': {"F1_sd": 40, "F2_sd": 271, "F3_mean": 2537, "F3_sd": 248},
+        'e': {"F1_sd": 62, "F2_sd": 235, "F3_mean": 2512, "F3_sd": 264},
+        'æ': {"F1_sd": 139, "F2_sd": 164, "F3_mean": 2473, "F3_sd": 242},
+        'ʌ': {"F1_sd": 88, "F2_sd": 84, "F3_mean": 2529, "F3_sd": 298},
+        'ɑː': {"F1_sd": 90, "F2_sd": 62, "F3_mean": 2458, "F3_sd": 297},
+        'ɒ': {"F1_sd": 78, "F2_sd": 96, "F3_mean": 2520, "F3_sd": 310},
+        'ɔː': {"F1_sd": 38, "F2_sd": 97, "F3_mean": 2625, "F3_sd": 292},
+        'ʊ': {"F1_sd": 24, "F2_sd": 157, "F3_mean": 2488, "F3_sd": 292},
+        'uː': {"F1_sd": 40, "F2_sd": 229, "F3_mean": 2395, "F3_sd": 222},
+        'ɜː': {"F1_sd": 46, "F2_sd": 132, "F3_mean": 2485, "F3_sd": 221},
+    },
+    "female": {
+        'iː': {"F1_sd": 34, "F2_sd": 114, "F3_mean": 3205, "F3_sd": 181},
+        'ɪ': {"F1_sd": 42, "F2_sd": 150, "F3_mean": 2960, "F3_sd": 149},
+        'e': {"F1_sd": 109, "F2_sd": 143, "F3_mean": 2991, "F3_sd": 152},
+        'æ': {"F1_sd": 90, "F2_sd": 126, "F3_mean": 2858, "F3_sd": 197},
+        'ʌ': {"F1_sd": 109, "F2_sd": 97, "F3_mean": 2827, "F3_sd": 220},
+        'ɑː': {"F1_sd": 92, "F2_sd": 91, "F3_mean": 2844, "F3_sd": 189},
+        'ɒ': {"F1_sd": 90, "F2_sd": 94, "F3_mean": 2777, "F3_sd": 235},
+        'ɔː': {"F1_sd": 55, "F2_sd": 92, "F3_mean": 2797, "F3_sd": 276},
+        'ʊ': {"F1_sd": 42, "F2_sd": 223, "F3_mean": 2694, "F3_sd": 208},
+        'uː': {"F1_sd": 33, "F2_sd": 159, "F3_mean": 2680, "F3_sd": 151},
+        'ɜː': {"F1_sd": 137, "F2_sd": 74, "F3_mean": 2863, "F3_sd": 148},
+    },
+}
+
+# Verified canonical RP F3 (from Deterding token files) — exposed for a future,
+# data-grounded rhoticity plausibility check (replaces the old UNVERIFIED
+# ~2400 Hz estimate). NOT used in scoring yet.
+DETERDING_RP_F3 = {g: {v: (d["F3_mean"], d["F3_sd"]) for v, d in vs.items()}
+                   for g, vs in _DET_SD.items()}
+
 _H95_CITE = ("Hillenbrand et al. (1995), JASA 97(5):3099-3111 "
              "(phonTools::h95). SD = stima pooled (F1~12%, F2~10%, F3~8%).")
-_DET_CITE = ("Deterding (1997), JIPA 27:47-55. F3 non riportato. "
-             "SD = stima pooled (F1~12%, F2~10%).")
+_DET_CITE = ("Deterding (1997), JIPA 27:47-55. Medie = Table 2. "
+             "SD = calcolate dai file di misura token pubblicati (dato verificato).")
 
 
 # ---- Per-value bibliographic traceability ---- #
@@ -76,27 +121,37 @@ _DET_CITE = ("Deterding (1997), JIPA 27:47-55. F3 non riportato. "
 SOURCE_LOCATORS: dict[tuple, str] = {}
 
 
-def _row(ipa, dialect, group, f1, f2, f3, cite):
+def _row(ipa, dialect, group, f1, f2, f3, cite, real_sd=None):
+    """Build a reference row. If ``real_sd`` (a dict with F1_sd/F2_sd) is given,
+    use those VERIFIED dispersions (Deterding token files) and flag the source
+    accordingly; otherwise fall back to the pooled-% estimate."""
     def sd(v, frac):
         return round(v * frac) if v else None
     locator = SOURCE_LOCATORS.get((ipa, dialect, group), "")
+    if real_sd:
+        f1_sd = real_sd.get("F1_sd") if real_sd.get("F1_sd") else sd(f1, 0.12)
+        f2_sd = real_sd.get("F2_sd") if real_sd.get("F2_sd") else sd(f2, 0.10)
+        sd_source = "deterding1997_tokens"
+        verified = True
+    else:
+        f1_sd, f2_sd = sd(f1, 0.12), sd(f2, 0.10)
+        sd_source = "estimated_pooled"
+        verified = bool(locator)
     return {
         "phoneme_ipa": ipa,
         "dialect": dialect,
         "speaker_group": group,
-        "F1_mean": f1, "F1_sd": sd(f1, 0.12),
-        "F2_mean": f2, "F2_sd": sd(f2, 0.10),
+        "F1_mean": f1, "F1_sd": f1_sd,
+        "F2_mean": f2, "F2_sd": f2_sd,
         "F3_mean": f3, "F3_sd": sd(f3, 0.08),
-        # Provenance of the SDs above. Currently the per-vowel SDs are pooled
-        # estimates (fractions of the mean), NOT the SDs published in the source
-        # papers — so the scoring/plausibility dispersion is flagged as
-        # 'estimated_pooled' for an honest, dynamic citation footer. When the
-        # real published SDs are encoded, switch this to 'published'.
-        "sd_source": "estimated_pooled",
+        # Provenance of the SDs. 'deterding1997_tokens' = REAL per-vowel SD
+        # computed from Deterding's published token measurement files (verified
+        # canonical). 'estimated_pooled' = fallback %-of-mean estimate (AmE rows
+        # still use this until the Hillenbrand published SDs are encoded).
+        "sd_source": sd_source,
         "source_citation": cite,
-        # Per-value bibliographic locator (table/row/col). Empty until verified.
         "source_locator": locator,
-        "source_verified": bool(locator),
+        "source_verified": verified,
     }
 
 
@@ -106,8 +161,10 @@ def build_reference_rows() -> list[dict]:
         for ipa, f1, f2, f3 in items:
             rows.append(_row(ipa, "AmE", group, f1, f2, f3, _H95_CITE))
     for group, items in _DET.items():
+        real = _DET_SD.get(group, {})
         for ipa, f1, f2 in items:
-            rows.append(_row(ipa, "RP", group, f1, f2, None, _DET_CITE))
+            rows.append(_row(ipa, "RP", group, f1, f2, None, _DET_CITE,
+                             real_sd=real.get(ipa)))
     return rows
 
 

@@ -88,7 +88,17 @@ NUCLEUS_SD_THRESHOLDS = {"F1": 25.0, "F2": 50.0, "F3": 70.0}
 # PROBLEMA B — pooled SD estimate as a fraction of the reference mean, used ONLY
 # when a dataset SD is unavailable for that phoneme/group/formant.
 SD_EST_PCT = {"F1": 0.12, "F2": 0.10, "F3": 0.08}
-PLAUSIBILITY_SD_MULT = 3.0
+# ---- DECOUPLED dispersion knobs (M2.4d) ----
+# The plausibility GATE and the GAUSSIAN SCORE are two DIFFERENT uses of the same
+# per-vowel SD and must be tuned independently:
+#   * GATE_SD_MULT  — how many SDs wide the accept/reject window is. PERMISSIVE
+#     by design: it must reject only gross mistracking, never a slightly-off but
+#     genuine take. Env: PHONEME_GATE_SD_MULT.
+#   * GAUSSIAN_K    — steepness of the deviation→score curve (see below). Env:
+#     PHONEME_GAUSSIAN_K.
+GATE_SD_MULT = float(os.environ.get("PHONEME_GATE_SD_MULT", "3.0"))
+# Backward-compat alias (old name referenced in tests / logs).
+PLAUSIBILITY_SD_MULT = GATE_SD_MULT
 # LPC ceilings retried in order (Hz, max n formants).
 _CEILINGS = ((5500.0, 5.0), (5000.0, 5.0), (4500.0, 5.0))
 _CEILING_RANGE = [5500, 5000, 4500]
@@ -316,6 +326,7 @@ def _build_diagnostics(meas: dict, ranges: dict, sel: dict, reliable: bool) -> d
         "candidate_formants": candidates,
         "nucleus_sd_hz": nucleus_sd,
         "nucleus_sd_thresholds_hz": NUCLEUS_SD_THRESHOLDS,
+        "gate_sd_mult": GATE_SD_MULT,
         "plausibility_range_hz": plausibility_range,
     }
 
@@ -337,8 +348,8 @@ def _score_gop(measured: float, mean: float, sd: float, tol_sd: float = 2.5) -> 
 # deviations near the native mean barely cost, large ones cost steeply. d > 3
 # is already rejected upstream (PROBLEMA B), so no score is produced there.
 # GAUSSIAN_K is the ONLY tunable knob: raise (0.25) for stricter, lower (0.15)
-# for more lenient. Exposed as a named constant on purpose.
-GAUSSIAN_K = 0.20
+# for more lenient. Exposed as a named constant + env override (PHONEME_GAUSSIAN_K).
+GAUSSIAN_K = float(os.environ.get("PHONEME_GAUSSIAN_K", "0.20"))
 
 
 def _score_gaussian(measured: float, ref: float, sd: float) -> float:
