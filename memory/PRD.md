@@ -2514,3 +2514,62 @@ backend/
   senza citazione per-valore. GenAm coincide con Hillenbrand/h95 (verificabile). RP: da verificare
   riga per riga; /æ/ male 690/1550 vs atteso ~834/1782 (discrepanza da confermare sul paper).
 - Ordine SD confermato: PRIMA verifica provenienza → POI SD reali.
+
+---
+
+## [2026-06 fork] M2.4d — Diagnosi scoring vocali lunghe + Opt1 (SD F1 inter-genere)
+
+### Provenienza riferimenti RP — RISOLTA (sospetto /æ/ 834/1782 era falso allarme)
+- Scaricati i FILE TOKEN pubblicati di Deterding 1997 (10 parlanti, ~40-70 token/vocale;
+  https://videoweb.nie.edu.sg/phonetic/data/jipa-vowels/). Medie ricalcolate dai token:
+  combaciano con i valori hardcoded in `_DET` entro pochi Hz su TUTTE le 11 vocali
+  (es. æ male: token 680/1558 vs codice 690/1550). → i riferimenti RP SONO Deterding 1997, verificati.
+  Il "sospetto 834/1782" era errato.
+
+### CAUSA A implementata — SD reali (integrità canonica, NON era il fix)
+- `data/formant_references.py`: aggiunto `_DET_SD` (F1_sd, F2_sd, F3_mean, F3_sd reali per male/female)
+  calcolati dai token Deterding. `sd_source="deterding1997_tokens"`, `source_verified=True`.
+- Recuperato anche F3 RP reale verificato → costante `DETERDING_RP_F3` (per futura guardia rhoticity).
+- Effetto sui punteggi ≈ neutro (le SD reali sono comparabili/più strette delle stime, non più larghe).
+
+### Gate/scoring DISACCOPPIATI e tarabili
+- `PHONEME_GATE_SD_MULT` (default 3.0) = ampiezza gate plausibilità (permissivo).
+- `PHONEME_GAUSSIAN_K` (default 0.20) = ripidezza curva punteggio.
+- Esposti (read-only) in `GET /api/level-test/config` → `scoring{}`.
+
+### ROOT CAUSE VERA (trovata per eliminazione, con prove)
+- ❌ SD inventata: falsificata (simulazione: neutra/peggiore).
+- ❌ Offset di metodo Parselmouth: FALSIFICATO con test su vocali SINTETICHE (KlattGrid) a formanti
+  note → pipeline misura a ±5-15 Hz su tutte le vocali (incl. ɔː/ɜː). Pre-emfasi 50Hz corretta.
+- ✅ MISMATCH SCALA TRATTO VOCALE: le clip reali del Prof. (uomo, f0 135-156) hanno formanti F1
+  di livello femminile (tratto vocale corto). Scorate contro riferimento MASCHILE (via f0) → F1
+  punito a morte. Contro riferimento femminile → B2. Il motore, il metodo e la selezione finestra
+  sono CORRETTI; il problema è che F1 è VTL-sensibile e il riferimento single-group medio non lo copre.
+
+### Normalizzazione del parlante — SCARTATA (simulata, bocciata sui numeri)
+- Lobanov: penalizza il nativo canonico perfetto (100→76). Nearey: uniforma l'italiano a 78
+  (distrugge il potere diagnostico). Session-relative: gonfia 2 errori su 3 dell'italiano.
+- Verdetto: su un test DIAGNOSTICO con poche vocali, la normalizzazione è un rimedio peggiore del male.
+
+### FIX ADOTTATO — Opt1: tolleranza F1 inter-genere (F2 invariato)
+- `phoneme_formants.py`: `F1_POOLED_SD` (env `PHONEME_F1_POOLED_SD`, default on) + `_pooled_f1_sd(refs)`.
+- Per il SOLO F1 usa la SD pooled cross-group (within + between-group-mean variance); mean = gruppo
+  scelto da f0 (invariato); F2/F3 mantengono la SD within-group (dimensione diagnostica intatta).
+- Applicato in `compute_formant_score`, `score_against_reference`, e nel router `analyze-formants`.
+- Simulazione: canonico nativo resta 100; Prof RP sale A2→B1 coerente (~60-64); italiano tratto-medio
+  invariato; NESSUNA falla avversariale (Opt3 scartata proprio perché apriva quella falla).
+- Test backend: 66 passed (aggiornati 3 test iter38 che asserivano il vecchio range F1 within-group).
+
+### BACKLOG aggiornato
+- **P1 — CAT: italiano /a/ su target /æ/ prende punteggio nativo (~92 GIÀ OGGI).** /æ/ vs /a/ è un
+  errore italiano diffuso. Serve GATE ACUSTICO dedicato sulla distanza F2 (æ anteriore ~1550 vs a
+  centrale ~1350-1450), SENZA toccare le SD. Task separato.
+- **P1 — Aural Step (Step 3) fonemi non-diagnostici** (residuo pre-V2, ship/sheep hardcoded in
+  `levelTestEngine.js` / `LevelTestPage.jsx`). Aggiornare ai fonemi nuovi.
+- **P1 — Home CTA** → puntare al nuovo `/level-test` invece del vecchio `LevelTestModal.jsx`.
+- **Deferred — guardia plausibilità F3 su rhoticity-gate**: ora disponibile `DETERDING_RP_F3` reale
+  (ɜː male 2485±221) per evitare falsi cap quando F3 è mistracked basso.
+- P1: M2.4c Admin (soglie tarabili) · M2.5 Lead persistence · M3 CMS copy · P2: Resend, share, Charsiu.
+
+### Da validare: giro di test DAL VIVO con la voce del Prof. (Opt1 attivo)
+- Criterio: le pronunce RP corrette devono salire a punteggi coerenti; gli errori veri restare bassi.

@@ -278,10 +278,11 @@ class TestPlausibleStable200:
             for key in ("ref", "sd_used", "sd_source", "min", "max"):
                 assert key in rng, f"{name} range missing {key}: {rng}"
             assert rng["min"] < rng["max"]
-            # sd_source must be 'estimated_pooled' for Hillenbrand dataset rows
-            assert rng["sd_source"] == "estimated_pooled", (
-                f"{name}.sd_source expected 'estimated_pooled', got "
-                f"{rng['sd_source']!r}"
+            # F2/F3 keep the within-group pooled-% estimate; F1 now uses the
+            # INTER-GENDER pooled SD (Opt1) to absorb vocal-tract-length anatomy.
+            assert rng["sd_source"] in ("estimated_pooled", "intergender_pooled"), (
+                f"{name}.sd_source expected 'estimated_pooled'|'intergender_pooled', "
+                f"got {rng['sd_source']!r}"
             )
 
     def test_within_window_sd_below_thresholds(self, headers, plausible_i_wav):
@@ -387,18 +388,19 @@ class TestImplausibleReturns422StructuredDetail:
 # --------------------------------------------------------------------------- #
 class TestPerPhonemePlausibilityRange:
     def test_i_AmE_men_F1_range_is_narrow(self, headers, plausible_i_wav):
-        """/i/ AmE men F1 range must be roughly 219..465 Hz (± 3 × pooled
-        SD around Hillenbrand mean 342 Hz). This proves plausibility is
-        per-phoneme, NOT the old global F1>900 rule."""
+        """/i/ AmE F1 range is per-phoneme (NOT the old global F1>900 rule).
+        Opt1: F1 now uses the INTER-GENDER pooled SD (Hillenbrand men+women+
+        children ~69 Hz) around the men mean 342 → ~[134, 550] Hz. Still far
+        below any global cutoff; F1~1000 is still rejected (see next test)."""
         _grant(headers, "audio", True)
         r = _analyze(headers, plausible_i_wav, "i", "AmE")
         assert r.status_code == 200, r.text
         pr = r.json()["diagnostics"]["plausibility_range_hz"]
         f1_min = pr["F1"]["min"]
         f1_max = pr["F1"]["max"]
-        # Hillenbrand men mean 342, pooled SD 12% → ~41, ±3σ → ~219..465
-        assert 200 <= f1_min <= 240, f"F1 min expected ~219, got {f1_min}"
-        assert 450 <= f1_max <= 490, f"F1 max expected ~465, got {f1_max}"
+        # men mean 342, inter-gender pooled SD ~69 → ±3σ ≈ 134..550
+        assert 110 <= f1_min <= 170, f"F1 min expected ~134, got {f1_min}"
+        assert 510 <= f1_max <= 590, f"F1 max expected ~550, got {f1_max}"
         assert pr["F1"]["ref"] == 342
 
     def test_i_AmE_rejects_f1_900(self, headers):
@@ -500,9 +502,9 @@ class TestSdSourceInReferences:
         assert r.status_code == 200, r.text
         pr = r.json()["diagnostics"]["plausibility_range_hz"]
         for name, rng in pr.items():
-            assert rng["sd_source"] == "estimated_pooled", (
-                f"{name}.sd_source must be 'estimated_pooled' (was "
-                f"{rng['sd_source']!r})"
+            assert rng["sd_source"] in ("estimated_pooled", "intergender_pooled"), (
+                f"{name}.sd_source must be 'estimated_pooled' or "
+                f"'intergender_pooled' (was {rng['sd_source']!r})"
             )
 
     def test_dispersion_source_estimated_for_dataset(self, headers,

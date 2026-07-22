@@ -99,6 +99,34 @@ SD_EST_PCT = {"F1": 0.12, "F2": 0.10, "F3": 0.08}
 GATE_SD_MULT = float(os.environ.get("PHONEME_GATE_SD_MULT", "3.0"))
 # Backward-compat alias (old name referenced in tests / logs).
 PLAUSIBILITY_SD_MULT = GATE_SD_MULT
+# ---- Opt1: INTER-GENDER F1 tolerance (M2.4d) ----
+# F1 (vowel openness) is the formant most sensitive to individual vocal-tract
+# LENGTH: two speakers of the SAME sex can differ by >200 Hz on F1 purely by
+# anatomy (a short-tract man has F1 near the female mean while keeping a male f0).
+# Scoring F1 against the SINGLE within-sex SD therefore penalises normal anatomy.
+# Fix: for the F1 dimension ONLY, widen the dispersion to the POOLED cross-group
+# SD (within-group variance + between-group-mean variance). F2 keeps its tight
+# within-group SD — F2 carries the phonemic front/back identity and is the
+# DIAGNOSTIC dimension we must NOT loosen (that would let Italian /a/→/æ/ pass).
+# The reference MEAN stays the f0-selected group's mean; only the F1 SD widens.
+# Env: PHONEME_F1_POOLED_SD (default on).
+F1_POOLED_SD = os.environ.get("PHONEME_F1_POOLED_SD", "true").lower() != "false"
+
+
+def _pooled_f1_sd(refs: list) -> Optional[float]:
+    """Pooled cross-group F1 SD = sqrt(mean(within_var) + between_group_mean_var).
+    Needs ≥2 groups (e.g. RP male+female, AmE men+women+children). None otherwise."""
+    means, sds = [], []
+    for r in refs or []:
+        m, s = r.get("F1_mean"), r.get("F1_sd")
+        if m and s:
+            means.append(float(m))
+            sds.append(float(s))
+    if len(means) < 2:
+        return None
+    within = sum(s * s for s in sds) / len(sds)
+    between = statistics.pvariance(means)
+    return round(math.sqrt(within + between), 1)
 # LPC ceilings retried in order (Hz, max n formants).
 _CEILINGS = ((5500.0, 5.0), (5000.0, 5.0), (4500.0, 5.0))
 _CEILING_RANGE = [5500, 5000, 4500]
@@ -554,16 +582,20 @@ def compute_formant_score(
         else:
             best = min(refs, key=group_distance)
             group_method = "formant_distance"
+        row_sd_source = best.get("sd_source", "estimated_pooled")
+        pooled_f1 = _pooled_f1_sd(refs) if F1_POOLED_SD else None
+        for k in ("F1", "F2", "F3"):
+            m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
+            if m:
+                if k == "F1" and pooled_f1:
+                    ranges[k] = _range(k, m, pooled_f1, "intergender_pooled")
+                else:
+                    ranges[k] = _range(k, m, sd, row_sd_source)
         ref_group = best["speaker_group"]
         citation = best["source_citation"]
         ref_source = "dataset"
         groups_available = [r["speaker_group"] for r in refs]
         group_refs = {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs}
-        row_sd_source = best.get("sd_source", "estimated_pooled")
-        for k in ("F1", "F2", "F3"):
-            m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
-            if m:
-                ranges[k] = _range(k, m, sd, row_sd_source)
     elif teacher_ref:
         ref_source = "teacher_sample"
         citation = "Campione di riferimento Prof. Dapper (Fase 1)"
@@ -669,13 +701,17 @@ def score_against_reference(
     else:
         best = refs[0]
     row_sd_source = best.get("sd_source", "estimated_pooled")
+    pooled_f1 = _pooled_f1_sd(refs) if F1_POOLED_SD else None
     per_formant = []
     for k in ("F1", "F2", "F3"):
         m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
         mv = student.get(k)
         if not (m and mv):
             continue
-        sd_used = round(float(sd), 1) if sd else round(m * SD_EST_PCT[k], 1)
+        if k == "F1" and pooled_f1:
+            sd_used = pooled_f1
+        else:
+            sd_used = round(float(sd), 1) if sd else round(m * SD_EST_PCT[k], 1)
         per_formant.append({
             "name": k, "measured": mv, "reference": m,
             "score": _score_gaussian(mv, m, sd_used),
@@ -843,10 +879,14 @@ def build_phoneme_formants_router(
             groups_available = [r["speaker_group"] for r in refs]
             group_refs = {r["speaker_group"]: {"F1": r.get("F1_mean"), "F2": r.get("F2_mean"), "F3": r.get("F3_mean")} for r in refs}
             row_sd_source = best.get("sd_source", "estimated_pooled")
+            pooled_f1 = _pooled_f1_sd(refs) if F1_POOLED_SD else None
             for k in ("F1", "F2", "F3"):
                 m, sd = best.get(f"{k}_mean"), best.get(f"{k}_sd")
                 if m:
-                    ranges[k] = _range(k, m, sd, row_sd_source)
+                    if k == "F1" and pooled_f1:
+                        ranges[k] = _range(k, m, pooled_f1, "intergender_pooled")
+                    else:
+                        ranges[k] = _range(k, m, sd, row_sd_source)
             logging.info(
                 "analyze-formants: phoneme=%s dialect=%s F0=%s group=%s (via %s) ranges=%s",
                 phoneme_ipa, dialect, f0, ref_group, group_method,

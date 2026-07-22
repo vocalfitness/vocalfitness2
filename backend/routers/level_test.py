@@ -63,6 +63,7 @@ from routers.phoneme_formants import (
     score_against_reference,
     _cefr_band,
 )
+import routers.phoneme_formants as pf
 
 try:
     from emergentintegrations.llm.openai import OpenAISpeechToText
@@ -499,6 +500,12 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             "rhoticity_f3f2_threshold": _RHOTICITY_F3F2_THRESHOLD,  # Bug3 tunable
             "rhoticity_cap": _RHOTICITY_CAP,                        # Bug3 tunable
             "lexicon": lexicon,                            # M2.4b tunable allow/block
+            # M2.4d formant-scoring knobs (env-tunable, shown read-only here)
+            "scoring": {
+                "gaussian_k": pf.GAUSSIAN_K,           # curve steepness (PHONEME_GAUSSIAN_K)
+                "gate_sd_mult": pf.GATE_SD_MULT,       # plausibility gate width (PHONEME_GATE_SD_MULT)
+                "f1_intergender_sd": pf.F1_POOLED_SD,  # Opt1 (PHONEME_F1_POOLED_SD)
+            },
         }
 
     @router.post("/admin/config")
