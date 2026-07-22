@@ -166,12 +166,53 @@ def _normalize(text: str) -> str:
     return re.sub(r"[^a-z' ]+", " ", (text or "").lower()).strip()
 
 
-def _accepted_variants(expected: str) -> set:
-    e = _normalize(expected)
-    variants = {e}
-    if _LEXICAL_VARIANT_MODE in ("plural", "plural+typo"):
-        variants |= {e + "s", e + "es"}
-    return variants
+# --- M2.4b · CURATED LEXICON (tunable) ------------------------------------
+# Whisper is ACCURATE on these words (verified on real-voice logs: "bad" stays
+# "bad", "low" stays "low" — it never hallucinates toward the target). So the
+# lexical gate is a STRICT allow/block list, NOT a fuzzy similarity check. The
+# whole point of the lead magnet is to CATCH the systematic Italian errors
+# ("low" for law, "bad"/"berd" for bird), so those live in the BLOCKLIST → A1.
+# ``beard`` is the one exception in bird's allow-list: it is Whisper's usual
+# spelling of a GOOD RP /ɜː/ — it must pass to the formant grader.
+# Keyed by the normalised expected word. Editable at runtime via the
+# ``level_test_config.lexicon`` document (admin, M2.4c) WITHOUT code changes.
+_DEFAULT_LEXICON = {
+    "law":  {"allow": ["law", "laws"],
+             "block": ["low", "loo", "lo", "board", "bored", "lot", "luck"]},
+    "bird": {"allow": ["bird", "birds", "beard"],
+             "block": ["bad", "bed", "board", "bored", "burd", "berd", "baird", "bud", "bird's"]},
+    "cat":  {"allow": ["cat", "cats", "kat"],
+             "block": ["cut", "cot", "caught", "kit", "court"]},
+}
+
+
+async def _get_lexicon(db) -> dict:
+    """Effective lexicon = defaults, overridden per-word by any entry in the
+    ``level_test_config.lexicon`` document (single tunable source)."""
+    lex = {k: {"allow": list(v["allow"]), "block": list(v["block"])}
+           for k, v in _DEFAULT_LEXICON.items()}
+    try:
+        cfg = await db.level_test_config.find_one({"key": "config"}, {"_id": 0, "lexicon": 1}) or {}
+        override = cfg.get("lexicon") or {}
+        for word, lists in override.items():
+            entry = lex.get(_normalize(word), {"allow": [], "block": []})
+            if isinstance(lists, dict):
+                if "allow" in lists:
+                    entry["allow"] = [_normalize(w) for w in (lists.get("allow") or [])]
+                if "block" in lists:
+                    entry["block"] = [_normalize(w) for w in (lists.get("block") or [])]
+            lex[_normalize(word)] = entry
+    except Exception:  # noqa: BLE001
+        pass
+    return lex
+
+
+def _lexicon_for(lexicon: dict, expected: str) -> tuple:
+    exp = _normalize(expected)
+    entry = (lexicon or {}).get(exp, {})
+    allow = set(entry.get("allow") or []) | {exp, exp + "s", exp + "es"}
+    block = set(entry.get("block") or [])
+    return allow, block
 
 
 async def _transcribe(raw: bytes) -> str | None:
@@ -204,45 +245,24 @@ async def _transcribe(raw: bytes) -> str | None:
             pass
 
 
-def _lexical_similar(token: str, expected: str) -> bool:
-    """Coarse 'law-ish' acceptance (Option B). Whisper conflates short minimal
-    pairs (law↔low, bird↔bad) BOTH ways, so on isolated monosyllables we accept
-    the phonetic NEIGHBOURHOOD and leave the fine vowel-quality discrimination
-    (law /ɔː/ monophthong vs low /əʊ/ diphthong) to the formant engine. We reject
-    only clearly different / non-English / Italian words (different onset AND low
-    character overlap)."""
-    if not token or not expected:
-        return False
-    if token == expected:
-        return True
-    ratio = difflib.SequenceMatcher(None, token, expected).ratio()
-    same_onset = token[0] == expected[0]
-    close_len = abs(len(token) - len(expected)) <= 2
-    # Short target (≤5 chars): same onset + similar length = a mis-hearing of it.
-    if len(expected) <= 5 and same_onset and close_len:
-        return True
-    # General fallback: high character overlap (reordered / minor typos).
-    return ratio >= 0.6
-
-
-def _lexical_word(transcript: str | None, expected: str) -> dict:
-    """Signal A — COARSE lexical gate → correct | wrong | uncertain (Option B).
-    'correct' = the target word OR a plausible mis-hearing neighbour (accent-safe).
-    'wrong' = a clearly different word (Italian / unrelated) → A1 cap. Fine vowel
-    quality is judged by the formant engine, NOT here."""
+def _lexical_word(transcript: str | None, expected: str, allow: set, block: set) -> dict:
+    """Signal A — STRICT lexical gate → correct | wrong | uncertain.
+    Whisper is accurate on these targets, so we do NOT do fuzzy similarity:
+      * BLOCKLIST (the systematic Italian errors: low/bad/board/…) → wrong → A1.
+      * ALLOW-LIST (exact word + plural + curated ASR spellings, e.g. "beard"
+        for a good RP bird) → correct → passed to the formant grader.
+      * anything else → wrong.
+    Token-aware so "a bird" (article) still matches on the "bird" token."""
     if transcript is None:
         return {"status": "unavailable", "transcript": None}
     norm = _normalize(transcript)
     if len(norm.replace(" ", "")) < _ASR_MIN_CHARS:
         return {"status": "uncertain", "transcript": transcript}
-    exp = _normalize(expected)
-    accepted = _accepted_variants(expected)
     tokens = norm.split() or [norm]
-    ok = (
-        norm in accepted
-        or any(t in accepted for t in tokens)
-        or any(_lexical_similar(t, exp) for t in tokens)
-    )
+    # Explicit block wins first (the errors the test exists to catch).
+    if norm in block or any(t in block for t in tokens):
+        return {"status": "wrong", "transcript": transcript}
+    ok = norm in allow or any(t in allow for t in tokens)
     return {"status": "correct" if ok else "wrong", "transcript": transcript}
 
 
@@ -413,12 +433,14 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         total = len(slots)
         cfg = await db.level_test_config.find_one({"key": "config"}, {"_id": 0}) or {}
         approved = bool(cfg.get("approved", False))
+        lexicon = await _get_lexicon(db)
         return {
             "approved": approved, "ready_count": ready, "total": total,
             "can_publish": ready == total,           # prerequisite for the toggle
             "published": approved and ready == total,  # public gate condition
             "teachable_threshold": _TEACHABLE_THRESHOLD,  # M2.4 tunable
             "max_attempts": _MAX_ATTEMPTS,                 # M2.4 tunable
+            "lexicon": lexicon,                            # M2.4b tunable allow/block
         }
 
     @router.post("/admin/config")
@@ -472,7 +494,12 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
                     "asr_available": _ASR_READY}
 
         # ---- Signal A: lexical check (transcript computed above) -----------
-        lexical = _lexical_word(transcript, expected) if expected else {"status": "unavailable", "transcript": transcript}
+        if expected:
+            _lexicon = await _get_lexicon(db)
+            _allow, _block = _lexicon_for(_lexicon, expected)
+            lexical = _lexical_word(transcript, expected, _allow, _block)
+        else:
+            lexical = {"status": "unavailable", "transcript": transcript}
         if lexical["status"] == "uncertain":
             raise HTTPException(status_code=422, detail={
                 "message": f"Non ho sentito chiaramente. Riprova pronunciando \"{expected}\".",

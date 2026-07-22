@@ -32,12 +32,17 @@ export const IsolatedStep = ({
   const [unmeasuredMsg, setUnmeasuredMsg] = useState('');
   const [takeKey, setTakeKey] = useState(0);       // remounts recorder on each retry
   const [submitError, setSubmitError] = useState('');
+  const [heard, setHeard] = useState({});          // ipa -> user actually played the Prof RP model
 
   const current = targets[Math.min(isoIdx, targets.length - 1)];
   const curInfo = info[current.ipa] || { count: 0 };
   const isLast = isoIdx === targets.length - 1;
   const isLaw = current.ipa === LAW_IPA;
   const front = frontViews[current.ipa];
+
+  // Play the Prof RP model AND record that the user actually listened — the
+  // honest "prima→dopo" only appears if the model was truly heard.
+  const playProf = (url) => { setHeard((h) => ({ ...h, [current.ipa]: true })); playClip(url); };
 
   const persistAttempt = async (data) => {
     setPhase('submitting');
@@ -140,15 +145,10 @@ export const IsolatedStep = ({
                 Tentativo {Math.min(curInfo.count + 1, 3)} di 3
               </p>
             )}
-            {wordAudio[current.ipa]?.RP && (
-              <button
-                type="button"
-                onClick={() => playClip(wordAudio[current.ipa].RP)}
-                data-testid="lt-listen-prof"
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm uppercase tracking-wider transition-all hover:scale-105"
-              >
-                <Volume2 size={17} /> Ascolta il Prof. — "{current.word}" 🇬🇧
-              </button>
+            {curInfo.count === 0 && (
+              <p className="mt-3 text-[11px] text-slate-500 italic" data-testid="lt-cold-note">
+                Prova prima a orecchio — l'ascolto del Prof. arriva dopo.
+              </p>
             )}
           </div>
           {phase === 'submitting' ? (
@@ -208,7 +208,7 @@ export const IsolatedStep = ({
             {wordAudio[current.ipa]?.RP && (
               <button
                 type="button"
-                onClick={() => playClip(wordAudio[current.ipa].RP)}
+                onClick={() => playProf(wordAudio[current.ipa].RP)}
                 data-testid="lt-teach-listen-rp"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm uppercase tracking-wider transition-all"
               >
@@ -263,34 +263,48 @@ export const IsolatedStep = ({
             </div>
           </div>
 
-          {/* Bidialectal LAW moment — ALWAYS after LAW, never score-gated */}
+          {/* Bidialectal LAW moment — ALWAYS after LAW, never score-gated.
+              Predisposed as a CONVERSATIONAL Prof. moment (message → reveal →
+              listen). Copy below is PLACEHOLDER — final copy provided later. */}
           {isLaw && (
             <div className="max-w-md mx-auto mt-5 rounded-2xl border border-cyan-500/25 bg-slate-900/50 p-5 text-left" data-testid="lt-law-bidialect">
-              <div className="flex items-center gap-2 text-cyan-200 mb-1">
+              <div className="flex items-center gap-2 text-cyan-200 mb-2">
                 <Waves size={18} />
-                <span className="text-xs font-black uppercase tracking-widest">Senti la differenza · LAW</span>
+                <span className="text-xs font-black uppercase tracking-widest">Il Prof. ti fa notare una cosa · LAW</span>
               </div>
-              <p className="text-xs text-slate-400 mb-4">Lo stesso suono, due mondi. E il tuo "prima → dopo" su questo suono:</p>
+              {/* Conversational message (PLACEHOLDER copy) */}
+              <p className="text-sm text-slate-200 leading-relaxed mb-4" data-testid="lt-law-message">
+                «Questo suono vive in due mondi. Nell'inglese britannico /ɔː/ è lungo e arrotondato;
+                l'americano lo apre di più. Ascoltali di fila e senti come cambia — non c'è giusto o
+                sbagliato, c'è il mondo in cui vuoi suonare a casa.» <span className="text-slate-500 italic">(copy provvisorio)</span>
+              </p>
 
-              {/* prima/dopo */}
-              {curInfo.primo_a_freddo && curInfo.migliore && (
-                <div className="flex items-center justify-center gap-4 mb-4" data-testid="lt-law-prima-dopo">
-                  <div className="text-center" data-testid="lt-law-prima">
-                    <div className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Prima (a freddo)</div>
-                    <div className="text-2xl font-black text-slate-300">{Math.round(curInfo.primo_a_freddo.target_score ?? 0)}</div>
+              {/* HONEST prima→dopo: only if >1 attempt AND the model was truly
+                  heard AND the scores actually differ. Otherwise: reveal only. */}
+              {(() => {
+                const p = curInfo.primo_a_freddo, m = curInfo.migliore;
+                const improved = (curInfo.count || 0) > 1 && heard[current.ipa]
+                  && p && m && Math.round(p.target_score ?? 0) !== Math.round(m.target_score ?? 0);
+                if (!improved) return null;
+                return (
+                  <div className="flex items-center justify-center gap-4 mb-4 rounded-xl bg-slate-950/50 border border-orange-400/25 py-3" data-testid="lt-law-prima-dopo">
+                    <div className="text-center" data-testid="lt-law-prima">
+                      <div className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Prima (a freddo)</div>
+                      <div className="text-2xl font-black text-slate-300">{Math.round(p.target_score ?? 0)}</div>
+                    </div>
+                    <ArrowRight className="text-orange-400" size={20} />
+                    <div className="text-center" data-testid="lt-law-dopo">
+                      <div className="text-[10px] uppercase tracking-widest font-bold text-orange-400/80">Dopo aver ascoltato</div>
+                      <div className="text-2xl font-black text-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">{Math.round(m.target_score ?? 0)}</div>
+                    </div>
                   </div>
-                  <ArrowRight className="text-orange-400" size={20} />
-                  <div className="text-center" data-testid="lt-law-dopo">
-                    <div className="text-[10px] uppercase tracking-widest font-bold text-orange-400/80">Dopo (miglior)</div>
-                    <div className="text-2xl font-black text-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]">{Math.round(curInfo.migliore.target_score ?? 0)}</div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {(wordAudio[current.ipa]?.RP || wordAudio[current.ipa]?.AmE) && (
                 <div className="flex gap-3">
                   {wordAudio[current.ipa]?.RP && (
-                    <button type="button" onClick={() => playClip(wordAudio[current.ipa].RP)} data-testid="lt-law-rp"
+                    <button type="button" onClick={() => playProf(wordAudio[current.ipa].RP)} data-testid="lt-law-rp"
                       className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/25 hover:text-white font-bold text-sm transition-all">
                       <Volume2 size={16} /> 🇬🇧 Britannico
                     </button>
