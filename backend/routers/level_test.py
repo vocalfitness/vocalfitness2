@@ -200,43 +200,37 @@ def _normalize(text: str) -> str:
 # spelling of a GOOD RP /ɜː/ — it must pass to the formant grader.
 # Keyed by the normalised expected word. Editable at runtime via the
 # ``level_test_config.lexicon`` document (admin, M2.4c) WITHOUT code changes.
+# BOUNCER blocklists — trimmed to the RELIABLE Italian-error confusables only
+# (clear, single-token). Everything not blocked is MEASURED by the formants.
+# Editable at runtime via ``level_test_config.lexicon`` (admin) WITHOUT code.
 _DEFAULT_LEXICON = {
-    "law":  {"allow": ["law", "laws", "lao", "laua"],
-             "block": ["low", "loo", "lo", "board", "bored", "lot", "luck"]},
-    "bird": {"allow": ["bird", "birds", "beard"],
-             "block": ["bad", "bed", "board", "bored", "burd", "berd", "baird", "bud", "bird's"]},
-    "cat":  {"allow": ["cat", "cats", "kat"],
-             "block": ["cut", "cot", "caught", "kit", "court"]},
+    "law":  {"block": ["low", "loo", "board", "bored"]},
+    "bird": {"block": ["bad", "board", "bud"]},
+    "cat":  {"block": ["cut", "cot", "caught", "court"]},
 }
 
 
 async def _get_lexicon(db) -> dict:
-    """Effective lexicon = defaults, overridden per-word by any entry in the
+    """Effective blocklists = defaults, overridden per-word by any entry in the
     ``level_test_config.lexicon`` document (single tunable source)."""
-    lex = {k: {"allow": list(v["allow"]), "block": list(v["block"])}
-           for k, v in _DEFAULT_LEXICON.items()}
+    lex = {k: {"block": list(v["block"])} for k, v in _DEFAULT_LEXICON.items()}
     try:
         cfg = await db.level_test_config.find_one({"key": "config"}, {"_id": 0, "lexicon": 1}) or {}
         override = cfg.get("lexicon") or {}
         for word, lists in override.items():
-            entry = lex.get(_normalize(word), {"allow": [], "block": []})
-            if isinstance(lists, dict):
-                if "allow" in lists:
-                    entry["allow"] = [_normalize(w) for w in (lists.get("allow") or [])]
-                if "block" in lists:
-                    entry["block"] = [_normalize(w) for w in (lists.get("block") or [])]
+            entry = lex.get(_normalize(word), {"block": []})
+            if isinstance(lists, dict) and "block" in lists:
+                entry["block"] = [_normalize(w) for w in (lists.get("block") or [])]
             lex[_normalize(word)] = entry
     except Exception:  # noqa: BLE001
         pass
     return lex
 
 
-def _lexicon_for(lexicon: dict, expected: str) -> tuple:
+def _lexicon_for(lexicon: dict, expected: str) -> set:
     exp = _normalize(expected)
     entry = (lexicon or {}).get(exp, {})
-    allow = set(entry.get("allow") or []) | {exp, exp + "s", exp + "es"}
-    block = set(entry.get("block") or [])
-    return allow, block
+    return set(entry.get("block") or [])
 
 
 def _wav_stats(raw: bytes) -> dict:
@@ -291,39 +285,41 @@ async def _transcribe(raw: bytes) -> str | None:
             pass
 
 
-def _lexical_word(transcript: str | None, expected: str, allow: set, block: set) -> dict:
-    """Signal A — THREE-TIER lexical gate (A2 architecture):
-      * BLOCKLIST → 'wrong' → A1, NEVER measured (the systematic Italian errors:
-        low/bad/board/burd/… — perentori, il test esiste per sgamarli).
-      * ALLOW-LIST → 'correct' → measured (exact + plural + curated ASR spellings).
-      * UNKNOWN (né allow né block) → 'unknown' → STILL MEASURED, so a good take
-        that Whisper spells unexpectedly (e.g. 'lao'/'laua' for /ɔː/) is saved by
-        the acoustic score instead of being A1-capped on spelling alone.
-      * ALIEN (unknown AND onset differs from the target / far from it) →
-        'wrong' → A1 without measuring (palestra/hello/you/Jim…).
-    A noisy lexical signal must not zero-out the acoustic signal without
-    consulting it — the lexicon blocks only what it KNOWS is wrong; acoustics
-    judge everything else."""
+def _lexical_word(transcript: str | None, expected: str, block: set) -> dict:
+    """Signal A — BOUNCER, not judge (final architecture). Whisper only blocks
+    GROSS sabotage; the formant engine grades everything else. Binary result:
+      * 'wrong' → A1 (blocked, not measured) ONLY for: empty/silence; a clearly
+        alien word (polysyllabic AND different onset, e.g. palestra/hello); a
+        whole phrase (≥3 tokens); or a reliable Italian-error blocklist hit
+        (low/board/bad/cut/cot).
+      * 'correct' → MEASURED (everything else, incl. monosyllabic ASR
+        hallucinations LOL/Love/But/Blah/Blue/Me and lao/laua). If the vowel was
+        good the formants score it right; if it was 'low' the formants score it
+        low anyway. No lexical 422, no A1 on a strange transcript.
+    The formant coherence gate (422) stays as the acoustic safety net."""
     if transcript is None:
         return {"status": "unavailable", "transcript": None}
     norm = _normalize(transcript)
-    if len(norm.replace(" ", "")) < _ASR_MIN_CHARS:
-        return {"status": "uncertain", "transcript": transcript}
-    exp = _normalize(expected)
     tokens = norm.split() or [norm]
-    # 1) Explicit block wins first (the errors the test exists to catch).
+    # Block 1 — empty / silence.
+    if len(norm.replace(" ", "")) < _ASR_MIN_CHARS:
+        return {"status": "wrong", "reason": "empty", "transcript": transcript}
+    # Block 2 — reliable Italian-error blocklist (clear single tokens).
     if norm in block or any(t in block for t in tokens):
         return {"status": "wrong", "reason": "blocklist", "transcript": transcript}
-    # 2) Confirmed allow-list → correct → measured.
-    if norm in allow or any(t in allow for t in tokens):
-        return {"status": "correct", "transcript": transcript}
-    # 3) Unknown: measure ONLY if it plausibly targets the word (shares the
-    # onset consonant and isn't wildly longer). Otherwise it's an ALIEN word.
+    # Block 3 — whole phrase (article + word is fine; ≥3 tokens is sabotage).
+    if len(tokens) >= 3:
+        return {"status": "wrong", "reason": "phrase", "transcript": transcript}
+    # Block 4 — alien word: polysyllabic AND different onset from the target.
+    exp = _normalize(expected)
     onset = exp[0] if exp else ""
-    plausible = any(t and t[0] == onset and len(t) <= len(exp) + 3 for t in tokens)
-    if plausible:
-        return {"status": "unknown", "transcript": transcript}
-    return {"status": "wrong", "reason": "alien", "transcript": transcript}
+    def _sylls(w):
+        return len(re.findall(r"[aeiouy]+", w))
+    for t in tokens:
+        if _sylls(t) >= 2 and (t[:1] != onset):
+            return {"status": "wrong", "reason": "alien", "transcript": transcript}
+    # Everything else → measured (bouncer lets it through to the formants).
+    return {"status": "correct", "transcript": transcript}
 
 
 def _phrase_accuracy(transcript: str | None, expected: str) -> dict:
@@ -532,6 +528,7 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         kind: str = Form("word"),
         dialect: str = Form(""),
         reference_url: str = Form(""),
+        session_id: str = Form(""),
     ):
         raw = await file.read()
         if not raw:
@@ -557,21 +554,15 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             return {"kind": "phrase", "lexical": acc, "phrase_score": phrase_score,
                     "asr_available": _ASR_READY}
 
-        # ---- Signal A: lexical check (transcript computed above) -----------
+        # ---- Signal A: BOUNCER lexical check (block-only, binary) -----------
         if expected:
             _lexicon = await _get_lexicon(db)
-            _allow, _block = _lexicon_for(_lexicon, expected)
-            lexical = _lexical_word(transcript, expected, _allow, _block)
+            _block = _lexicon_for(_lexicon, expected)
+            lexical = _lexical_word(transcript, expected, _block)
         else:
             lexical = {"status": "unavailable", "transcript": transcript}
-        if lexical["status"] == "uncertain":
-            logger.warning(
-                "level-test/score ASR-UNCERTAIN phoneme=%s expected=%r transcript=%r audio=%s",
-                phoneme_ipa, expected, transcript, _wav_stats(raw),
-            )
-            raise HTTPException(status_code=422, detail={
-                "message": f"Non ho sentito chiaramente. Riprova pronunciando \"{expected}\".",
-                "reason": "asr_uncertain"})
+        # No lexical 422 anymore: empty/alien/phrase/blocklist → 'wrong' → A1;
+        # everything else → measured.
 
         # Option-1: the SHOWN dialect (what the card presents) is the PRIMARY score.
         # The other dialect is scored on the SAME measurement window (single window)
@@ -630,9 +621,29 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
                 "message": f"Non ho riconosciuto chiaramente il suono.{hint}",
                 "reason": reason or "vowel_incoherence"})
 
+        # ---- Fix2 · STABLE GENDER (session-locked) -------------------------
+        # The M/F reference must NOT flip on a single short/creaky take's f0
+        # (169 Hz on a male → 'But' inflated to 85.6). Lock the group per session
+        # on the first RELIABLE take (f0 present AND ≥1.0s); default 'men' until.
+        _f0m = meas.get("f0_global")
+        _dur_s = _wav_stats(raw).get("duration_s") or 0
+        _reliable = bool(_f0m) and _dur_s >= 1.0
+        _locked = None
+        if session_id:
+            _sdoc = await db.level_test_sessions.find_one(
+                {"session_id": session_id}, {"_id": 0, "locked_group": 1})
+            _locked = (_sdoc or {}).get("locked_group")
+        if _locked:
+            group_override = _locked
+        elif not _reliable:
+            group_override = "men"   # default until a reliable take exists
+        else:
+            group_override = None    # reliable & unlocked → let f0 decide, then lock
+
         # PRIMARY = shown dialect: this call selects the SINGLE LPC window + gate.
         try:
-            primary = compute_formant_score(meas, refs_shown, phoneme_ipa, shown, teacher_ref)
+            primary = compute_formant_score(meas, refs_shown, phoneme_ipa, shown,
+                                             teacher_ref, group_override=group_override)
         except HTTPException as exc:
             reason = exc.detail if isinstance(exc.detail, str) else (exc.detail or {}).get("reason")
             raise _incoherent_error(reason)
@@ -648,6 +659,15 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         )
         if not _coherence_ok(primary):
             raise _incoherent_error("vowel_incoherence")
+
+        # Lock the session gender on the first reliable, coherent take.
+        if session_id and not _locked and _reliable:
+            _lock_label = "men" if _f0m < 165 else ("women" if _f0m <= 255 else "children")
+            await db.level_test_sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {"locked_group": _lock_label}}, upsert=True)
+            logger.info("level-test/score GENDER-LOCK session=%s f0=%s group=%s (locked)",
+                        session_id, round(_f0m), _lock_label)
 
         # ---- Bug3 · ANTI-RHOTICITY GATE (RP /ɜː/ only, categorical) --------
         # Scoped strictly to shown==RP AND /ɜː/ → never touches /ɔː/ or /æ/.

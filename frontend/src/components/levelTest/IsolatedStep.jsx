@@ -180,6 +180,7 @@ export const IsolatedStep = ({
               expected={current.word}
               kind="word"
               dialect="RP"
+              sessionId={sessionId}
               hideOutcome
               testid="lt-isolated-recorder"
               onDone={persistAttempt}

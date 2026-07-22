@@ -483,6 +483,7 @@ def compute_formant_score(
     phoneme_ipa: str,
     dialect: str,
     teacher_ref: Optional[dict] = None,
+    group_override: Optional[str] = None,
 ) -> dict:
     """Pure scoring core: given an already-computed measurement (`meas`), the
     dataset reference rows (`refs`, may be empty) and an optional teacher clip
@@ -519,7 +520,17 @@ def compute_formant_score(
                     n += 1
             return d / n if n else 9e9
 
-        if f0:
+        if group_override:
+            label = group_override
+            avail = {r["speaker_group"]: r for r in refs}
+            prefs = {
+                "men": ["men", "male"],
+                "women": ["women", "female"],
+                "children": ["children", "female", "women"],
+            }.get(label, [label])
+            best = next((avail[g] for g in prefs if g in avail), None) or min(refs, key=group_distance)
+            group_method = "session_locked"
+        elif f0:
             label = "men" if f0 < 165 else ("women" if f0 <= 255 else "children")
             avail = {r["speaker_group"]: r for r in refs}
             prefs = {
