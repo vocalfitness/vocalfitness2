@@ -17,6 +17,9 @@ from __future__ import annotations
 
 import os
 import re
+import io
+import wave
+import array
 import time
 import asyncio
 import logging
@@ -213,6 +216,28 @@ def _lexicon_for(lexicon: dict, expected: str) -> tuple:
     allow = set(entry.get("allow") or []) | {exp, exp + "s", exp + "es"}
     block = set(entry.get("block") or [])
     return allow, block
+
+
+def _wav_stats(raw: bytes) -> dict:
+    """Cheap acoustic stats of the received WAV — STABLE instrumentation so an
+    error branch is never blind again (a 422 in prod must not be invisible).
+    Reports bytes, duration, RMS and peak amplitude (0..1) to tell apart an
+    empty / truncated / silent take."""
+    try:
+        with wave.open(io.BytesIO(raw), "rb") as w:
+            n, sr, sw, ch = w.getnframes(), w.getframerate(), w.getsampwidth(), w.getnchannels()
+            frames = w.readframes(n)
+        dur = round(n / sr, 3) if sr else 0.0
+        rms = peak = None
+        if sw == 2 and frames:
+            a = array.array("h"); a.frombytes(frames)
+            if len(a):
+                peak = round(max(abs(x) for x in a) / 32768.0, 5)
+                rms = round((sum(x * x for x in a) / len(a)) ** 0.5 / 32768.0, 5)
+        return {"bytes": len(raw), "duration_s": dur, "sample_rate": sr,
+                "channels": ch, "frames": n, "rms": rms, "peak": peak}
+    except Exception as e:  # noqa: BLE001
+        return {"bytes": len(raw), "wav_parse_error": str(e)}
 
 
 async def _transcribe(raw: bytes) -> str | None:
@@ -487,6 +512,8 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
     ):
         raw = await file.read()
         if not raw:
+            logger.warning("level-test/score EMPTY-BODY phoneme=%s expected=%r (0 bytes received)",
+                           phoneme_ipa, expected)
             raise HTTPException(status_code=400, detail="Audio vuoto")
         if len(raw) > 15 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="Audio troppo grande")
@@ -515,6 +542,10 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         else:
             lexical = {"status": "unavailable", "transcript": transcript}
         if lexical["status"] == "uncertain":
+            logger.warning(
+                "level-test/score ASR-UNCERTAIN phoneme=%s expected=%r transcript=%r audio=%s",
+                phoneme_ipa, expected, transcript, _wav_stats(raw),
+            )
             raise HTTPException(status_code=422, detail={
                 "message": f"Non ho sentito chiaramente. Riprova pronunciando \"{expected}\".",
                 "reason": "asr_uncertain"})
@@ -550,6 +581,8 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             logger.exception("level-test/score: measurement worker failed")
             raise HTTPException(status_code=500, detail="Errore di analisi")
         if not meas:
+            logger.warning("level-test/score NO-FORMANTS phoneme=%s expected=%r audio=%s",
+                           phoneme_ipa, expected, _wav_stats(raw))
             raise HTTPException(
                 status_code=422,
                 detail="Impossibile estrarre le formanti. Registra di nuovo in un ambiente silenzioso.",
@@ -566,6 +599,10 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         def _incoherent_error(reason):
             word = expected or _EXAMPLE_WORD.get(phoneme_ipa, "")
             hint = f" Riprova pronunciando \"{word}\"." if word else " Riprova, tenendo il suono fermo 1-2 secondi."
+            logger.warning(
+                "level-test/score INCOHERENT phoneme=%s expected=%r reason=%s transcript=%r audio=%s",
+                phoneme_ipa, expected, reason, transcript, _wav_stats(raw),
+            )
             return HTTPException(status_code=422, detail={
                 "message": f"Non ho riconosciuto chiaramente il suono.{hint}",
                 "reason": reason or "vowel_incoherence"})

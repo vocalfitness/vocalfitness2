@@ -72,6 +72,11 @@ export const IsolatedStep = ({
         setPhase('unmeasured');
         return;
       }
+      // eslint-disable-next-line no-console
+      console.log('[LT-DIAG] persistAttempt OK', {
+        ipa: current.ipa, serverCount: res.count, teachable: res.teachable,
+        maxReached: res.max_reached, score: res.migliore?.target_score,
+      });
       setInfo((s) => ({ ...s, [current.ipa]: res }));
       setLastResult(data);
       // Teachable (wrong word OR below the tunable threshold) AND attempts left
@@ -92,6 +97,11 @@ export const IsolatedStep = ({
   const handleError = (err) => {
     // 422 = unmeasurable (noise/mic/mistracking): NOT a wrong sound. Distinct
     // gentle UX, no attempt consumed, no teachable coaching.
+    // eslint-disable-next-line no-console
+    console.log('[LT-DIAG] 422/error — NOT counted', {
+      ipa: current.ipa, status: err && err.status, reason: err?.detail?.reason,
+      serverCountBefore: curInfo.count || 0, phase,
+    });
     if (err && err.status === 422) {
       const msg = (err.detail && (err.detail.message || err.detail)) ||
         'Non ti ho sentito chiaramente. Avvicinati al microfono, riduci il rumore e riprova.';
@@ -106,6 +116,8 @@ export const IsolatedStep = ({
 
   const advance = () => {
     if (isLast) return;
+    // eslint-disable-next-line no-console
+    console.log('[LT-DIAG] advance', { from: current.ipa, fromCount: curInfo.count, toIdx: isoIdx + 1 });
     setIsoIdx((i) => i + 1);
     setPhase('record');
     setLastResult(null);
@@ -237,6 +249,9 @@ export const IsolatedStep = ({
           <p className="text-sm font-bold text-slate-100 mb-1">Non ti ho sentito chiaramente</p>
           <p className="text-xs text-slate-400 leading-relaxed mb-2" data-testid="lt-unmeasured-msg">{unmeasuredMsg}</p>
           <p className="text-[11px] text-emerald-400/80 font-semibold mb-5">Questo non conta come tentativo — nessun punteggio perso.</p>
+          <p className="text-[10px] text-slate-600 mb-3 font-mono" data-testid="lt-422-debug">
+            debug · tentativi misurati registrati: {curInfo.count || 0}/3
+          </p>
           <button
             type="button"
             onClick={retry}
