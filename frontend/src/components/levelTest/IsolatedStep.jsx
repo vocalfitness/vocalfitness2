@@ -191,7 +191,9 @@ export const IsolatedStep = ({
           <div className="flex items-center gap-2 text-orange-300 mb-3">
             <GraduationCap size={20} />
             <span className="text-sm font-black uppercase tracking-wider">
-              {lastResult?.lexical?.status === 'wrong' ? 'Parola diversa — correggiamo' : 'Suono da correggere'}
+              {lastResult?.rhoticity?.detected
+                ? 'R americana — nel britannico non c\u2019\u00e8'
+                : lastResult?.lexical?.status === 'wrong' ? 'Parola diversa — correggiamo' : 'Suono da correggere'}
             </span>
           </div>
 
@@ -213,7 +215,7 @@ export const IsolatedStep = ({
           )}
 
           <p className="text-sm text-slate-200 leading-relaxed mb-4" data-testid="lt-teach-instruction">
-            {current.teach}
+            {lastResult?.rhoticity?.detected ? lastResult.rhoticity.message : current.teach}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">

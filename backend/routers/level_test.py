@@ -84,6 +84,27 @@ _ASR_MIN_CHARS = int(os.environ.get("LEVEL_TEST_ASR_MIN_CHARS", "2"))
 # formant curve/weights), never hardcoded in the frontend.
 _TEACHABLE_THRESHOLD = float(os.environ.get("LEVEL_TEST_TEACHABLE_THRESHOLD", "60"))
 _MAX_ATTEMPTS = int(os.environ.get("LEVEL_TEST_MAX_ATTEMPTS", "3"))  # first + up to 2 retries
+# M2.4 · Bug3 — ANTI-RHOTICITY GATE for RP /ɜː/ (approach B, categorical).
+# Rhoticity's robust acoustic correlate is a SMALL F3–F2 distance (F3 drops AND
+# F2 rises → they converge), NOT an absolute F3 cutoff (which fails for short
+# vocal tracts). Refs: Boyce & Espy-Wilson (1997); Hagiwara (1995); Campbell et
+# al. (2018, TalkBank). Our canonical AmE /ɝ/ (Hillenbrand 1995) gives F3–F2 ≈
+# 331/341/424 Hz (men/women/children) vs RP non-rhotic ≈ 960 Hz → 650 Hz is the
+# margin-safe midpoint (~230 Hz clearance each side, robust to ±100-150 Hz F3
+# measurement error). A rhotic take is the WRONG vowel category, not a lexical
+# error → capped (not A1), flows to the didactic teachable moment.
+# NOTE (CANONICAL rule): the RP /ɜː/ F3 ≈ 2400 Hz used to justify this threshold
+# is an UNVERIFIED order-of-magnitude estimate (Hawkins & Midgley 2005, approx),
+# NOT a verified canonical datum — it is deliberately NOT stored in the formant
+# references. Do NOT reuse it as a source for any graded rhoticity score.
+_RHOTICITY_F3F2_THRESHOLD = float(os.environ.get("LEVEL_TEST_RHOTICITY_F3F2", "650"))
+_RHOTICITY_CAP = float(os.environ.get("LEVEL_TEST_RHOTICITY_CAP", "40"))
+_RHOTICITY_MESSAGE = (
+    "Ho sentito la r americana. Non è un errore — è un altro inglese. Ma qui "
+    "stiamo allenando il britannico, e in britannico questa r non si pronuncia: "
+    "la lingua resta piatta, non si arriccia indietro. Ascolta il Prof. e "
+    "riprova — è esattamente la differenza UK↔US che stai imparando a sentire."
+)
 # Whisper key: prefer the Emergent universal key (works for whisper-1); fall back
 # to a real OpenAI key if the user later swaps in their own. The placeholder means
 # "not set" → ASR stays off (graceful degrade).
@@ -479,6 +500,8 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             "published": approved and ready == total,  # public gate condition
             "teachable_threshold": _TEACHABLE_THRESHOLD,  # M2.4 tunable
             "max_attempts": _MAX_ATTEMPTS,                 # M2.4 tunable
+            "rhoticity_f3f2_threshold": _RHOTICITY_F3F2_THRESHOLD,  # Bug3 tunable
+            "rhoticity_cap": _RHOTICITY_CAP,                        # Bug3 tunable
             "lexicon": lexicon,                            # M2.4b tunable allow/block
         }
 
@@ -626,6 +649,25 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         if not _coherence_ok(primary):
             raise _incoherent_error("vowel_incoherence")
 
+        # ---- Bug3 · ANTI-RHOTICITY GATE (RP /ɜː/ only, categorical) --------
+        # Scoped strictly to shown==RP AND /ɜː/ → never touches /ɔː/ or /æ/.
+        rhoticity = None
+        final_score = primary["composite_score"]
+        final_cefr = primary["cefr"]
+        _sf = primary["student_formants"]
+        _f3, _f2 = _sf.get("F3"), _sf.get("F2")
+        if shown == "RP" and phoneme_ipa == "ɜː" and _f3 and _f2:
+            _dist = _f3 - _f2
+            if _dist < _RHOTICITY_F3F2_THRESHOLD:
+                final_score = min(final_score, _RHOTICITY_CAP)
+                final_cefr = _cefr_band(final_score)
+                rhoticity = {"detected": True, "f3": round(_f3), "f2": round(_f2),
+                             "f3_f2_distance": round(_dist), "threshold": _RHOTICITY_F3F2_THRESHOLD,
+                             "message": _RHOTICITY_MESSAGE}
+                logger.info("level-test/score RHOTICITY-GATE phoneme=ɜː F3=%s F2=%s dist=%s < %s "
+                            "-> cap %s", round(_f3), round(_f2), round(_dist),
+                            _RHOTICITY_F3F2_THRESHOLD, _RHOTICITY_CAP)
+
         # Same-window bidialectal comparison (verdict only — NEVER inflates primary).
         student = primary["student_formants"]
         f0 = meas.get("f0_global")
@@ -646,9 +688,9 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         return {
             "kind": "word", "phoneme_ipa": phoneme_ipa, "shown_dialect": shown,
             "lexical": lexical, "by_dialect": by_dialect, "best_dialect": shown,
-            "composite_score": primary["composite_score"],
-            "target_score": primary["composite_score"],
-            "cefr": primary["cefr"], "asr_available": _ASR_READY,
+            "composite_score": final_score,
+            "target_score": final_score,
+            "cefr": final_cefr, "rhoticity": rhoticity, "asr_available": _ASR_READY,
         }
 
     # ======================= COMBINED VERDICT ==============================
