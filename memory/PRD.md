@@ -2593,3 +2593,27 @@ backend/
 ## Vincolo prodotto — badge condivisibile
 - Claim OBBLIGATORIO: "Livello Vocal Fitness, ispirato ai descrittori CEFR".
 - MAI "livello CEFR" né "certificato" né "certificazione".
+
+## [2026-06 fork] M2.5 — Lead persistence (email gate) — DONE & TESTED (6/6)
+- Flusso 'test prima, dati dopo': test → parziale (band) → GATE email → verdetto completo.
+- Backend `POST /api/level-test/lead` (`routers/level_test.py`): consenso privacy GDPR OBBLIGATORIO
+  (422 `gdpr_consent_required`), email valida (422 `invalid_email`), guardia corporate senza azienda
+  (422 `company_required`). Ricostruisce verdetto server-truth (BEST per fonema) dalla sessione.
+  Salva in `db.leads` (collezione condivisa con chat_alice, upsert su session_id) con `source="level_test"`:
+  email, name, company, phone (SOLO corporate), segment, lead_type (corporate/private), cefr_self,
+  per_phoneme{first_cold,best,count,by_dialect}, verdict, dialect_scores, consent{privacy,marketing,
+  version,text,accepted_at ISO ts}, created_at/updated_at. Collega lead_id alla sessione.
+- Frontend (`LevelTestPage.jsx`): campi nome/email/segmento + azienda/telefono (solo ramo corporate 'B'),
+  checkbox consenso privacy NON pre-spuntata + link informativa `/privacy`, consenso marketing separato,
+  submit disabilitato finché email+nome+segmento+privacy(+azienda se corporate); POST /lead → verdetto.
+- Nuova pagina `/privacy` (`PrivacyPolicyPage.jsx`) informativa GDPR strutturata (artt.13-14) — ⚠️ i dati
+  legali specifici (ragione sociale, P.IVA, DPO) DA FINALIZZARE dal Prof./legale prima del go-live.
+- Test: `tests/test_level_test_lead_m25.py` 5/5 + frontend gate flow 6/6 (iteration_41.json).
+- ⚠️ COPY: i testi del gate/verdetto sono provvisori; il Prof. fornirà i copy definitivi (registro suo).
+
+### PROSSIMO (ordine confermato dall'utente): 
+1. Clip RP: rigenerare LAW/BIRD/CAT RP con ElevenLabs voce RP britannica maschile, VALIDARE vs canone
+   Deterding (mostrare tabella F1/F2/F3 prima di sostituire); NON pubblicare clip che non passano;
+   per BIRD verificare F3 rotico US (se la voce clonata perde r-coloring → serve registrazione reale).
+2. M2.4c Admin (soglie tarabili).  3. Copy definitivi (dal Prof.).
+- Vincolo badge: "Livello Vocal Fitness, ispirato ai descrittori CEFR" — mai "CEFR"/"certificato".

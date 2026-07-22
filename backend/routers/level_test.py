@@ -866,6 +866,14 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         sid = (body.session_id or "").strip()
         if not sid:
             raise HTTPException(status_code=400, detail="session_id mancante")
+        segment = (body.segment or "").strip()
+        is_corporate = segment == "corporate"
+        # Corporate segmentation depends on the company name → require it here too
+        # (frontend already enforces it; defense-in-depth for direct API calls).
+        if is_corporate and not (body.company or "").strip():
+            raise HTTPException(status_code=422, detail={
+                "message": "Per una richiesta aziendale indica il nome dell'azienda.",
+                "reason": "company_required"})
 
         # SERVER-TRUTH: rebuild per-phoneme scores + verdict from the session.
         doc = await db.level_test_sessions.find_one({"session_id": sid}, {"_id": 0})
@@ -891,8 +899,6 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         verdict = _compute_verdict(iso, body.phrase_score) if iso else None
 
         now = datetime.now(timezone.utc)
-        segment = (body.segment or "").strip()
-        is_corporate = segment == "corporate"
         lead = {
             "source": "level_test",
             "session_id": sid,
