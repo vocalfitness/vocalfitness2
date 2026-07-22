@@ -27,8 +27,10 @@ export default function LevelTestPage() {
   const [speaking, setSpeaking] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [auralPick, setAuralPick] = useState(null);
-  const [lead, setLead] = useState({ email: '', segment: '', cefr: '' });
+  const [lead, setLead] = useState({ email: '', name: '', company: '', phone: '', segment: '', cefr: '' });
   const [consent, setConsent] = useState({ privacy: false, marketing: false });
+  const [gateSubmitting, setGateSubmitting] = useState(false);
+  const [gateError, setGateError] = useState('');
   const [scores, setScores] = useState({ isolated: {}, phrase: null });
   // Stable anonymous session id — the server keys first-cold/best + verdict on it.
   const [sessionId] = useState(() => `lt-${(typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`);
@@ -145,10 +147,44 @@ export default function LevelTestPage() {
 
   const branch = LEVEL_TEST_SEGMENTS.find((s) => s.value === lead.segment)?.branch || 'A';
 
-  const handleGateSubmit = () => {
-    // The verdict is already derived from the 3 isolated phonemes. The gate
-    // ONLY unlocks the detailed view — it does NOT recompute or add measures.
-    jumpTo('verdict');
+  const handleGateSubmit = async () => {
+    // M2.5 — 'test prima, dati dopo': persist the lead (with the mandatory GDPR
+    // consent) BEFORE unlocking the full verdict. The server owns the verdict.
+    if (gateSubmitting) return;
+    setGateError('');
+    setGateSubmitting(true);
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/level-test/lead`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          email: lead.email.trim(),
+          name: lead.name.trim(),
+          company: lead.company.trim(),
+          phone: branch === 'B' ? lead.phone.trim() : '',
+          segment: lead.segment,
+          cefr_self: lead.cefr,
+          consent_privacy: consent.privacy,
+          consent_marketing: consent.marketing,
+          consent_version: S.gate.consentVersion,
+          consent_text: S.gate.consentPrivacy,
+          phrase_score: null,
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        const msg = (data && data.detail && (data.detail.message || data.detail)) || S.gate.errorGeneric;
+        setGateError(typeof msg === 'string' ? msg : S.gate.errorGeneric);
+        return;
+      }
+      if (data.verdict) setVerdict(data.verdict);
+      jumpTo('verdict');
+    } catch (e) {
+      setGateError(S.gate.errorGeneric);
+    } finally {
+      setGateSubmitting(false);
+    }
   };
 
   const replayJarvis = () => {
@@ -410,6 +446,16 @@ export default function LevelTestPage() {
                     className="w-full px-4 py-3 bg-slate-900 border border-cyan-500/25 rounded-lg text-white placeholder-slate-600 focus:outline-none focus:border-orange-400 transition-colors"
                   />
                 </Field>
+                <Field label={S.gate.nameLabel}>
+                  <input
+                    type="text"
+                    value={lead.name}
+                    onChange={(e) => setLead({ ...lead, name: e.target.value })}
+                    placeholder={S.gate.namePlaceholder}
+                    data-testid="lt-gate-name"
+                    className="w-full px-4 py-3 bg-slate-900 border border-cyan-500/25 rounded-lg text-white placeholder-slate-600 focus:outline-none focus:border-orange-400 transition-colors"
+                  />
+                </Field>
                 <Field label={S.gate.segmentQuestion}>
                   <select
                     value={lead.segment}
@@ -423,6 +469,30 @@ export default function LevelTestPage() {
                     ))}
                   </select>
                 </Field>
+                {branch === 'B' && (
+                  <>
+                    <Field label={S.gate.companyLabel}>
+                      <input
+                        type="text"
+                        value={lead.company}
+                        onChange={(e) => setLead({ ...lead, company: e.target.value })}
+                        placeholder={S.gate.companyPlaceholder}
+                        data-testid="lt-gate-company"
+                        className="w-full px-4 py-3 bg-slate-900 border border-cyan-500/25 rounded-lg text-white placeholder-slate-600 focus:outline-none focus:border-orange-400 transition-colors"
+                      />
+                    </Field>
+                    <Field label={S.gate.phoneLabel}>
+                      <input
+                        type="tel"
+                        value={lead.phone}
+                        onChange={(e) => setLead({ ...lead, phone: e.target.value })}
+                        placeholder={S.gate.phonePlaceholder}
+                        data-testid="lt-gate-phone"
+                        className="w-full px-4 py-3 bg-slate-900 border border-cyan-500/25 rounded-lg text-white placeholder-slate-600 focus:outline-none focus:border-orange-400 transition-colors"
+                      />
+                    </Field>
+                  </>
+                )}
                 <Field label={S.gate.cefrQuestion}>
                   <select
                     value={lead.cefr}
@@ -443,7 +513,12 @@ export default function LevelTestPage() {
                     data-testid="lt-consent-privacy"
                     className="mt-0.5 accent-orange-500 w-4 h-4"
                   />
-                  <span>{S.gate.consentPrivacy}</span>
+                  <span>
+                    {S.gate.consentPrivacy}{' '}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" data-testid="lt-privacy-link" className="text-cyan-300 underline hover:text-orange-300">
+                      {S.gate.consentPrivacyLinkText}
+                    </Link>
+                  </span>
                 </label>
                 <label className="flex items-start gap-3 text-xs text-slate-400 cursor-pointer" data-testid="lt-consent-marketing-label">
                   <input
@@ -455,13 +530,16 @@ export default function LevelTestPage() {
                   />
                   <span>{S.gate.consentMarketing}</span>
                 </label>
+                {gateError && (
+                  <p className="text-xs text-red-400 font-semibold" data-testid="lt-gate-error">{gateError}</p>
+                )}
                 <button
                   onClick={handleGateSubmit}
-                  disabled={!lead.email || !lead.segment || !consent.privacy}
+                  disabled={!lead.email || !lead.name || !lead.segment || !consent.privacy || (branch === 'B' && !lead.company) || gateSubmitting}
                   data-testid="lt-gate-submit"
                   className="w-full inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold uppercase tracking-wider text-sm transition-all hover:scale-[1.02] shadow-[0_0_28px_rgba(251,146,60,0.5)]"
                 >
-                  <Mail size={17} /> {S.gate.submitCta}
+                  <Mail size={17} /> {gateSubmitting ? 'Invio…' : S.gate.submitCta}
                 </button>
               </div>
             </>

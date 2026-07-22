@@ -18,6 +18,7 @@ import MembersAreaPage from "./pages/MembersAreaPage";
 import AdminPage from "./pages/AdminPage";
 import SettingsPage from "./pages/SettingsPage";
 import LevelTestPage from "./pages/LevelTestPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -49,6 +50,7 @@ function App() {
               <Route path="/impostazioni" element={<SettingsPage />} />
               <Route path="/level-test" element={<LevelTestPage />} />
               <Route path="/scopri-il-tuo-livello" element={<LevelTestPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
             </Routes>
           </BrowserRouter>
         </LanguageProvider>

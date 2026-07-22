@@ -1,0 +1,24 @@
+{
+  "summary": "M2.5 Level-Test email-gate lead persistence — ALL 6 scenarios pass. Backend GDPR enforcement (422 with reason=gdpr_consent_required when consent_privacy=false), 200 with lead_type=private for professional segment + consent=true, corporate persistence in Mongo db.leads with company/phone/consent object (privacy/version/text/accepted_at), and private lead phone stripping all verified via pytest (5/5). Frontend gate at /level-test?step=gate renders all fields, corporate branch reveal + hide when switching segments works, submit button correctly disabled until email+name+segment+privacy (and company for corporate) are all satisfied, submit POSTs to /api/level-test/lead (status 200) and navigates to verdict step showing lt-verdict-score + Branch B panel. Privacy link /privacy renders privacy-policy-page. Mongo persistence confirmed post-UI-submit (segment=corporate, lead_type=corporate, company=EY QA, phone=+39 06 999, consent.privacy=true, consent.version=lt-1.0, consent.accepted_at ISO timestamp).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_level_test_lead_m25.py",
+    "/app/test_reports/pytest/level_test_lead_m25.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LevelTestPage.jsx handleGateSubmit: consent_text is always sent from S.gate.consentPrivacy (the copy), which is correct for the audit trail. Nice.",
+    "level_test.py capture_lead line 904: phone is stripped for non-corporate — matches spec, verified.",
+    "Minor: /api/level-test/lead does not validate that when segment='corporate', company must be non-empty (frontend enforces via submit disable, but a direct API call could persist an empty company for a corporate lead). Consider adding backend guard for defense-in-depth.",
+    "LevelTestPage.jsx line 30: initial state has empty string for segment; the select has an '—' option with value=''. Users could technically click submit only when segment is a valid value — correctly gated by the disabled attribute."
+  ],
+  "updated_files": ["/app/backend/tests/test_level_test_lead_m25.py"],
+  "success_rate": {"backend": "100% (5/5 pytest)", "frontend": "100% (all 6 gate scenarios + privacy link)"},
+  "test_credentials": "None required — public /level-test?step=gate review-mode bypass used as spec'd.",
+  "seed_data_creation": "Ephemeral test leads (TEST_sess_* + qa.corporate@ey.com) — cleaned up after run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "M2.5 email-gate + lead persistence is fully working. Backend /api/level-test/lead enforces GDPR (returns 422 detail.reason=gdpr_consent_required if consent_privacy is false, 422 for invalid email), segments corporate vs private via segment=='corporate', strips phone for private leads, persists to db.leads keyed on session_id (upsert). Frontend gate at /level-test?step=gate (review mode) is admin-preview-friendly — pytest file at /app/backend/tests/test_level_test_lead_m25.py can be run for regression: `python -m pytest backend/tests/test_level_test_lead_m25.py -v`.",
+  "rca of the issue": "N/A — no issues found. All M2.5 acceptance criteria verified end-to-end (direct API + frontend UI + Mongo state)."
+}

@@ -21,6 +21,7 @@ import io
 import wave
 import array
 import time
+import uuid
 import asyncio
 import logging
 import tempfile
@@ -54,6 +55,25 @@ class AttemptIn(BaseModel):
     lexical_status: str | None = None
     cefr: dict | None = None
     by_dialect: dict | None = None  # {RP: score|None, AmE: score|None}
+
+
+class LeadIn(BaseModel):
+    """M2.5 — email-gate lead. Captured AFTER the test, BEFORE the full verdict
+    ('test prima, dati dopo'). GDPR: the privacy consent is MANDATORY and stored
+    with its version + accepted text + server timestamp. Corporate branch adds
+    company (segmentation key) + phone; private branch never asks for phone."""
+    session_id: str
+    email: str
+    name: str = ""
+    company: str = ""
+    phone: str = ""
+    segment: str = ""          # LEVEL_TEST_SEGMENTS value (corporate → assisted sale)
+    cefr_self: str = ""        # self-declared certified level (optional)
+    consent_privacy: bool = False
+    consent_marketing: bool = False
+    consent_version: str = ""
+    consent_text: str = ""
+    phrase_score: float | None = None
 
 from routers.phoneme_formants import (
     _measure_all_ceilings,
@@ -825,5 +845,92 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         if not doc:
             raise HTTPException(status_code=404, detail="Sessione inesistente")
         return doc
+
+    # =================== M2.5 · LEAD PERSISTENCE (email gate) ==============
+    # Saves the lead to db.leads (shared collection; unique on session_id) and
+    # unlocks the FULL verdict. Enforces the mandatory GDPR privacy consent
+    # server-side. Reuses the SAME server-truth verdict (BEST attempt per phoneme).
+    _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+    @router.post("/lead")
+    async def capture_lead(body: LeadIn = Body(...)):
+        email = (body.email or "").strip().lower()
+        if not _EMAIL_RE.match(email):
+            raise HTTPException(status_code=422, detail={
+                "message": "Inserisci un'email valida.", "reason": "invalid_email"})
+        # GDPR — privacy consent is NON-NEGOTIABLE (E&Y employees in Italy).
+        if not body.consent_privacy:
+            raise HTTPException(status_code=422, detail={
+                "message": "Per sbloccare il report devi accettare l'informativa privacy.",
+                "reason": "gdpr_consent_required"})
+        sid = (body.session_id or "").strip()
+        if not sid:
+            raise HTTPException(status_code=400, detail="session_id mancante")
+
+        # SERVER-TRUTH: rebuild per-phoneme scores + verdict from the session.
+        doc = await db.level_test_sessions.find_one({"session_id": sid}, {"_id": 0})
+        iso, per_phoneme = [], {}
+        if doc:
+            for ipa, p in (doc.get("phonemes") or {}).items():
+                best = p.get("migliore") or {}
+                cold = p.get("primo_a_freddo") or {}
+                if best.get("target_score") is not None:
+                    iso.append({
+                        "ipa": ipa, "label": p.get("label") or ipa,
+                        "target_score": best["target_score"],
+                        "lexical_ok": best.get("lexical_ok", True),
+                        "by_dialect": best.get("by_dialect") or {},
+                    })
+                per_phoneme[ipa] = {
+                    "label": p.get("label"),
+                    "first_cold": cold.get("target_score"),
+                    "best": best.get("target_score"),
+                    "count": p.get("count"),
+                    "by_dialect": best.get("by_dialect") or {},
+                }
+        verdict = _compute_verdict(iso, body.phrase_score) if iso else None
+
+        now = datetime.now(timezone.utc)
+        segment = (body.segment or "").strip()
+        is_corporate = segment == "corporate"
+        lead = {
+            "source": "level_test",
+            "session_id": sid,
+            "email": email,
+            "name": (body.name or "").strip(),
+            # company is the corporate/private segmentation key (kept if provided)
+            "company": (body.company or "").strip(),
+            # phone is ONLY collected on the corporate branch
+            "phone": (body.phone or "").strip() if is_corporate else "",
+            "segment": segment,
+            "lead_type": "corporate" if is_corporate else "private",
+            "cefr_self_declared": body.cefr_self or "",
+            "dialect_evaluated": "bidialectal",
+            "dialect_scores": (verdict or {}).get("bidialect"),
+            "verdict": verdict,
+            "per_phoneme": per_phoneme,
+            "consent": {
+                "privacy": True,
+                "marketing": bool(body.consent_marketing),
+                "version": body.consent_version or "lt-1.0",
+                "text": (body.consent_text or "").strip(),
+                "accepted_at": now.isoformat(),
+            },
+            "updated_at": now,
+        }
+        await db.leads.update_one(
+            {"session_id": sid},
+            {"$set": lead,
+             "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now}},
+            upsert=True)
+        # Attach the lead to the session (predisposed lead_id field).
+        await db.level_test_sessions.update_one(
+            {"session_id": sid},
+            {"$set": {"lead_id": sid, "updated_at": now.isoformat()}})
+        logger.info("level-test/lead SAVED sid=%s email=%s segment=%s type=%s "
+                    "band=%s marketing=%s", sid, email, segment,
+                    lead["lead_type"], (verdict or {}).get("cefr", {}).get("band"),
+                    lead["consent"]["marketing"])
+        return {"ok": True, "lead_type": lead["lead_type"], "verdict": verdict}
 
     return router
