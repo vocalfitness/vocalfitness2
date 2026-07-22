@@ -2628,3 +2628,14 @@ backend/
 - ⚠️ BACKLOG LEGALE (da chiarire con consulente PRIMA del go-live su clienti UE): titolare stabilito
   fuori UE che tratta dati di residenti UE deve valutare la designazione di un RAPPRESENTANTE nell'Unione
   (art. 27 GDPR), salvo esenzioni. Non implementato: decisione legale.
+
+## [2026-06 fork] Clip di riferimento RIGENERATE e VALIDATE (6/6 passano)
+- Criterio pubblicazione: composite vs canone del rispettivo dialetto >= 75 (B2). Chi non passa non si pubblica.
+- RP (voce ElevenLabs Daniel, BBC broadcaster = match corpus MARSEC/BBC di Deterding), sostituite nel DB:
+  * LAW_RP /ɔː/  B2 (82.2) — F1 432 F2 966
+  * BIRD_RP /ɜː/ C1–C2 (98.3) — NON-rotica (F3 2613, F3-F2=1129) ✔ divergenza RP↔US autentica
+  * CAT_RP /æ/   B2 (88.8) — F1 856 (TRAP moderna abbassata) F2 1667
+- US (registrazioni native del Prof., GenAm autentico — mantenute/aggiornate):
+  * LAW_US B2 · BIRD_US B2 ROTICA (F3 1638) · CAT_US B2 (78.8) — RIREGISTRATA dal Prof. (vecchia F1=368 anomala risolta → F1 704 aperta). Gus TTS scartato (B1, F2 arretrata).
+- File Daniel: LAW_RP_daniel_1784754013 / BIRD_RP_daniel_1784754013 / TRAP_RP_daniel_1784754013 in uploads/leveltest.
+  Vecchie clip RP del Prof. restano su disco (solo URL ripuntati).
