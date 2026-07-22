@@ -2617,3 +2617,14 @@ backend/
    per BIRD verificare F3 rotico US (se la voce clonata perde r-coloring → serve registrazione reale).
 2. M2.4c Admin (soglie tarabili).  3. Copy definitivi (dal Prof.).
 - Vincolo badge: "Livello Vocal Fitness, ispirato ai descrittori CEFR" — mai "CEFR"/"certificato".
+
+## [2026-06 fork] Informativa privacy — dati reali titolare + quadro normativo doppio
+- Titolare: Steve Dapper — Speech Pathologist, Via Toveda 3, 6535 Roveredo (Svizzera),
+  privacy@vocalfitness.org. NESSUNA P.IVA (ricercatore/autonomo CH). Rimosso ogni riferimento societario.
+- Quadro DOPPIO: GDPR (UE 2016/679, art. 3.2) + nLPD svizzera (dal 1 set 2023). Reclami: Garante (IT/UE)
+  + IFPDT (CH). Trasferimento UE→CH lecito per decisione di adeguatezza (dichiarato in informativa).
+- Doppio consenso salvato DISTINTAMENTE in `consent.records.{privacy,marketing}` (granted+text+version+ts).
+- Audio prese: confermato NON conservato in produzione (temp file → os.unlink; nessun diagnostico attivo).
+- ⚠️ BACKLOG LEGALE (da chiarire con consulente PRIMA del go-live su clienti UE): titolare stabilito
+  fuori UE che tratta dati di residenti UE deve valutare la designazione di un RAPPRESENTANTE nell'Unione
+  (art. 27 GDPR), salvo esenzioni. Non implementato: decisione legale.

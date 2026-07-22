@@ -73,6 +73,7 @@ class LeadIn(BaseModel):
     consent_marketing: bool = False
     consent_version: str = ""
     consent_text: str = ""
+    consent_marketing_text: str = ""
     phrase_score: float | None = None
 
 from routers.phoneme_formants import (
@@ -916,11 +917,28 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
             "verdict": verdict,
             "per_phoneme": per_phoneme,
             "consent": {
+                # top-level flags kept for easy CRM querying
                 "privacy": True,
                 "marketing": bool(body.consent_marketing),
                 "version": body.consent_version or "lt-1.0",
                 "text": (body.consent_text or "").strip(),
                 "accepted_at": now.isoformat(),
+                # GDPR/nLPD: each purpose recorded DISTINCTLY (granted + exact
+                # text shown + version + timestamp) for a proper consent audit.
+                "records": {
+                    "privacy": {
+                        "granted": True,
+                        "text": (body.consent_text or "").strip(),
+                        "version": body.consent_version or "lt-1.0",
+                        "accepted_at": now.isoformat(),
+                    },
+                    "marketing": {
+                        "granted": bool(body.consent_marketing),
+                        "text": (body.consent_marketing_text or "").strip(),
+                        "version": body.consent_version or "lt-1.0",
+                        "accepted_at": now.isoformat(),
+                    },
+                },
             },
             "updated_at": now,
         }

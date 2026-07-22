@@ -3,47 +3,61 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 // Informativa privacy — Level Test lead capture (M2.5).
-// Struttura conforme agli artt. 13-14 GDPR (Reg. UE 2016/679).
-// NB PRODOTTO: i dati specifici del titolare (ragione sociale, P.IVA, indirizzo,
-// eventuale DPO) vanno finalizzati dal Prof./legale prima del go-live.
+// Titolare stabilito in SVIZZERA → quadro NORMATIVO DOPPIO: GDPR (UE 2016/679,
+// art. 3.2 offerta di servizi a interessati nell'Unione) + LPD svizzera (nLPD,
+// in vigore dal 1° settembre 2023). Autorità: Garante (IT/UE) + IFPDT (CH).
 const SECTIONS = [
   {
     h: '1. Titolare del trattamento',
-    p: 'Il titolare del trattamento dei dati è Vocal Fitness — Prof. Steve Dapper. ' +
-       'Per qualsiasi richiesta relativa ai tuoi dati puoi scrivere a privacy@vocalfitness.org.',
+    p: 'Il titolare del trattamento è Steve Dapper — Speech Pathologist, Via Toveda 3, ' +
+       '6535 Roveredo (Svizzera). Per qualsiasi richiesta relativa ai tuoi dati puoi scrivere a ' +
+       'privacy@vocalfitness.org.',
   },
   {
-    h: '2. Quali dati raccogliamo',
+    h: '2. Quadro normativo applicabile',
+    p: 'Il titolare è stabilito in Svizzera. Al presente trattamento si applicano congiuntamente: ' +
+       '(a) il Regolamento (UE) 2016/679 (GDPR), in quanto il servizio è offerto a interessati ' +
+       'situati nell’Unione europea (art. 3.2 GDPR); e (b) la Legge federale svizzera sulla ' +
+       'protezione dei dati (nLPD), in vigore dal 1° settembre 2023, quale normativa del Paese di ' +
+       'stabilimento del titolare.',
+  },
+  {
+    h: '3. Quali dati raccogliamo',
     p: 'Nel test di pronuncia raccogliamo: nome, indirizzo email, tipologia di utente ' +
        '(privato/azienda) e, per gli utenti aziendali, il nome dell’azienda e un recapito ' +
        'telefonico. Raccogliamo inoltre i risultati del test (punteggi di pronuncia per suono, ' +
        'primo tentativo e migliore, e il livello complessivo). L’audio registrato durante il ' +
-       'test viene analizzato in tempo reale e NON viene conservato.',
+       'test viene analizzato in tempo reale e NON viene in alcun modo conservato.',
   },
   {
-    h: '3. Finalità e base giuridica',
+    h: '4. Finalità e base giuridica',
     p: 'Trattiamo i tuoi dati per: (a) mostrarti il report completo del tuo livello di pronuncia; ' +
-       '(b) — solo se hai prestato l’apposito consenso marketing — ricontattarti via email o ' +
-       'telefono in merito ai percorsi Vocal Fitness. La base giuridica è il tuo consenso ' +
-       '(art. 6.1.a GDPR), revocabile in qualsiasi momento.',
+       '(b) — solo se hai prestato l’apposito consenso marketing, distinto e facoltativo — ' +
+       'ricontattarti via email o telefono in merito ai percorsi Vocal Fitness. La base giuridica ' +
+       'è il tuo consenso (art. 6.1.a GDPR; art. 6 nLPD), revocabile in qualsiasi momento senza ' +
+       'pregiudicare la liceità del trattamento precedente.',
   },
   {
-    h: '4. Conservazione',
+    h: '5. Conservazione',
     p: 'Conserviamo i dati per il tempo necessario alle finalità sopra indicate e comunque non ' +
        'oltre 24 mesi dall’ultimo contatto, salvo diversi obblighi di legge. Alla revoca del ' +
-       'consenso i dati marketing vengono cancellati.',
+       'consenso i dati trattati per la relativa finalità vengono cancellati.',
   },
   {
-    h: '5. Comunicazione dei dati',
-    p: 'I dati possono essere trattati da fornitori tecnici (hosting, invio email) che agiscono ' +
-       'come responsabili del trattamento. Non vendiamo i tuoi dati a terzi.',
+    h: '6. Trasferimento e comunicazione dei dati',
+    p: 'I dati sono trattati in Svizzera. Per la Svizzera la Commissione europea ha adottato una ' +
+       'decisione di adeguatezza: il trasferimento di dati personali dall’UE verso la Svizzera è ' +
+       'quindi lecito e non richiede garanzie aggiuntive. I dati possono essere trattati da ' +
+       'fornitori tecnici (hosting, invio email) che agiscono come responsabili del trattamento. ' +
+       'Non vendiamo i tuoi dati a terzi.',
   },
   {
-    h: '6. I tuoi diritti',
-    p: 'Puoi esercitare in ogni momento i diritti previsti dagli artt. 15-22 GDPR: accesso, ' +
-       'rettifica, cancellazione, limitazione, portabilità e opposizione, oltre alla revoca del ' +
-       'consenso e al reclamo al Garante per la protezione dei dati personali. Scrivi a ' +
-       'privacy@vocalfitness.org.',
+    h: '7. I tuoi diritti e reclami',
+    p: 'Puoi esercitare in ogni momento i diritti previsti dagli artt. 15-22 GDPR e dalla nLPD: ' +
+       'accesso, rettifica, cancellazione, limitazione, portabilità e opposizione, oltre alla ' +
+       'revoca del consenso (privacy@vocalfitness.org). Puoi inoltre proporre reclamo all’autorità ' +
+       'di controllo competente: in Italia/UE il Garante per la protezione dei dati personali; in ' +
+       'Svizzera l’IFPDT (Incaricato federale della protezione dei dati e della trasparenza).',
   },
 ];
 
@@ -61,7 +75,8 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-8 text-3xl sm:text-4xl font-black text-white">Informativa sulla privacy</h1>
         <p className="mt-3 text-sm text-slate-400">
           Come trattiamo i dati raccolti nel test di pronuncia Vocal Fitness, ai sensi del
-          Regolamento (UE) 2016/679 (GDPR).
+          Regolamento (UE) 2016/679 (GDPR) e della Legge federale svizzera sulla protezione dei
+          dati (nLPD).
         </p>
         <div className="mt-10 space-y-8">
           {SECTIONS.map((s) => (

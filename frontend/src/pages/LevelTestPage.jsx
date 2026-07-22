@@ -169,6 +169,7 @@ export default function LevelTestPage() {
           consent_marketing: consent.marketing,
           consent_version: S.gate.consentVersion,
           consent_text: S.gate.consentPrivacy,
+          consent_marketing_text: S.gate.consentMarketing,
           phrase_score: null,
         }),
       });
