@@ -15,51 +15,82 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
   const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [micReady, setMicReady] = useState(false);
   const mediaRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const autoStopRef = useRef(null);
+  const stopTimerRef = useRef(null);
+  const recStartRef = useRef(0);
+  const recStopRef = useRef(0);
 
-  useEffect(() => () => {
-    clearTimeout(autoStopRef.current);
-    if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-  }, []);
+  // FIX 1 — open the mic ONCE on mount and keep it WARM. The user reads the
+  // prompt for a couple of seconds before pressing Registra, so by the time
+  // they record the track is warm (no cold-start silence / truncated onset).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+        });
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = stream;
+        setMicReady(true);
+      } catch (err) {
+        setErrorMsg('Non riusciamo ad accedere al microfono. Consenti l\u2019accesso e riprova.');
+        setPhase('error');
+        onError && onError({ phonemeIpa, status: 'mic_denied' });
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(autoStopRef.current);
+      clearTimeout(stopTimerRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+    };
+  }, []); // eslint-disable-line
 
-  const stopStream = () => {
-    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
-  };
-
-  const start = async () => {
+  const start = () => {
+    if (!streamRef.current) return;
     setErrorMsg(''); setResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
-      });
-      streamRef.current = stream;
-      chunksRef.current = [];
-      const mr = new MediaRecorder(stream);
-      mediaRef.current = mr;
-      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => analyse();
-      mr.start();
-      setPhase('recording');
-      autoStopRef.current = setTimeout(() => stop(), kind === 'phrase' ? 9000 : 6000);
-    } catch (err) {
-      setErrorMsg('Non riusciamo ad accedere al microfono. Consenti l\u2019accesso e riprova.');
-      setPhase('error');
-    }
+    chunksRef.current = [];
+    const mr = new MediaRecorder(streamRef.current);
+    mediaRef.current = mr;
+    mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    mr.onstop = () => analyse();
+    recStartRef.current = performance.now();
+    mr.start();
+    setPhase('recording');
+    autoStopRef.current = setTimeout(() => stop(), kind === 'phrase' ? 9000 : 6000);
   };
 
   const stop = () => {
     clearTimeout(autoStopRef.current);
-    if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop();
+    // FIX 2 — keep recording ~250ms MORE after the click so the long vowel
+    // tail (/ɔː/, /ɜː/) is captured instead of being clipped.
+    if (stopTimerRef.current) return;
+    stopTimerRef.current = setTimeout(() => {
+      recStopRef.current = performance.now();
+      if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop();
+      stopTimerRef.current = null;
+    }, 250);
   };
 
   const analyse = async () => {
+    // FIX 2 — minimum duration guard. recorded wall-time minus the 300ms we
+    // trim from the start; if the usable audio is < ~0.6s it is too short to
+    // measure a long vowel → ask to hold the sound (does NOT count as attempt).
+    const usableMs = (recStopRef.current - recStartRef.current) - 300;
+    if (usableMs < 600) {
+      setPhase('idle');
+      onError && onError({ phonemeIpa, status: 'too_short' });
+      return;
+    }
     setPhase('analysing');
     try {
       const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
-      const wav = await blobToWav(blob);
+      const wav = await blobToWav(blob, 300); // trim first 300ms (cold segment)
       const fd = new FormData();
       fd.append('file', wav, 'take.wav');
       fd.append('phoneme_ipa', phonemeIpa || '');
@@ -83,9 +114,8 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
       setErrorMsg('Errore durante l\u2019analisi. Riprova.');
       setPhase('error');
       onError && onError({ phonemeIpa, status: 0 });
-    } finally {
-      stopStream();
     }
+    // NOTE: do NOT stop the stream here — keep the mic warm for the next take.
   };
 
   const reset = () => { setPhase('idle'); setResult(null); setErrorMsg(''); };
@@ -110,9 +140,9 @@ export const MockRecorder = ({ label, target, phonemeIpa, expected, kind = 'word
       </div>
 
       {phase === 'idle' && (
-        <button type="button" onClick={start} data-testid={`${testid}-start`}
-          className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all duration-300 hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.55)]">
-          <Mic size={18} /> Registra
+        <button type="button" onClick={start} disabled={!micReady} data-testid={`${testid}-start`}
+          className={`inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold uppercase tracking-wider text-sm transition-all duration-300 ${micReady ? 'bg-orange-500 hover:bg-orange-400 text-slate-950 hover:scale-105 shadow-[0_0_28px_rgba(251,146,60,0.55)]' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>
+          <Mic size={18} /> {micReady ? 'Registra' : 'Attivo il microfono\u2026'}
         </button>
       )}
       {phase === 'recording' && (

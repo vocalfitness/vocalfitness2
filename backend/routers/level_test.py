@@ -592,8 +592,8 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         # Wrong WORD (said clearly, but not the target) → capped at A1 regardless of
         # vowel quality. Short-circuit: no need to measure formants.
         if lexical["status"] == "wrong":
-            logger.info("level-test/score WRONG-WORD phoneme=%s expected=%r transcript=%r -> A1",
-                        phoneme_ipa, expected, transcript)
+            logger.info("level-test/score WRONG-WORD phoneme=%s expected=%r transcript=%r -> A1 audio=%s",
+                        phoneme_ipa, expected, transcript, _wav_stats(raw))
             return _wrong_word_result({}, None)
 
         # ============== Signal B: formant measurement ======================
@@ -640,11 +640,11 @@ def build_level_test_router(db, get_admin_user=None, emergent_put=None, uploads_
         diag = primary.get("diagnostics", {})
         logger.info(
             "level-test/score DIAG phoneme=%s shown=%s f0=%s group=%s composite=%s "
-            "coherence=%s attempts=%s lexical=%s transcript=%r",
+            "coherence=%s attempts=%s lexical=%s transcript=%r audio=%s",
             phoneme_ipa, shown, primary["student_formants"].get("F0"), primary.get("reference_group"),
             primary["composite_score"], _coherence_ok(primary),
             [(a.get("ceiling_hz"), a.get("F1"), a.get("F2"), a.get("plausible")) for a in diag.get("attempts", [])],
-            lexical["status"], transcript,
+            lexical["status"], transcript, _wav_stats(raw),
         )
         if not _coherence_ok(primary):
             raise _incoherent_error("vowel_incoherence")

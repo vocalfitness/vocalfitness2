@@ -4,17 +4,20 @@
  * (Parselmouth) read the audio natively without any server-side ffmpeg,
  * keeping the pipeline identical across Preview and Production.
  */
-function encodeWav(audioBuffer) {
+function encodeWav(audioBuffer, trimStartMs = 0) {
   const numCh = 1; // mono (mix down)
   const sampleRate = audioBuffer.sampleRate;
-  const length = audioBuffer.length;
+  // Drop the first ~trimStartMs (cold-mic warm-up segment) at PCM level — safe,
+  // unlike dropping webm chunks (which would corrupt the header/decoding).
+  const trimSamples = Math.min(audioBuffer.length, Math.floor((trimStartMs / 1000) * sampleRate));
+  const length = audioBuffer.length - trimSamples;
 
   // Mix all channels to mono.
   const mono = new Float32Array(length);
   const chCount = audioBuffer.numberOfChannels;
   for (let c = 0; c < chCount; c++) {
     const data = audioBuffer.getChannelData(c);
-    for (let i = 0; i < length; i++) mono[i] += data[i] / chCount;
+    for (let i = 0; i < length; i++) mono[i] += data[i + trimSamples] / chCount;
   }
 
   const bytesPerSample = 2;
@@ -51,13 +54,13 @@ function encodeWav(audioBuffer) {
   return new Blob([view], { type: 'audio/wav' });
 }
 
-export async function blobToWav(blob) {
+export async function blobToWav(blob, trimStartMs = 0) {
   const arrayBuffer = await blob.arrayBuffer();
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   try {
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-    return encodeWav(audioBuffer);
+    return encodeWav(audioBuffer, trimStartMs);
   } finally {
     try { await ctx.close(); } catch (_) { /* ignore */ }
   }

@@ -106,6 +106,10 @@ export const IsolatedStep = ({
       const msg = (err.detail && (err.detail.message || err.detail)) ||
         'Non ti ho sentito chiaramente. Avvicinati al microfono, riduci il rumore e riprova.';
       setUnmeasuredMsg(typeof msg === 'string' ? msg : 'Non ti ho sentito chiaramente. Riprova.');
+    } else if (err && err.status === 'too_short') {
+      setUnmeasuredMsg('Tieni il suono fermo 1-2 secondi: la presa era troppo breve per misurarla.');
+    } else if (err && err.status === 'mic_denied') {
+      setUnmeasuredMsg('Consenti l\u2019accesso al microfono per continuare, poi riprova.');
     } else {
       setUnmeasuredMsg('Non riusciamo ad accedere al microfono o alla registrazione. Riprova.');
     }
@@ -249,11 +253,13 @@ export const IsolatedStep = ({
             <MicOff className="text-slate-300" size={26} />
           </div>
           <p className="text-sm font-bold text-slate-100 mb-1">Non ti ho sentito chiaramente</p>
-          <p className="text-xs text-slate-400 leading-relaxed mb-2" data-testid="lt-unmeasured-msg">{unmeasuredMsg}</p>
-          <p className="text-[11px] text-emerald-400/80 font-semibold mb-5">Questo non conta come tentativo — nessun punteggio perso.</p>
-          <p className="text-[10px] text-slate-600 mb-3 font-mono" data-testid="lt-422-debug">
-            debug · tentativi misurati registrati: {curInfo.count || 0}/3
-          </p>
+          <p className="text-xs text-slate-400 leading-relaxed mb-3" data-testid="lt-unmeasured-msg">{unmeasuredMsg}</p>
+          <p className="text-[11px] text-emerald-400/80 font-semibold mb-2">Questa presa non conta come tentativo.</p>
+          {(curInfo.count || 0) > 0 && (
+            <p className="text-[11px] text-slate-400 mb-5" data-testid="lt-valid-attempts">
+              Tentativi validi già registrati: <span className="text-cyan-300 font-bold">{curInfo.count}/3</span>
+            </p>
+          )}
           <button
             type="button"
             onClick={retry}
